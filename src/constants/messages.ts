@@ -48,3 +48,22 @@ export const PRIVATE = {
   USERS_TITLE: "Users",
   USERS_DESC: "User/role management (admin only).",
 };
+
+export const LOGS_UI = {
+  FILTERS: "Filters",
+  LEVEL: "Level",
+  ALL: "All",
+  INFO: "Info",
+  WARN: "Warn",
+  ERROR: "Error",
+  FROM: "From",
+  TO: "To",
+  SEARCH: "Search",
+  CLEAR: "Clear Filters",
+};
+
+export const USERS_UI = {
+  TITLE: "Users",
+  DESC: "User and role management (admin only).",
+};
+

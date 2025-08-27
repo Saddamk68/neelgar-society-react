@@ -11,6 +11,7 @@ import Logs from "../pages/private/Logs";
 import Users from "../pages/private/Users";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
+import AddMember from "../pages/private/members/AddMember";
 
 function RequireAuth() {
   const { isAuthenticated } = useAuth();
@@ -40,6 +41,19 @@ export default function AppRoutes() {
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to={ROUTES.PUBLIC.HOME} replace />} />
+
+      {/* Private */}
+      <Route element={<RequireAuth />}>
+        <Route path={ROUTES.PRIVATE_BASE} element={<PrivateLayout />}>
+          <Route path={ROUTES.PRIVATE.DASHBOARD.replace("/app/", "")} element={<Dashboard />} />
+          <Route path={ROUTES.PRIVATE.MEMBERS.replace("/app/", "")} element={<Members />} />
+          {/* NEW: add form route */}
+          <Route path="members/new" element={<AddMember />} />
+          <Route path={ROUTES.PRIVATE.LOGS.replace("/app/", "")} element={<Logs />} />
+          <Route path={ROUTES.PRIVATE.USERS.replace("/app/", "")} element={<Users />} />
+        </Route>
+      </Route>
+
     </Routes>
   );
 }
