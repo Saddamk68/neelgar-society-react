@@ -7,6 +7,10 @@ import { MENU } from "../config/menu";
 import { roleHasPermission } from "../constants/permissions";
 import SkipLink from "../components/SkipLink";
 
+const SIDEBAR_W = 240; // px
+const HEADER_H = 64;   // h-16
+const FOOTER_H = 40;   // h-10
+
 export default function PrivateLayout() {
   const { logout, role } = useAuth();
   const navigate = useNavigate();
@@ -15,9 +19,7 @@ export default function PrivateLayout() {
 
   // Close mobile drawer on Escape
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -52,18 +54,24 @@ export default function PrivateLayout() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-text-primary lg:grid lg:grid-cols-[240px_1fr]">
+    <div className="h-screen overflow-hidden bg-background text-text-primary">
       <SkipLink />
 
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:block bg-sidebar-bg text-white p-4" aria-label="Sidebar">
-        <div className="h-12 flex items-center font-semibold tracking-wide" aria-label={`${APP.NAME} logo`}>
-          {APP.NAME}
+      {/* ===== Desktop fixed sidebar ===== */}
+      <aside
+        className="hidden lg:flex fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-4"
+        style={{ width: SIDEBAR_W }}
+        aria-label="Sidebar"
+      >
+        <div className="w-full">
+          <div className="h-12 flex items-center font-semibold tracking-wide" aria-label={`${APP.NAME} logo`}>
+            {APP.NAME}
+          </div>
+          {SidebarNav}
         </div>
-        {SidebarNav}
       </aside>
 
-      {/* Mobile overlay */}
+      {/* ===== Mobile overlay & drawer ===== */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -71,8 +79,6 @@ export default function PrivateLayout() {
           aria-hidden="true"
         />
       )}
-
-      {/* Mobile drawer */}
       <aside
         id="mobile-sidebar"
         className={[
@@ -98,102 +104,126 @@ export default function PrivateLayout() {
         {SidebarNav}
       </aside>
 
-      {/* Main area */}
-      <div className="flex flex-col min-h-screen">
-        {/* Top Nav */}
-        <header role="banner" className="h-16 bg-surface border-b flex items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <button
-              className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md border border-slate-200 hover:bg-slate-100 active:scale-95 transition"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open sidebar"
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-sidebar"
-              title="Open menu"
+      {/* ===== Fixed header ===== */}
+      <header
+        role="banner"
+        className="fixed top-0 right-0 left-0 lg:left-[240px] z-20 h-16 bg-surface border-b flex items-center justify-between px-4"
+      >
+      {/* <header
+        role="banner"
+        className="fixed top-0 right-0 z-20 h-16 bg-surface border-b flex items-center justify-between px-4"
+        style={{ left: `min(${SIDEBAR_W}px, 100vw)` }} // left offset on desktop; 0 on mobile (because sidebar is hidden)
+      > */}
+        <div className="flex items-center gap-3">
+          {/* Hamburger on mobile */}
+          <button
+            className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md border border-slate-200 hover:bg-slate-100 active:scale-95 transition"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open sidebar"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-sidebar"
+            title="Open menu"
+          >
+            <span className="sr-only">Open sidebar</span>
+            <div className="space-y-1.5">
+              <span className="block w-5 h-0.5 bg-current"></span>
+              <span className="block w-5 h-0.5 bg-current"></span>
+              <span className="block w-5 h-0.5 bg-current"></span>
+            </div>
+          </button>
+
+          <Link
+            to={ROUTES.PRIVATE.DASHBOARD}
+            className="font-semibold hover:opacity-90 transition"
+            title="Go to Dashboard"
+          >
+            {NAV.DASHBOARD}
+          </Link>
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={() => setProfileOpen(v => !v)}
+            className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
+            title="Open profile menu"
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+          >
+            <span className="sr-only">Open profile menu</span>
+            U
+          </button>
+
+          {profileOpen && (
+            <div
+              className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+              onMouseLeave={() => setProfileOpen(false)}
+              role="menu"
+              aria-label="Profile menu"
             >
-              <span className="sr-only">Open sidebar</span>
-              <div className="space-y-1.5">
-                <span className="block w-5 h-0.5 bg-current"></span>
-                <span className="block w-5 h-0.5 bg-current"></span>
-                <span className="block w-5 h-0.5 bg-current"></span>
+              <div className="px-4 py-2 text-xs text-text-muted">
+                {PROFILE_MENU.ROLE_PREFIX}{role}
               </div>
-            </button>
-
-            <Link
-              to={ROUTES.PRIVATE.DASHBOARD}
-              className="font-semibold hover:opacity-90 transition"
-              title="Go to Dashboard"
-            >
-              {NAV.DASHBOARD}
-            </Link>
-          </div>
-
-          <div className="relative">
-            <button
-              onClick={() => setProfileOpen(v => !v)}
-              className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
-              title="Open profile menu"
-              aria-haspopup="menu"
-              aria-expanded={profileOpen}
-            >
-              <span className="sr-only">Open profile menu</span>
-              U
-            </button>
-
-            {profileOpen && (
-              <div
-                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
-                onMouseLeave={() => setProfileOpen(false)}
-                role="menu"
-                aria-label="Profile menu"
+              <button
+                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                role="menuitem"
+                onClick={() => {
+                  setProfileOpen(false);
+                  navigate(ROUTES.PRIVATE.DASHBOARD);
+                }}
               >
-                <div className="px-4 py-2 text-xs text-text-muted">
-                  {PROFILE_MENU.ROLE_PREFIX}{role}
-                </div>
-                <button
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                  role="menuitem"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    navigate(ROUTES.PRIVATE.DASHBOARD);
-                  }}
-                >
-                  {PROFILE_MENU.VIEW_PROFILE}
-                </button>
-                <button
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                  role="menuitem"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    navigate(ROUTES.PRIVATE.DASHBOARD);
-                  }}
-                >
-                  {PROFILE_MENU.SETTINGS}
-                </button>
-                <button
-                  className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-slate-100 transition"
-                  role="menuitem"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    logout();
-                    navigate(ROUTES.PUBLIC.HOME);
-                  }}
-                >
-                  {PROFILE_MENU.LOGOUT}
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+                {PROFILE_MENU.VIEW_PROFILE}
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                role="menuitem"
+                onClick={() => {
+                  setProfileOpen(false);
+                  navigate(ROUTES.PRIVATE.DASHBOARD);
+                }}
+              >
+                {PROFILE_MENU.SETTINGS}
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-slate-100 transition"
+                role="menuitem"
+                onClick={() => {
+                  setProfileOpen(false);
+                  logout();
+                  navigate(ROUTES.PUBLIC.HOME);
+                }}
+              >
+                {PROFILE_MENU.LOGOUT}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
 
-        <main id="main-content" role="main" className="flex-1 p-4">
+      {/* ===== Fixed footer ===== */}
+      <footer
+        role="contentinfo"
+        className="fixed bottom-0 right-0 left-0 lg:left-[240px] z-20 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
+      >
+      {/* <footer
+        role="contentinfo"
+        className="fixed bottom-0 right-0 z-20 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
+        style={{ left: `min(${SIDEBAR_W}px, 100vw)` }}
+      > */}
+        © Neelgar Society 2025
+      </footer>
+
+      {/* ===== Scrollable content area (between header & footer, respecting sidebar) ===== */}
+      <main
+        id="main-content"
+        role="main"
+        className="absolute overflow-auto app-scroll p-4"
+        style={{ top: "64px", bottom: "40px", left: 0, right: 0 }}
+      >
+        {/* On desktop, add left padding equal to sidebar width so content doesn't go under it */}
+        <div className="lg:pl-[240px]">
           <Outlet />
-        </main>
-
-        <footer role="contentinfo" className="h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center">
-          {APP.COPYRIGHT}
-        </footer>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
