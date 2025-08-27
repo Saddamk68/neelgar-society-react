@@ -5,10 +5,14 @@ import SkipLink from "../components/SkipLink";
 
 export default function PublicLayout() {
   return (
-    <div className="min-h-screen bg-background text-text-primary flex flex-col">
+    <div className="h-screen overflow-hidden bg-background text-text-primary flex">
       <SkipLink />
 
-      <header role="banner" className="h-16 border-b bg-surface flex items-center justify-between px-4">
+      {/* Fixed header */}
+      <header
+        role="banner"
+        className="fixed top-0 left-0 right-0 z-20 h-16 border-b bg-surface flex items-center justify-between px-4"
+      >
         <div className="font-bold text-primary tracking-wide" aria-label={`${APP.NAME} logo`}>
           {APP.NAME}
         </div>
@@ -25,13 +29,22 @@ export default function PublicLayout() {
         </nav>
       </header>
 
-      <main id="main-content" role="main" className="flex-1">
-        <Outlet />
-      </main>
-
-      <footer role="contentinfo" className="h-12 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center">
+      {/* Fixed footer */}
+      <footer
+        role="contentinfo"
+        className="fixed bottom-0 left-0 right-0 z-20 h-12 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
+      >
         {APP.COPYRIGHT}
       </footer>
+
+      {/* Scrollable content area (between header & footer) */}
+      <main
+        id="main-content"
+        role="main"
+        className="absolute top-16 bottom-12 left-0 right-0 overflow-auto app-scroll"
+      >
+        <Outlet />
+      </main>
     </div>
   );
 }
