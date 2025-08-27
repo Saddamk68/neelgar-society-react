@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { APP, NAV, PROFILE_MENU } from "../constants/messages";
 import { MENU } from "../config/menu";
 import { roleHasPermission } from "../constants/permissions";
+import SkipLink from "../components/SkipLink";
 
 export default function PrivateLayout() {
   const { logout, role } = useAuth();
@@ -12,21 +13,22 @@ export default function PrivateLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Close mobile drawer on Escape
   useEffect(() => {
-    setProfileOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // filter menu based on RBAC
   const visibleMenu = useMemo(
-    () =>
-      MENU.filter((item) =>
-        (item.required ?? []).every((perm) => roleHasPermission(role, perm))
-      ),
+    () => MENU.filter(item => (item.required ?? []).every(perm => roleHasPermission(role, perm))),
     [role]
   );
 
   const SidebarNav = (
-    <nav className="mt-4 flex flex-col">
+    <nav aria-label="Primary" className="mt-4 flex flex-col">
       {visibleMenu.map((item) => (
         <NavLink
           key={item.key}
@@ -36,7 +38,7 @@ export default function PrivateLayout() {
             [
               "relative px-3 py-2 rounded-md transition-all",
               "hover:bg-sidebar-hover/90 hover:pl-3.5",
-              "focus:outline-none focus:ring-2 focus:ring-white/30",
+              "focus:outline-none",
               isActive
                 ? "bg-sidebar-hover/90 before:absolute before:left-0 before:top-0 before:h-full before:w-1.5 before:bg-primary before:rounded-r"
                 : "before:w-0",
@@ -51,15 +53,17 @@ export default function PrivateLayout() {
 
   return (
     <div className="min-h-screen bg-background text-text-primary lg:grid lg:grid-cols-[240px_1fr]">
+      <SkipLink />
+
       {/* Desktop sidebar */}
-      <aside className="hidden lg:block bg-sidebar-bg text-white p-4">
-        <div className="h-12 flex items-center font-semibold tracking-wide">
+      <aside className="hidden lg:block bg-sidebar-bg text-white p-4" aria-label="Sidebar">
+        <div className="h-12 flex items-center font-semibold tracking-wide" aria-label={`${APP.NAME} logo`}>
           {APP.NAME}
         </div>
         {SidebarNav}
       </aside>
 
-      {/* Mobile sidebar */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -67,7 +71,10 @@ export default function PrivateLayout() {
           aria-hidden="true"
         />
       )}
+
+      {/* Mobile drawer */}
       <aside
+        id="mobile-sidebar"
         className={[
           "fixed z-50 inset-y-0 left-0 w-64 bg-sidebar-bg text-white p-4 lg:hidden",
           "transform transition-transform duration-200 ease-out",
@@ -78,7 +85,7 @@ export default function PrivateLayout() {
         aria-label="Sidebar navigation"
       >
         <div className="h-12 flex items-center justify-between font-semibold tracking-wide">
-          <span>{APP.NAME}</span>
+          <span aria-label={`${APP.NAME} logo`}>{APP.NAME}</span>
           <button
             className="text-white/80 hover:text-white transition"
             onClick={() => setMobileOpen(false)}
@@ -94,12 +101,14 @@ export default function PrivateLayout() {
       {/* Main area */}
       <div className="flex flex-col min-h-screen">
         {/* Top Nav */}
-        <header className="h-16 bg-surface border-b flex items-center justify-between px-4">
+        <header role="banner" className="h-16 bg-surface border-b flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <button
               className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md border border-slate-200 hover:bg-slate-100 active:scale-95 transition"
               onClick={() => setMobileOpen(true)}
               aria-label="Open sidebar"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-sidebar"
               title="Open menu"
             >
               <span className="sr-only">Open sidebar</span>
@@ -121,12 +130,13 @@ export default function PrivateLayout() {
 
           <div className="relative">
             <button
-              onClick={() => setProfileOpen((v) => !v)}
+              onClick={() => setProfileOpen(v => !v)}
               className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
               title="Open profile menu"
               aria-haspopup="menu"
               aria-expanded={profileOpen}
             >
+              <span className="sr-only">Open profile menu</span>
               U
             </button>
 
@@ -135,6 +145,7 @@ export default function PrivateLayout() {
                 className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
                 onMouseLeave={() => setProfileOpen(false)}
                 role="menu"
+                aria-label="Profile menu"
               >
                 <div className="px-4 py-2 text-xs text-text-muted">
                   {PROFILE_MENU.ROLE_PREFIX}{role}
@@ -175,11 +186,11 @@ export default function PrivateLayout() {
           </div>
         </header>
 
-        <main className="flex-1 p-4">
+        <main id="main-content" role="main" className="flex-1 p-4">
           <Outlet />
         </main>
 
-        <footer className="h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center">
+        <footer role="contentinfo" className="h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center">
           {APP.COPYRIGHT}
         </footer>
       </div>
