@@ -6,8 +6,12 @@ export const ENDPOINTS = {
     logout: "/auth/logout",
   },
   members: {
-    base: "/members",
-    byId: (id: string | number) => `/members/${id}`,
+    root: "/members",
+    list: () => "/members",
+    get: (id: string | number) => `/members/${id}`,
+    create: () => "/members",
+    update: (id: string | number) => `/members/${id}`,
+    remove: (id: string | number) => `/members/${id}`,
   },
   logs: {
     base: "/logs",
@@ -17,4 +21,5 @@ export const ENDPOINTS = {
     base: "/users",
     byId: (id: string | number) => `/users/${id}`,
   },
+  // add logs/users later here
 } as const;

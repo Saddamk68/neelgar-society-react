@@ -1,44 +1,78 @@
-import axios from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { ENV } from "../config/env";
 
-// Module-level token holder (in-memory). We avoid localStorage for security.
+// ---- In-memory token (no localStorage) ----
 let authToken: string | null = null;
-
 export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+// Optional: a callback the app can register to react to 401s (e.g., logout)
+let unauthorizedHandler: (() => void) | null = null;
+export function onUnauthorized(cb: (() => void) | null) {
+  unauthorizedHandler = cb;
+}
+
+// ---- Axios instance ----
 export const api = axios.create({
   baseURL: ENV.API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  // withCredentials can be enabled later if you use httpOnly cookies:
-  // withCredentials: true,
+  timeout: 15000, // sensible default
+  // withCredentials: true, // enable if you switch to httpOnly cookies later
 });
 
-// Attach token if present
-api.interceptors.request.use((config) => {
+// ---- Request interceptor ----
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  // Attach bearer token if available
   if (authToken) {
     config.headers = config.headers ?? {};
     (config.headers as any).Authorization = `Bearer ${authToken}`;
   }
+
+  // Add a lightweight request id for tracing (backend can echo it)
+  (config.headers as any)["X-Request-Id"] =
+    (config.headers as any)["X-Request-Id"] ??
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
   return config;
 });
 
-// Basic response/error normalization
+// ---- Response interceptor (normalize errors, handle 401) ----
 api.interceptors.response.use(
   (resp) => resp,
-  (error) => {
+  (error: AxiosError<any>) => {
+    const status = error.response?.status ?? 0;
+
+    // Fire unauthorized hook once per 401 response
+    if (status === 401 && unauthorizedHandler) {
+      try {
+        unauthorizedHandler();
+      } catch {
+        /* no-op */
+      }
+    }
+
+    // Build normalized error payload
+    const data = error.response?.data as any;
+    const messageFromServer =
+      (data && (data.message || data.error || data.title)) || undefined;
+
     const normalized = {
-      code: error?.response?.status ?? 0,
+      code: status, // HTTP status or 0 for network/timeouts
       message:
-        error?.response?.data?.message ??
-        error?.message ??
-        "Unknown error",
-      details: error?.response?.data ?? null,
+        messageFromServer ??
+        (error.code === "ECONNABORTED"
+          ? "Request timed out"
+          : error.message || "Unknown error"),
+      details: data ?? null,
+      // Optional extras for debugging:
+      url: error.config?.url,
+      method: error.config?.method?.toUpperCase(),
     };
+
     return Promise.reject(normalized);
   }
 );
