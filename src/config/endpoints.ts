@@ -1,25 +1,27 @@
 // Central registry for backend endpoints (no hardcoded URLs in components/services).
+const API_BASE_URL = "http://localhost:8080/api/v1";
+
 export const ENDPOINTS = {
   auth: {
-    login: "/auth/login",
-    me: "/auth/me",
-    logout: "/auth/logout",
+    login: `${API_BASE_URL}/auth/login`,
+    register: `${API_BASE_URL}/auth/register`,
   },
   members: {
-    root: "/members",
+    base: `${API_BASE_URL}/members`,
+    // root: "/members",
     list: () => "/members",
-    get: (id: string | number) => `/members/${id}`,
-    create: () => "/members",
-    update: (id: string | number) => `/members/${id}`,
-    remove: (id: string | number) => `/members/${id}`,
+    get: (id: string | number) => `${API_BASE_URL}/members/${id}`,
+    create: () => "${API_BASE_URL}/members",
+    update: (id: string | number) => `${API_BASE_URL}/members/${id}`,
+    remove: (id: string | number) => `${API_BASE_URL}/members/${id}`,
   },
   logs: {
-    base: "/logs",
-    byId: (id: string | number) => `/logs/${id}`,
+    base: "${API_BASE_URL}/logs",
+    byId: (id: string | number) => `${API_BASE_URL}/logs/${id}`,
   },
   users: {
-    base: "/users",
-    byId: (id: string | number) => `/users/${id}`,
+    base: "${API_BASE_URL}/users",
+    byId: (id: string | number) => `${API_BASE_URL}/users/${id}`,
   },
   // add logs/users later here
 } as const;
