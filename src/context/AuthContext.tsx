@@ -14,8 +14,8 @@ type AuthState = {
   role: Role;
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
-  demoLogin: (role?: Role, tokenOverride?: string) => void; // keep demo login
+  register: (username: string, password: string, email: string) => Promise<void>;
+  demoLogin: (role?: Role, tokenOverride?: string) => void;
   logout: () => void;
 };
 
@@ -55,8 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // ---- Real backend register ----
-  const register = async (username: string, password: string) => {
-    const resp = await api.post(ENDPOINTS.auth.register, { username, password });
+  const register = async (username: string, password: string, email: string) => {
+    const resp = await api.post(ENDPOINTS.auth.register, {
+      username,
+      password,
+      email,
+    });
     const { accessToken, user } = resp.data;
 
     setAuthToken(accessToken);
