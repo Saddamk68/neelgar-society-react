@@ -8,12 +8,15 @@ export const MemberZ = z
   .object({
     // Member Details
     name: z.string().min(2, "Name is required"),
+    fatherName: z.string().min(2, "Father's name is required"),
+    motherName: z.string().min(2, "Mother's name is required"),
+    motherGotra: z.string().min(2, "Mother's gotra is required"),
     dob: z.string().optional(),
     gender: z.enum(["male", "female", "other"]).optional(),
     maritalStatus: z.enum(["single", "married", "widowed", "divorced"]).default("single"),
     occupation: z.string().optional(),
     education: z.enum(["None", "Bachelor", "Master", "Doctorate", "other"]).default("None").optional(),
-    gotra: z.string().optional(),
+    gotra: z.string().min(2, "Gotra is required"),
     ownershipStatus: z.enum(["owner", "tenant"]).default("owner"),
 
     // Contact
@@ -23,7 +26,7 @@ export const MemberZ = z
     // Address
     building: z.string().optional(),
     wing: z.string().optional(),
-    flatNo: z.string().min(1, "Flat number is required"),
+    flatNo: z.string().min(1, "Flat number is required").optional(),
     floor: z.string().optional(),
     block: z.string().optional(),
     street: z.string().optional(),
