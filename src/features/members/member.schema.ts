@@ -21,6 +21,7 @@ export const MemberZ = z
     occupation: z.string().optional(),
     gotra: z.string().min(2, "Gotra is required"),
     photoPath: z.string().optional(),
+    role: z.enum(["ADMIN", "PRESIDENT", "SECRETARY", "EDITOR", "MEMBER"]).default("MEMBER").optional(),
 
     // Contact
     contactNumber: z.string().regex(phoneRegex, "Enter valid 10 digit phone"),
@@ -214,6 +215,7 @@ export const defaultMemberValues: MemberFormValues = {
   photoPath: "",
   contactNumber: "9784561250",
   email: "saddam@gmail.com",
+  role: "MEMBER",
   active: true,
   aadhaar: "745885215236",
   pan: "",
