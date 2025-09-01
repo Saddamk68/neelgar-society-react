@@ -2,15 +2,15 @@
 
 export const LABELS = {
   gender: [
-    { value: "male", label: "Male" },
-    { value: "female", label: "Female" },
-    { value: "other", label: "Other" },
+    { value: "MALE", label: "Male" },
+    { value: "FEMALE", label: "Female" },
+    { value: "OTHER", label: "Other" },
   ],
   maritalStatus: [
-    { value: "single", label: "Single" },
-    { value: "married", label: "Married" },
-    { value: "widowed", label: "Widowed" },
-    { value: "divorced", label: "Divorced" },
+    { value: "MARRIED", label: "Married" },
+    { value: "SINGLE", label: "Single" },
+    { value: "DIVORCED", label: "Divorced" },
+    { value: "WIDOWED", label: "Widowed" },
   ],
   ownershipStatus: [
     { value: "owner", label: "Owner" },
