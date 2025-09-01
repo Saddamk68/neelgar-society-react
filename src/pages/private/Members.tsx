@@ -38,8 +38,9 @@ export default function Members() {
   const filteredAndSorted = useMemo(() => {
     if (!data) return [];
 
+    // 🔹 include id in search fields
     let filtered = data.filter((m) =>
-      [m.name, m.fatherName, m.motherName, m.gotra]
+      [m.id?.toString(), m.name, m.fatherName, m.motherName, m.gotra]
         .filter(Boolean)
         .some((val) =>
           val!.toLowerCase().includes(search.trim().toLowerCase())
@@ -83,10 +84,10 @@ export default function Members() {
           {/* Search bar */}
           <input
             type="text"
-            placeholder="Search members…"
+            placeholder="Search members by ID, Name, Father, Mother, Gotra…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm w-60 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 py-2 border rounded-md text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary"
           />
           {/* Add Member button */}
           <Link
@@ -125,8 +126,9 @@ export default function Members() {
                 <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
                   <tr>
                     {MEMBER_COLUMNS.map((col) => {
+                      // 🔹 make id sortable as well
                       const isSortable =
-                        ["name", "fatherName", "motherName", "gotra"].includes(
+                        ["id", "name", "fatherName", "motherName", "gotra"].includes(
                           col.key as string
                         );
                       const isActive = sortConfig.key === col.key;
