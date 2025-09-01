@@ -44,7 +44,7 @@ export async function createMember(payload: MemberFormValues): Promise<MemberFor
 
 // ---------- UPDATE ----------
 export async function updateMember(id: string | number, payload: MemberFormValues): Promise<MemberFormValues> {
-  const res = await api.put(ENDPOINTS.members.update(id), toBackendPayload(payload));
+  const res = await api.patch(ENDPOINTS.members.update(id), toBackendPayload(payload));
   const m = res.data?.data ?? res.data;
   return fromBackendResponse(m);
 }

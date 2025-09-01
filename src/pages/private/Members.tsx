@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   listMembers,
   MemberListItem,
@@ -16,7 +16,9 @@ type SortConfig = {
 };
 
 export default function Members() {
+  const navigate = useNavigate();
   const notify = useNotify();
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: ["members", "list"],
     queryFn: listMembers,
@@ -164,7 +166,8 @@ export default function Members() {
                         key={row.id}
                         className={`${
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-primary/5 transition-colors`}
+                        } hover:bg-primary/5 transition-colors cursor-pointer`}
+                        onClick={() => navigate(`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`)}
                       >
                         {MEMBER_COLUMNS.map((col) => (
                           <td
