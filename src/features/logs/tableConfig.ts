@@ -14,7 +14,7 @@ export const LOGS_COLUMNS: ColumnConfig<LogEntry>[] = [
   {
     key: "eventTime",
     title: "Event Time",
-    width: "170px",
+    width: "150px",
     sortable: true,
   },
   {
@@ -27,7 +27,7 @@ export const LOGS_COLUMNS: ColumnConfig<LogEntry>[] = [
   {
     key: "actor",
     title: "Actor",
-    width: "120px",
+    width: "90px",
     truncate: true,
     tooltip: true,
     sortable: true,
@@ -43,21 +43,21 @@ export const LOGS_COLUMNS: ColumnConfig<LogEntry>[] = [
   {
     key: "ipAddress",
     title: "IP Address",
-    width: "140px",
+    width: "120px",
     truncate: true,
     tooltip: true,
   },
   {
     key: "userAgent",
     title: "User Agent",
-    width: "200px",
+    width: "160px",
     truncate: true,
     tooltip: true,
   },
   {
     key: "metadata",
     title: "Log Details",
-    width: "300px",
+    width: "380px",
     truncate: true,
     tooltip: true,
   },

@@ -6,6 +6,7 @@ import type { LogEntry, LogLevel } from "../../features/logs/types";
 import { PRIVATE, LOGS_UI } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
 import { LOG_LEVEL_STYLES } from "../../features/logs/types";
+import Modal from "../../components/Modal";
 
 type Filters = {
   level: "ALL" | LogLevel;
@@ -29,6 +30,10 @@ export default function Logs() {
     key: "eventTime",
     direction: "desc",
   });
+
+  // ✅ State for modal
+  const [selectedLogDetails, setSelectedLogDetails] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data, isLoading, isError } = useQuery<PaginatedResponse<LogEntry>>({
     queryKey: ["logs", page, filters, sortConfig],
@@ -75,6 +80,15 @@ export default function Logs() {
       }
       return { key, direction: "asc" };
     });
+  };
+
+  // ✅ Copy handler
+  const handleCopy = () => {
+    if (selectedLogDetails) {
+      navigator.clipboard.writeText(selectedLogDetails);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // reset after 2s
+    }
   };
 
   return (
@@ -214,6 +228,22 @@ export default function Logs() {
                             );
                           }
 
+                          // ✅ Make Log Details (metadata) clickable
+                          if (col.key === "metadata" && value) {
+                            displayValue = (
+                              <span
+                                className="text-blue-600 cursor-pointer hover:underline"
+                                onClick={() =>
+                                  setSelectedLogDetails(value as string)
+                                }
+                              >
+                                {(value as string).length > 50
+                                  ? (value as string).substring(0, 50) + "..."
+                                  : value}
+                              </span>
+                            );
+                          }
+
                           return (
                             <td
                               key={col.key}
@@ -231,7 +261,10 @@ export default function Logs() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={LOGS_COLUMNS.length} className="py-6 text-center text-text-muted">
+                      <td
+                        colSpan={LOGS_COLUMNS.length}
+                        className="py-6 text-center text-text-muted"
+                      >
                         No logs match your filters.
                       </td>
                     </tr>
@@ -275,6 +308,29 @@ export default function Logs() {
           </div>
         )}
       </div>
+
+      {/* ✅ Modal for Log Details */}
+      <Modal
+        isOpen={!!selectedLogDetails}
+        onClose={() => setSelectedLogDetails(null)}
+        title="Log Details"
+      >
+        <pre className="whitespace-pre-wrap break-words font-mono text-sm bg-slate-50 p-3 rounded-md max-h-[50vh] overflow-y-auto">
+          {selectedLogDetails}
+        </pre>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleCopy}
+            className={`px-4 py-2 rounded-md border text-sm shadow-sm transition ${
+              copied
+                ? "bg-green-100 text-green-700 border-green-300"
+                : "bg-blue-600 text-white border-blue-700 hover:bg-blue-700"
+            }`}
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
