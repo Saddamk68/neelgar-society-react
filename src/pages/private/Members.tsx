@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   listMembers,
   MemberListItem,
-  PaginatedResponse,
 } from "../../features/members/services/memberService";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
@@ -21,16 +20,16 @@ export default function Members() {
   const notify = useNotify();
 
   const [page, setPage] = useState(0);
-  const [size] = useState(15); // fixed page size
   const [search, setSearch] = useState("");
+  const [size] = useState(30); // fixed page size
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
     direction: "asc",
   });
 
-  const { data, isLoading, isError } = useQuery<PaginatedResponse<MemberListItem>>({
-    queryKey: ["members", page, size],
-    queryFn: () => listMembers(page, size),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["members", page, search],
+    queryFn: () => listMembers(page, size, search),
   });
 
   useEffect(() => {
@@ -91,7 +90,7 @@ export default function Members() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 flex flex-col h-[calc(98vh-8rem)]">
       {/* Page header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -135,12 +134,12 @@ export default function Members() {
         </div>
       )}
 
-      {/* Data Table */}
+      {/* Data Table + Fixed Pagination */}
       {!isLoading && !isError && data && (
         <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
+          {/* Table section */}
           <div className="overflow-x-auto flex-1">
-            {/* 🔹 Increased table height */}
-            <div className="max-h-[65vh] overflow-y-auto">
+            <div className="h-full max-h-[65vh] overflow-y-auto">
               <table className="w-full text-sm border-collapse">
                 <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
                   <tr>
@@ -183,7 +182,9 @@ export default function Members() {
                         className={`${
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-primary/5 transition-colors cursor-pointer`}
-                        onClick={() => navigate(`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`)}
+                        onClick={() =>
+                          navigate(`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`)
+                        }
                       >
                         {MEMBER_COLUMNS.map((col) => (
                           <td
@@ -210,9 +211,9 @@ export default function Members() {
             </div>
           </div>
 
-          {/* Pagination (centered, no bg/border) */}
+          {/* Pagination bar fixed below */}
           {data.totalPages > 1 && (
-            <div className="flex justify-center py-2 text-xs text-gray-600">
+            <div className="flex justify-center py-2 text-xs text-gray-600 border-t bg-gray-50">
               <span
                 className={`cursor-pointer mx-1 ${
                   page === 0 ? "text-gray-400 cursor-not-allowed" : "hover:underline"
