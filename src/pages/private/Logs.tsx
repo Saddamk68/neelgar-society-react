@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, JSX } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listLogs, PaginatedResponse } from "../../features/logs/services/logService";
-import { LOG_COLUMNS } from "../../features/logs/tableConfig";
+import { LOGS_COLUMNS } from "../../features/logs/tableConfig";
 import type { LogEntry, LogLevel } from "../../features/logs/types";
 import { PRIVATE, LOGS_UI } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
@@ -171,57 +171,67 @@ export default function Logs() {
               <table className="min-w-[1000px] w-full text-sm border-collapse">
                 <thead className="sticky top-0 bg-gray-200 shadow-sm">
                   <tr className="text-left border-b">
-                    <th
-                      className="py-2 px-4 min-w-[130px] md:min-w-[170px] lg:min-w-[170px] cursor-pointer"
-                      onClick={() => handleSort("eventTime")}
-                    >
-                      Even Time {sortConfig.key === "eventTime" && (sortConfig.direction === "asc" ? "↑" : "↓")}
-                    </th>
-                    <th
-                      className="py-2 px-4 min-w-[60px] md:min-w-[90px] cursor-pointer"
-                      onClick={() => handleSort("level")}
-                    >
-                      Level {sortConfig.key === "level" && (sortConfig.direction === "asc" ? "↑" : "↓")}
-                    </th>
-                    <th
-                      className="py-2 px-4 cursor-pointer"
-                      onClick={() => handleSort("actor")}
-                    >
-                      Actor {sortConfig.key === "actor" && (sortConfig.direction === "asc" ? "↑" : "↓")}
-                    </th>
-                    <th
-                      className="py-2 px-4 cursor-pointer"
-                      onClick={() => handleSort("action")}
-                    >
-                      Action {sortConfig.key === "action" && (sortConfig.direction === "asc" ? "↑" : "↓")}
-                    </th>
-                    <th className="py-2 px-4">IP Address</th>
-                    <th className="py-2 px-4">User Agent</th>
-                    <th className="py-2 px-4">Details</th>
+                    {LOGS_COLUMNS.map((col) => (
+                      <th
+                        key={col.key}
+                        style={{ minWidth: col.width, textAlign: col.align ?? "left" }}
+                        className={`py-2 px-4 ${
+                          col.sortable ? "cursor-pointer select-none" : ""
+                        }`}
+                        onClick={() => col.sortable && handleSort(col.key as keyof LogEntry)}
+                      >
+                        {col.title}{" "}
+                        {sortConfig.key === col.key &&
+                          (sortConfig.direction === "asc" ? "↑" : "↓")}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {data.content.length > 0 ? (
                     data.content.map((row: LogEntry) => (
-                      <tr key={row.id} className="border-b last:border-b-0 hover:bg-slate-50/60">
-                        <td className="py-2 px-4">{new Date(row.eventTime).toLocaleString()}</td>
-                        <td className="py-2 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs ${LOG_LEVEL_STYLES[row.level].bg} ${LOG_LEVEL_STYLES[row.level].text}`}
-                          >
-                            {row.level}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4">{row.actor ?? "-"}</td>
-                        <td className="py-2 px-4">{row.action}</td>
-                        <td className="py-2 px-4">{row.ipAddress ?? "-"}</td>
-                        <td className="py-2 px-4 truncate max-w-[200px]">{row.userAgent ?? "-"}</td>
-                        <td className="py-2 px-4">{row.metadata ?? "-"}</td>
+                      <tr
+                        key={row.id}
+                        className="border-b last:border-b-0 hover:bg-slate-50/60"
+                      >
+                        {LOGS_COLUMNS.map((col) => {
+                          const value = row[col.key as keyof LogEntry];
+                          let displayValue: string | JSX.Element = value as string;
+
+                          // Special formatting for known fields
+                          if (col.key === "eventTime" && value) {
+                            displayValue = new Date(value as string).toLocaleString();
+                          }
+                          if (col.key === "level" && value) {
+                            displayValue = (
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs ${
+                                  LOG_LEVEL_STYLES[value as LogLevel].bg
+                                } ${LOG_LEVEL_STYLES[value as LogLevel].text}`}
+                              >
+                                {value}
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <td
+                              key={col.key}
+                              style={{ minWidth: col.width, textAlign: col.align ?? "left" }}
+                              className={`py-2 px-4 ${
+                                col.truncate ? "truncate max-w-[200px]" : ""
+                              }`}
+                              title={col.tooltip && typeof value === "string" ? value : undefined}
+                            >
+                              {displayValue ?? "-"}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-text-muted">
+                      <td colSpan={LOGS_COLUMNS.length} className="py-6 text-center text-text-muted">
                         No logs match your filters.
                       </td>
                     </tr>
