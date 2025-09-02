@@ -13,19 +13,36 @@ export type MemberListItem = {
   phone?: string;
 };
 
-// ---------- LIST ----------
-export async function listMembers(): Promise<MemberListItem[]> {
-  const res = await api.get(ENDPOINTS.members.list());
-  const raw = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+// ---------- PAGINATED RESPONSE ----------
+export type PaginatedResponse<T> = {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
 
-  return raw.map((m: any) => ({
-    id: m.id,
-    name: m.name,
-    fatherName: m.fatherName ?? "-",
-    motherName: m.motherName ?? "",
-    gotra: m.gotra ?? "",
-    phone: m.contactNumber ?? m.phone ?? "",
-  }));
+// ---------- LIST (Paginated) ----------
+export async function listMembers(
+  page = 0,
+  size = 30
+): Promise<PaginatedResponse<MemberListItem>> {
+  const res = await api.get(ENDPOINTS.members.list(), {
+    params: { page, size }, // Spring Data Pageable
+  });
+
+  const data = res.data;
+  return {
+    ...data,
+    content: data.content.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      fatherName: m.fatherName ?? "-",
+      motherName: m.motherName ?? "",
+      gotra: m.gotra ?? "",
+      phone: m.contactNumber ?? m.phone ?? "",
+    })),
+  };
 }
 
 // ---------- GET ----------
@@ -36,15 +53,26 @@ export async function getMember(id: string | number): Promise<MemberFormValues> 
 }
 
 // ---------- CREATE ----------
-export async function createMember(payload: MemberFormValues): Promise<MemberFormValues> {
-  const res = await api.post(ENDPOINTS.members.create(), toBackendPayload(payload));
+export async function createMember(
+  payload: MemberFormValues
+): Promise<MemberFormValues> {
+  const res = await api.post(
+    ENDPOINTS.members.create(),
+    toBackendPayload(payload)
+  );
   const m = res.data?.data ?? res.data;
   return fromBackendResponse(m);
 }
 
 // ---------- UPDATE ----------
-export async function updateMember(id: string | number, payload: MemberFormValues): Promise<MemberFormValues> {
-  const res = await api.patch(ENDPOINTS.members.update(id), toBackendPayload(payload));
+export async function updateMember(
+  id: string | number,
+  payload: MemberFormValues
+): Promise<MemberFormValues> {
+  const res = await api.patch(
+    ENDPOINTS.members.update(id),
+    toBackendPayload(payload)
+  );
   const m = res.data?.data ?? res.data;
   return fromBackendResponse(m);
 }
