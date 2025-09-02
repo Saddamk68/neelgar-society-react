@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   listMembers,
   MemberListItem,
+  PaginatedResponse,
 } from "../../features/members/services/memberService";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
@@ -18,16 +19,18 @@ type SortConfig = {
 export default function Members() {
   const navigate = useNavigate();
   const notify = useNotify();
-  
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["members", "list"],
-    queryFn: listMembers,
-  });
 
+  const [page, setPage] = useState(0);
+  const [size] = useState(15); // fixed page size
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: null,
     direction: "asc",
+  });
+
+  const { data, isLoading, isError } = useQuery<PaginatedResponse<MemberListItem>>({
+    queryKey: ["members", page, size],
+    queryFn: () => listMembers(page, size),
   });
 
   useEffect(() => {
@@ -36,12 +39,11 @@ export default function Members() {
     }
   }, [isError, notify]);
 
-  // Filter + Sort
+  // Filter + Sort (client-side on current page)
   const filteredAndSorted = useMemo(() => {
     if (!data) return [];
 
-    // 🔹 include id in search fields
-    let filtered = data.filter((m) =>
+    let filtered = data.content.filter((m) =>
       [m.id?.toString(), m.name, m.fatherName, m.motherName, m.gotra]
         .filter(Boolean)
         .some((val) =>
@@ -72,6 +74,20 @@ export default function Members() {
       }
       return { key, direction: "asc" };
     });
+  };
+
+  // 🔹 Helper to limit visible pages (max 5)
+  const getVisiblePages = (totalPages: number, currentPage: number) => {
+    const maxVisible = 5;
+    let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
+    let end = start + maxVisible - 1;
+
+    if (end >= totalPages) {
+      end = totalPages - 1;
+      start = Math.max(0, end - maxVisible + 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
   return (
@@ -121,14 +137,14 @@ export default function Members() {
 
       {/* Data Table */}
       {!isLoading && !isError && data && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="max-h-[70vh] overflow-y-auto">
+        <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
+          <div className="overflow-x-auto flex-1">
+            {/* 🔹 Increased table height */}
+            <div className="max-h-[65vh] overflow-y-auto">
               <table className="w-full text-sm border-collapse">
                 <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
                   <tr>
                     {MEMBER_COLUMNS.map((col) => {
-                      // 🔹 make id sortable as well
                       const isSortable =
                         ["id", "name", "fatherName", "motherName", "gotra"].includes(
                           col.key as string
@@ -161,7 +177,7 @@ export default function Members() {
                 </thead>
                 <tbody>
                   {filteredAndSorted.length > 0 ? (
-                    filteredAndSorted.map((row, idx) => (
+                    filteredAndSorted.map((row: MemberListItem, idx: number) => (
                       <tr
                         key={row.id}
                         className={`${
@@ -193,6 +209,45 @@ export default function Members() {
               </table>
             </div>
           </div>
+
+          {/* Pagination (centered, no bg/border) */}
+          {data.totalPages > 1 && (
+            <div className="flex justify-center py-2 text-xs text-gray-600">
+              <span
+                className={`cursor-pointer mx-1 ${
+                  page === 0 ? "text-gray-400 cursor-not-allowed" : "hover:underline"
+                }`}
+                onClick={() => page > 0 && setPage(page - 1)}
+              >
+                Prev
+              </span>
+
+              {getVisiblePages(data.totalPages, page).map((p) => (
+                <span
+                  key={p}
+                  className={`cursor-pointer mx-1 ${
+                    p === page
+                      ? "font-bold text-primary underline"
+                      : "hover:underline"
+                  }`}
+                  onClick={() => setPage(p)}
+                >
+                  {p + 1}
+                </span>
+              ))}
+
+              <span
+                className={`cursor-pointer mx-1 ${
+                  page >= data.totalPages - 1
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "hover:underline"
+                }`}
+                onClick={() => page < data.totalPages - 1 && setPage(page + 1)}
+              >
+                Next
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
