@@ -158,35 +158,6 @@ export default function Login() {
           </form>
         )}
 
-
-        <hr className="my-4" />
-
-        {/* Demo login buttons */}
-        {tab === "login" && (
-          <>
-            <p className="text-sm text-text-muted mb-4">Demo buttons:</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  demoLogin("admin");
-                  navigate(ROUTES.PRIVATE.DASHBOARD);
-                }}
-                className="flex-1 px-3 py-2 rounded bg-primary text-white"
-              >
-                Login as Admin
-              </button>
-              <button
-                onClick={() => {
-                  demoLogin("member");
-                  navigate(ROUTES.PRIVATE.DASHBOARD);
-                }}
-                className="flex-1 px-3 py-2 rounded bg-secondary text-white"
-              >
-                Login as Member
-              </button>
-            </div>
-          </>
-        )}
       </div>
     </section>
   );
