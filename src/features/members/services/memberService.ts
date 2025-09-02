@@ -16,25 +16,22 @@ export type MemberListItem = {
 // ---------- PAGINATED RESPONSE ----------
 export type PaginatedResponse<T> = {
   content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
   totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number; // current page
 };
 
 // ---------- LIST (Paginated) ----------
-export async function listMembers(
-  page = 0,
-  size = 30
-): Promise<PaginatedResponse<MemberListItem>> {
+export async function listMembers(page = 0, size = 30, search = ""): Promise<PaginatedResponse<MemberListItem>> {
   const res = await api.get(ENDPOINTS.members.list(), {
-    params: { page, size }, // Spring Data Pageable
+    params: { page, size, search },
   });
+  const raw = res.data;
 
-  const data = res.data;
   return {
-    ...data,
-    content: data.content.map((m: any) => ({
+    ...raw,
+    content: raw.content.map((m: any) => ({
       id: m.id,
       name: m.name,
       fatherName: m.fatherName ?? "-",
