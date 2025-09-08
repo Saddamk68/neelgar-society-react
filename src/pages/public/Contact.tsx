@@ -35,7 +35,7 @@ export default function Contact() {
 
   return (
     <main id="contact" className="bg-slate-50 text-slate-900">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-6 py-6">
         <h1 className="text-2xl font-bold">Contact us</h1>
         <p className="mt-2 text-slate-600">Questions, partnership inquiries or media requests — we’d love to hear from you.</p>
 
@@ -84,7 +84,8 @@ export default function Contact() {
 
         {/* Developer credit placed inside the Contact section so it won't collide with your app footer */}
         <div className="mt-8 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Neelgar Society — Developed by Saddam Khan
+          {/* © {new Date().getFullYear()} Neelgar Society —  */}
+          Developed by Saddam Khan
         </div>
       </div>
     </main>
