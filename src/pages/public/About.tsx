@@ -1,7 +1,7 @@
 export default function About() {
   return (
     <main id="about" className="bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-6">
         <h1 className="text-3xl md:text-4xl font-bold">About Neelgar Society</h1>
         <p className="mt-4 text-slate-700 max-w-2xl">
           Founded in 2007, Neelgar Society works across education, health and livelihoods to empower communities.
