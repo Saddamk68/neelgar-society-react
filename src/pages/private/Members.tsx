@@ -130,7 +130,7 @@ export default function Members() {
         <div className="flex items-center justify-center gap-2">
           <Tooltip content="View" offset={20}>
             <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}`}
+              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}/view`}
               aria-label={`View member ${row.id}`}
               onClick={(e) => e.stopPropagation()}
               className="p-1 rounded hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200"

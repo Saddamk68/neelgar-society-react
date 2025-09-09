@@ -13,6 +13,7 @@ import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
 import AddMember from "../pages/private/members/AddMember";
 import EditMember from "../pages/private/members/EditMember";
+import ViewMember from "../pages/private/members/ViewMember";
 
 function RequireAuth() {
   const { isAuthenticated } = useAuth();
@@ -53,6 +54,7 @@ export default function AppRoutes() {
           <Route path={ROUTES.PRIVATE.LOGS.replace("/app/", "")} element={<Logs />} />
           <Route path={ROUTES.PRIVATE.USERS.replace("/app/", "")} element={<Users />} />
           <Route path={`${ROUTES.PRIVATE.MEMBERS}/:id/edit`} element={<EditMember />} />
+          <Route path={`${ROUTES.PRIVATE.MEMBERS}/:id/view`} element={<ViewMember />} />
         </Route>
       </Route>
 
