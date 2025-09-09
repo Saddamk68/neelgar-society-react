@@ -11,6 +11,7 @@ export type MemberListItem = {
   motherName?: string;
   gotra?: string;
   phone?: string;
+  currentVillage?: string;
 };
 
 // ---------- PAGINATED RESPONSE ----------
@@ -38,6 +39,7 @@ export async function listMembers(page = 0, size = 30, search = ""): Promise<Pag
       motherName: m.motherName ?? "",
       gotra: m.gotra ?? "",
       phone: m.contactNumber ?? m.phone ?? "",
+      currentVillage: m.address?.currentVillage ?? "",
     })),
   };
 }
