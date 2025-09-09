@@ -1,10 +1,11 @@
-// Column schema for Members table (config-driven)
+// src/features/members/tableConfig.ts
 export const MEMBER_COLUMNS = [
-  { key: "id", title: "ID", width: "80px", align: "center", sortable: true },
-  { key: "name", title: "Name", width: "160px", truncate: true, tooltip: true, sortable: true },
-  { key: "fatherName", title: "Father Name", width: "160px", truncate: true, tooltip: true },
-  { key: "motherName", title: "Mother Name", width: "160px", truncate: true, tooltip: true },
-  { key: "gotra", title: "Gotra", width: "120px", sortable: true },
-  { key: "currentVillage", title: "Village", width: "120px", sortable: true },
-  { key: "phone", title: "Phone", width: "140px" },
+  { key: "id", title: "ID", weight: 6, sortable: true },
+  { key: "name", title: "Name", weight: 24, truncate: true, tooltip: true, sortable: true },
+  { key: "fatherName", title: "Father Name", weight: 18, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
+  { key: "motherName", title: "Mother Name", weight: 18, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
+  { key: "gotra", title: "Gotra", weight: 10, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
+  { key: "currentVillage", title: "Village", truncate: true, tooltip: true, hideBelow: "sm", weight: 14, sortable: true },
+  { key: "phone", title: "Phone", weight: 8, truncate: true, tooltip: true, hideBelow: "sm" },
+  { key: "actions", title: "Actions", weight: 2, align: "center" },
 ] as const;

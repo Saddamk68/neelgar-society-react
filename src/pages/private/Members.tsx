@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { Eye, Pencil } from "lucide-react";
+import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
+import Tooltip from "../../components/Tooltip";
 import {
   listMembers,
   MemberListItem,
@@ -10,19 +13,18 @@ import { ROUTES } from "../../constants/routes";
 import { PRIVATE } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
 
-type SortConfig = {
+type LocalSortConfig = {
   key: keyof MemberListItem | null;
   direction: "asc" | "desc";
 };
 
 export default function Members() {
-  const navigate = useNavigate();
   const notify = useNotify();
 
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [size] = useState(30); // fixed page size
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
+  const [sortConfig, setSortConfig] = useState<LocalSortConfig>({
     key: null,
     direction: "asc",
   });
@@ -43,7 +45,14 @@ export default function Members() {
     if (!data) return [];
 
     let filtered = data.content.filter((m) =>
-      [m.id?.toString(), m.name, m.fatherName, m.motherName, m.gotra, m.currentVillage]
+      [
+        m.id?.toString(),
+        m.name,
+        m.fatherName,
+        m.motherName,
+        m.gotra,
+        m.currentVillage,
+      ]
         .filter(Boolean)
         .some((val) =>
           val!.toLowerCase().includes(search.trim().toLowerCase())
@@ -89,6 +98,62 @@ export default function Members() {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
+  // Map global MEMBER_COLUMNS to ColumnConfig<MemberListItem> and add responsive hide flags
+  // Members.tsx - mapping snippet (replace existing mapping)
+  const responsiveColumns: ColumnConfig<MemberListItem>[] = MEMBER_COLUMNS.map((c) => {
+    const base: ColumnConfig<MemberListItem> = {
+      key: c.key as keyof MemberListItem,
+      title: c.title,
+      align: (c as any).align,
+      truncate: (c as any).truncate,
+      tooltip: (c as any).tooltip,
+      sortable: (c as any).sortable,
+      // take hideBelow from config if present
+      hideBelow: (c as any).hideBelow as "sm" | "md" | "lg" | undefined,
+    };
+
+    return base;
+  });
+
+  // Convert local sortConfig to generic SortConfig for ResponsiveTable
+  const rtSortConfig: SortConfig | undefined = sortConfig.key
+    ? { key: String(sortConfig.key), direction: sortConfig.direction }
+    : undefined;
+
+  // renderCell for custom columns (actions)
+  function renderMemberCell(row: MemberListItem, col: ColumnConfig<MemberListItem>) {
+    if (col.key === "actions") {
+      return (
+        <div className="flex items-center justify-center gap-2">
+          <Tooltip content="View" offset={20}>
+            <Link
+              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}`}
+              aria-label={`View member ${row.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1 rounded hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            >
+              <Eye className="w-5 h-5 text-sky-600" />
+            </Link>
+          </Tooltip>
+
+          <Tooltip content="Edit" offset={20}>
+            <Link
+              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`}
+              aria-label={`Edit member ${row.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1 rounded hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            >
+              <Pencil className="w-5 h-5 text-sky-600" />
+            </Link>
+          </Tooltip>
+        </div>
+      );
+    }
+
+    // default: return undefined so ResponsiveTable will render standard cell
+    return undefined;
+  }
+
   return (
     <div className="space-y-4 flex flex-col h-[calc(98vh-8rem)]">
       {/* Page header */}
@@ -101,7 +166,7 @@ export default function Members() {
           {/* Search bar */}
           <input
             type="text"
-            placeholder="Search members by ID, Name, Father, Mother, Gotra…"
+            placeholder="Search members by ID, Name, Father, Mother, Gotra, Village…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="px-3 py-2 border rounded-md text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary"
@@ -137,78 +202,16 @@ export default function Members() {
       {/* Data Table + Fixed Pagination */}
       {!isLoading && !isError && data && (
         <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
-          {/* Table section */}
-          <div className="overflow-x-auto flex-1">
-            <div className="h-full max-h-[65vh] overflow-y-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
-                  <tr>
-                    {MEMBER_COLUMNS.map((col) => {
-                      const isSortable =
-                        ["id", "name", "fatherName", "motherName", "gotra", "currentVillage"].includes(
-                          col.key as string
-                        );
-                      const isActive = sortConfig.key === col.key;
-
-                      return (
-                        <th
-                          key={col.key as string}
-                          scope="col"
-                          className={`py-3 px-4 text-left font-bold text-gray-800 text-sm uppercase tracking-wide border-b ${
-                            isSortable ? "cursor-pointer select-none" : ""
-                          }`}
-                          onClick={
-                            isSortable
-                              ? () => handleSort(col.key as keyof MemberListItem)
-                              : undefined
-                          }
-                        >
-                          {col.title}
-                          {isActive && (
-                            <span className="ml-1">
-                              {sortConfig.direction === "asc" ? "↑" : "↓"}
-                            </span>
-                          )}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSorted.length > 0 ? (
-                    filteredAndSorted.map((row: MemberListItem, idx: number) => (
-                      <tr
-                        key={row.id}
-                        className={`${
-                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        } hover:bg-primary/5 transition-colors cursor-pointer`}
-                        onClick={() =>
-                          navigate(`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`)
-                        }
-                      >
-                        {MEMBER_COLUMNS.map((col) => (
-                          <td
-                            key={col.key as string}
-                            className="py-2 px-4 border-b"
-                          >
-                            {(row as any)[col.key]}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={MEMBER_COLUMNS.length}
-                        className="py-6 text-center text-text-muted"
-                      >
-                        No members found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {/* Responsive table usage */}
+          <div className="p-0">
+            <ResponsiveTable<MemberListItem>
+              columns={responsiveColumns}
+              data={filteredAndSorted}
+              sortConfig={rtSortConfig}
+              onSort={(key) => handleSort(key as keyof MemberListItem)}
+              renderCell={renderMemberCell}
+              rowKey={(r) => r.id}
+            />
           </div>
 
           {/* Pagination bar fixed below */}
