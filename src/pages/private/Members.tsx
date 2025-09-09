@@ -43,7 +43,7 @@ export default function Members() {
     if (!data) return [];
 
     let filtered = data.content.filter((m) =>
-      [m.id?.toString(), m.name, m.fatherName, m.motherName, m.gotra]
+      [m.id?.toString(), m.name, m.fatherName, m.motherName, m.gotra, m.currentVillage]
         .filter(Boolean)
         .some((val) =>
           val!.toLowerCase().includes(search.trim().toLowerCase())
@@ -145,7 +145,7 @@ export default function Members() {
                   <tr>
                     {MEMBER_COLUMNS.map((col) => {
                       const isSortable =
-                        ["id", "name", "fatherName", "motherName", "gotra"].includes(
+                        ["id", "name", "fatherName", "motherName", "gotra", "currentVillage"].includes(
                           col.key as string
                         );
                       const isActive = sortConfig.key === col.key;
