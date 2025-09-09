@@ -158,59 +158,54 @@ export default function ResponsiveTable<T>({
             ))}
           </colgroup>
 
-                    <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
-            <tr>
-              {columns.map((col) => {
-                const isActive = sortConfig?.key === String(col.key);
+            <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
+                <tr>
+                    {columns.map((col) => {
+                    const isActive = sortConfig?.key === String(col.key);
 
-                // header title wrapper: constrained and truncated with tooltip
-                const headerTitle = (
-                  <div
-                    style={{
-                      minWidth: 0,
-                      maxWidth: "100%",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    <Truncatable text={col.title} tooltipOnOverflow={true} offset={12} />
-                  </div>
-                );
+                    const headerTitle = (
+                        <div
+                        style={{
+                            minWidth: 0,
+                            maxWidth: "100%",
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                        }}
+                        >
+                        {col.title}
+                        </div>
+                    );
 
-                return (
-                  <th
-                    key={String(col.key)}
-                    scope="col"
-                    className={`py-3 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide border-b ${getThAlign(
-                      col
-                    )} ${getResponsiveClass(col)} ${col.sortable ? "cursor-pointer select-none" : ""}`}
-                    style={{
-                      width: col.width ?? undefined,
-                      // ensure the th itself does not prevent its children from shrinking
-                      minWidth: 0,
-                      maxWidth: "100%",
-                      overflow: "hidden",
-                    }}
-                    onClick={() => handleHeaderClick(col)}
-                  >
-                    {/* inline layout keeps arrow close to title; constrain the inline-flex too */}
-                    <span
-                      className="inline-flex items-center gap-1"
-                      style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
-                    >
-                      {headerTitle}
-                      {col.sortable && isActive && (
-                        <span className="ml-0.5 text-xs" aria-hidden>
-                          {sortConfig?.direction === "asc" ? "↑" : "↓"}
+                    return (
+                        <th
+                        key={String(col.key)}
+                        scope="col"
+                        className={`py-3 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide border-b ${getThAlign(
+                            col
+                        )} ${getResponsiveClass(col)} ${col.sortable ? "cursor-pointer select-none" : ""}`}
+                        style={{
+                            width: col.width ?? undefined,
+                            minWidth: 0,
+                            maxWidth: "100%",
+                        }}
+                        onClick={() => handleHeaderClick(col)}
+                        >
+                        <span
+                            className="inline-flex items-center gap-1"
+                            style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+                        >
+                            {headerTitle}
+                            {col.sortable && isActive && (
+                            <span className="ml-0.5 text-xs" aria-hidden>
+                                {sortConfig?.direction === "asc" ? "↑" : "↓"}
+                            </span>
+                            )}
                         </span>
-                      )}
-                    </span>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
+                        </th>
+                    );
+                    })}
+                </tr>
+            </thead>
 
           <tbody>
             {data.length > 0 ? (
