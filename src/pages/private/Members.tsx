@@ -104,12 +104,15 @@ export default function Members() {
     const base: ColumnConfig<MemberListItem> = {
       key: c.key as keyof MemberListItem,
       title: c.title,
+      // pass through visual/layout hints
       align: (c as any).align,
       truncate: (c as any).truncate,
       tooltip: (c as any).tooltip,
       sortable: (c as any).sortable,
-      // take hideBelow from config if present
       hideBelow: (c as any).hideBelow as "sm" | "md" | "lg" | undefined,
+      // NEW: pass weight & width so ResponsiveTable can compute percentages
+      weight: (c as any).weight as number | undefined,
+      width: (c as any).width as string | undefined,
     };
 
     return base;
