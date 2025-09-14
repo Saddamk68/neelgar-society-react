@@ -12,6 +12,7 @@ import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
 import { PRIVATE } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
+import MembersSkeleton from "../../components/skeletons/MembersSkeleton"; // 🔹 NEW
 
 type LocalSortConfig = {
   key: keyof MemberListItem | null;
@@ -99,18 +100,15 @@ export default function Members() {
   };
 
   // Map global MEMBER_COLUMNS to ColumnConfig<MemberListItem> and add responsive hide flags
-  // Members.tsx - mapping snippet (replace existing mapping)
   const responsiveColumns: ColumnConfig<MemberListItem>[] = MEMBER_COLUMNS.map((c) => {
     const base: ColumnConfig<MemberListItem> = {
       key: c.key as keyof MemberListItem,
       title: c.title,
-      // pass through visual/layout hints
       align: (c as any).align,
       truncate: (c as any).truncate,
       tooltip: (c as any).tooltip,
       sortable: (c as any).sortable,
       hideBelow: (c as any).hideBelow as "sm" | "md" | "lg" | undefined,
-      // NEW: pass weight & width so ResponsiveTable can compute percentages
       weight: (c as any).weight as number | undefined,
       width: (c as any).width as string | undefined,
     };
@@ -118,12 +116,10 @@ export default function Members() {
     return base;
   });
 
-  // Convert local sortConfig to generic SortConfig for ResponsiveTable
   const rtSortConfig: SortConfig | undefined = sortConfig.key
     ? { key: String(sortConfig.key), direction: sortConfig.direction }
     : undefined;
 
-  // renderCell for custom columns (actions)
   function renderMemberCell(row: MemberListItem, col: ColumnConfig<MemberListItem>) {
     if (col.key === "actions") {
       return (
@@ -152,8 +148,6 @@ export default function Members() {
         </div>
       );
     }
-
-    // default: return undefined so ResponsiveTable will render standard cell
     return undefined;
   }
 
@@ -166,7 +160,6 @@ export default function Members() {
           <p className="text-text-muted">{PRIVATE.MEMBERS_DESC}</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Search bar */}
           <input
             type="text"
             placeholder="Search members by ID, Name, Father, Mother, Gotra, Village…"
@@ -174,7 +167,6 @@ export default function Members() {
             onChange={(e) => setSearch(e.target.value)}
             className="px-3 py-2 border rounded-md text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary"
           />
-          {/* Add Member button */}
           <Link
             to={`${ROUTES.PRIVATE.MEMBERS}/new`}
             className="hidden md:flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white shadow-sm hover:shadow transition"
@@ -190,22 +182,19 @@ export default function Members() {
         </div>
       </div>
 
-      {/* Loading & Error */}
-      {(isLoading || isError) && (
+      {/* 🔹 Loading */}
+      {isLoading && <MembersSkeleton />}
+
+      {/* 🔹 Error */}
+      {isError && (
         <div className="bg-white rounded-xl shadow p-4">
-          {isLoading && (
-            <div className="text-sm text-text-muted">Loading members…</div>
-          )}
-          {isError && (
-            <div className="text-sm text-danger">Failed to load members.</div>
-          )}
+          <div className="text-sm text-danger">Failed to load members.</div>
         </div>
       )}
 
-      {/* Data Table + Fixed Pagination */}
+      {/* 🔹 Data Table + Pagination */}
       {!isLoading && !isError && data && (
         <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
-          {/* Responsive table usage */}
           <div className="p-0">
             <ResponsiveTable<MemberListItem>
               columns={responsiveColumns}
@@ -217,7 +206,6 @@ export default function Members() {
             />
           </div>
 
-          {/* Pagination bar fixed below */}
           {data.totalPages > 1 && (
             <div className="flex justify-center py-2 text-xs text-gray-600 border-t bg-gray-50">
               <span
