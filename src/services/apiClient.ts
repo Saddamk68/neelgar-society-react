@@ -1,38 +1,72 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+// path: neelgar-society-react/src/services/apiClient.ts
+import axios, {
+  AxiosError,
+  InternalAxiosRequestConfig,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
 import { ENV } from "../config/env";
 
-// ---- In-memory token (no localStorage) ----
-let authToken: string | null = null;
+/**
+ * Central API client + refresh flow.
+ *
+ * - Main `api` instance does NOT use withCredentials (keeps requests default).
+ * - `refreshClient` uses withCredentials: true so the browser will send the HttpOnly refresh cookie.
+ * - Access token is persisted to localStorage under the key ACCESS_TOKEN_KEY.
+ * - Exports helpers: getAuthToken, setAuthToken, clearAuthToken, onUnauthorized, api.
+ */
+
+// Key for localStorage (keep consistent across codebase)
+const ACCESS_TOKEN_KEY = "accessToken";
+
+// Token helpers - single source of truth for access token persistence
+export function getAuthToken(): string | null {
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
 export function setAuthToken(token: string | null) {
-  authToken = token;
+  if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  else localStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+export function clearAuthToken() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
-// Optional: a callback the app can register to react to 401s (e.g., logout)
+// Optional: app-level unauthorized hook (call logout from context)
 let unauthorizedHandler: (() => void) | null = null;
 export function onUnauthorized(cb: (() => void) | null) {
   unauthorizedHandler = cb;
 }
 
-// ---- Axios instance ----
+// Main axios instance used by the app
 export const api = axios.create({
-  baseURL: ENV.API_BASE_URL,
+  baseURL: ENV.API_BASE_URL, // e.g. "http://localhost:8080" or "/api/v1"
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  timeout: 15000, // sensible default
-  // withCredentials: true, // enable if you switch to httpOnly cookies later
+  timeout: 15_000,
+  // Do not set withCredentials globally here; refresh uses refreshClient
 });
 
-// ---- Request interceptor ----
+// Dedicated client for refresh requests — sends cookies
+const refreshClient = axios.create({
+  baseURL: ENV.API_BASE_URL,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+  timeout: 15_000,
+});
+
+// Request interceptor: attach Authorization header synchronously from localStorage
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Attach bearer token if available
-  if (authToken) {
+  const token = getAuthToken();
+  if (token) {
     config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${authToken}`;
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
 
-  // Add a lightweight request id for tracing (backend can echo it)
   (config.headers as any)["X-Request-Id"] =
     (config.headers as any)["X-Request-Id"] ??
     `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -40,57 +74,137 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// ---- Response interceptor (normalize errors, handle 401) ----
+// ========== Refresh queue implementation ==========
+let isRefreshing = false;
+let refreshSubscribers: Array<(token: string | null) => void> = [];
+
+function subscribeTokenRefresh(cb: (token: string | null) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token: string | null) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
+// Attempt to refresh using refreshClient (cookie will be sent)
+async function attemptRefresh(): Promise<string> {
+  // refresh endpoint - backend sets/reads the HttpOnly refresh cookie
+  const url = "/api/v1/auth/refresh";
+  try {
+    const resp: AxiosResponse<any> = await refreshClient.post(url, {});
+    const newAccessToken = resp?.data?.accessToken;
+    if (!newAccessToken) {
+      throw new Error("no_access_token_in_refresh_response");
+    }
+    // persist token
+    setAuthToken(newAccessToken);
+    return newAccessToken;
+  } catch (err) {
+    // failed refresh -> clear token
+    setAuthToken(null);
+    throw err;
+  }
+}
+
+// Normalize errors into a consistent shape (keeps your previous shape)
+function buildNormalizedError(error: AxiosError<any>) {
+  const status = error.response?.status ?? 0;
+  const data = error.response?.data as any;
+  const messageFromServer =
+    (data && (data.message || data.error || data.title)) || undefined;
+
+  return {
+    code: status,
+    message:
+      messageFromServer ??
+      (error.code === "ECONNABORTED"
+        ? "Request timed out"
+        : error.message || "Unknown error"),
+    details: data ?? null,
+    url: error.config?.url,
+    method: (error.config?.method ?? "").toString().toUpperCase(),
+  };
+}
+
+// Response interceptor: on 401 -> try refresh -> retry original request once
 api.interceptors.response.use(
   (resp) => resp,
-  (error: AxiosError<any>) => {
+  async (error: AxiosError<any>) => {
     const status = error.response?.status ?? 0;
+    const originalRequest = (error.config as AxiosRequestConfig & { _retry?: boolean }) || {};
+    const requestUrl = originalRequest.url ?? "";
 
-    // Fire unauthorized hook once per 401 response
-    if (status === 401 && unauthorizedHandler) {
+    // Avoid attempting refresh for auth endpoints themselves
+    const isAuthEndpoint =
+      requestUrl.endsWith("/api/v1/auth/refresh") ||
+      requestUrl.endsWith("/api/v1/auth/login") ||
+      requestUrl.endsWith("/api/v1/auth/register") ||
+      requestUrl.endsWith("/api/v1/auth/logout");
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      originalRequest._retry = true;
+
+      if (isRefreshing) {
+        // queue until refresh completes
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((token) => {
+            if (!token) {
+              // refresh failed -> trigger unauthorized handler
+              if (unauthorizedHandler) {
+                try {
+                  unauthorizedHandler();
+                } catch {
+                  /* swallow */
+                }
+              }
+              reject(buildNormalizedError(error));
+              return;
+            }
+            originalRequest.headers = originalRequest.headers ?? {};
+            (originalRequest.headers as any).Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      // start refresh
+      isRefreshing = true;
       try {
-        unauthorizedHandler();
-      } catch {
-        /* no-op */
+        const newToken = await attemptRefresh();
+        isRefreshing = false;
+        onRefreshed(newToken);
+        originalRequest.headers = originalRequest.headers ?? {};
+        (originalRequest.headers as any).Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshErr) {
+        isRefreshing = false;
+        onRefreshed(null);
+        // refresh failed -> trigger unauthorized handler
+        if (unauthorizedHandler) {
+          try {
+            unauthorizedHandler();
+          } catch {
+            /* swallow */
+          }
+        }
+        return Promise.reject(buildNormalizedError(error));
       }
     }
 
-    // Build normalized error payload
-    const data = error.response?.data as any;
-    const messageFromServer =
-      (data && (data.message || data.error || data.title)) || undefined;
+    // non-401 or other case
+    if (status === 401 && unauthorizedHandler && isAuthEndpoint) {
+      // For auth endpoints, if they return 401, run handler too (optional)
+      try {
+        unauthorizedHandler();
+      } catch {
+        /* swallow */
+      }
+    }
 
-    const normalized = {
-      code: status, // HTTP status or 0 for network/timeouts
-      message:
-        messageFromServer ??
-        (error.code === "ECONNABORTED"
-          ? "Request timed out"
-          : error.message || "Unknown error"),
-      details: data ?? null,
-      // Optional extras for debugging:
-      url: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
-    };
-
-    return Promise.reject(normalized);
+    return Promise.reject(buildNormalizedError(error));
   }
 );
 
-
-// ------ This will be the future code ------ 
-
-const apiClient = axios.create({
-  baseURL: "http://localhost:8080/api/v1",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+export default api;
+export { api as apiClient };
