@@ -1,4 +1,3 @@
-// path: neelgar-society-react/src/services/apiClient.ts
 import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
@@ -67,6 +66,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
 
+  // ✅ IMPORTANT FIX FOR FILE UPLOADS
+  if (config.data instanceof FormData) {
+    delete (config.headers as any)["Content-Type"];
+    delete (config.headers as any)["content-type"];
+  }
+
   (config.headers as any)["X-Request-Id"] =
     (config.headers as any)["X-Request-Id"] ??
     `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -90,7 +95,7 @@ function onRefreshed(token: string | null) {
 // Attempt to refresh using refreshClient (cookie will be sent)
 async function attemptRefresh(): Promise<string> {
   // refresh endpoint - backend sets/reads the HttpOnly refresh cookie
-  const url = "/api/v1/auth/refresh";
+  const url = "/auth/refresh";
   try {
     const resp: AxiosResponse<any> = await refreshClient.post(url, {});
     const newAccessToken = resp?.data?.accessToken;
@@ -137,10 +142,10 @@ api.interceptors.response.use(
 
     // Avoid attempting refresh for auth endpoints themselves
     const isAuthEndpoint =
-      requestUrl.endsWith("/api/v1/auth/refresh") ||
-      requestUrl.endsWith("/api/v1/auth/login") ||
-      requestUrl.endsWith("/api/v1/auth/register") ||
-      requestUrl.endsWith("/api/v1/auth/logout");
+      requestUrl.endsWith("/auth/refresh") ||
+      requestUrl.endsWith("/auth/login") ||
+      requestUrl.endsWith("/auth/register") ||
+      requestUrl.endsWith("/auth/logout");
 
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;

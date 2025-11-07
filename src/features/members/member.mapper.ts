@@ -13,7 +13,7 @@ export function toBackendPayload(values: MemberFormValues) {
     occupation: values.occupation,
     gotra: values.gotra,
     contactNumber: values.contactNumber,
-    photoPath: values.photoPath,
+    photoId: values.photoId ?? null,
     maritalStatus: values.maritalStatus,
     // Keep active / gender / aadhaar / pan for now
     gender: values.gender,
@@ -41,7 +41,6 @@ export function toBackendPayload(values: MemberFormValues) {
             education: values.spouseEducation,
             occupation: values.spouseOccupation,
             gotra: values.spouseGotra,
-            photoPath: values.spousePhotoPath,
           }
         : null,
 
@@ -51,7 +50,6 @@ export function toBackendPayload(values: MemberFormValues) {
         dob: c.dob || null,
         education: c.education,
         occupation: c.occupation,
-        photoPath: c.photoPath,
       })) ?? [],
   };
 }
@@ -70,7 +68,6 @@ export function fromBackendResponse(member: any): MemberFormValues {
     education: member.education ?? "",
     occupation: member.occupation ?? "",
     gotra: member.gotra ?? "",
-    photoPath: member.photoPath ?? "",
 
     contactNumber: member.contactNumber ?? "",
     email: member.email ?? "",
@@ -94,7 +91,6 @@ export function fromBackendResponse(member: any): MemberFormValues {
     spouseEducation: member.spouse?.education ?? "",
     spouseOccupation: member.spouse?.occupation ?? "",
     spouseGotra: member.spouse?.gotra ?? "",
-    spousePhotoPath: member.spouse?.photoPath ?? "",
 
     // Children
     children:
@@ -103,7 +99,6 @@ export function fromBackendResponse(member: any): MemberFormValues {
         dob: c.dob ?? "",
         education: c.education ?? "",
         occupation: c.occupation ?? "",
-        photoPath: c.photoPath ?? "",
       })) ?? [],
   };
 }

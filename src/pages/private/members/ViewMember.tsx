@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil, ArrowLeft } from "lucide-react";
@@ -7,6 +7,7 @@ import { getMember } from "../../../features/members/services/memberService";
 import { useNotify } from "../../../services/notifications";
 import { PRIVATE } from "../../../constants/messages";
 import { ROUTES } from "../../../constants/routes";
+import { getAuthToken } from "../../../services/apiClient";
 
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   return (
@@ -15,6 +16,73 @@ function Row({ label, value }: { label: string; value?: string | number | null }
       <div className="flex-1 font-medium">{value ?? "-"}</div>
     </div>
   );
+}
+
+// ✅ Authenticated image loader
+// ✅ Authenticated and JWT-protected image loader
+function SecureImage({ photoId, alt }: { photoId?: string | null; alt: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+  const token = getAuthToken();
+
+  useEffect(() => {
+    console.log("🔍 SecureImage photoId:", photoId);
+
+    if (!photoId) {
+      console.warn("⚠️ No photoId provided for", alt);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function fetchImage() {
+      setLoading(true);
+      try {
+        const imageUrl = `${baseUrl}/files/${photoId}/view`;
+        console.log("📡 Fetching image:", imageUrl);
+
+        const res = await fetch(imageUrl, {
+          method: "GET",
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error(`❌ Failed to fetch image (status: ${res.status})`);
+        }
+
+        const blob = await res.blob();
+        setSrc(URL.createObjectURL(blob));
+      } catch (err) {
+        console.error("🚨 Image fetch error:", err);
+        setSrc(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchImage();
+    return () => controller.abort();
+  }, [photoId, baseUrl, token, alt]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!photoId || !src) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+        No photo
+      </div>
+    );
+  }
+
+  return <img src={src} alt={alt} className="w-full h-full object-cover rounded" />;
 }
 
 export default function ViewMember() {
@@ -38,9 +106,7 @@ export default function ViewMember() {
   });
 
   useEffect(() => {
-    if (isError) {
-      notify.error("Failed to load member details.");
-    }
+    if (isError) notify.error("Failed to load member details.");
   }, [isError, notify]);
 
   return (
@@ -83,7 +149,12 @@ export default function ViewMember() {
       )}
       {isError && (
         <div className="bg-white rounded-xl shadow p-4">
-          <div className="text-sm text-danger">Failed to load member. <button onClick={() => refetch()} className="underline">Retry</button></div>
+          <div className="text-sm text-danger">
+            Failed to load member.{" "}
+            <button onClick={() => refetch()} className="underline">
+              Retry
+            </button>
+          </div>
         </div>
       )}
 
@@ -91,15 +162,10 @@ export default function ViewMember() {
       {!isLoading && !isError && member && (
         <div className="bg-white rounded-xl shadow p-6">
           <div className="flex gap-6 items-start">
-            {/* Photo */}
+            {/* ✅ Secure Member Photo */}
             <div className="w-36 flex-shrink-0">
               <div className="w-36 h-36 bg-gray-100 rounded-md overflow-hidden border">
-                {member.photoPath ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={member.photoPath} alt={`${member.name} photo`} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">No photo</div>
-                )}
+                <SecureImage photoId={member.photoId} alt={`${member.name} photo`} />
               </div>
             </div>
 
@@ -126,31 +192,10 @@ export default function ViewMember() {
                 <Row label="Education" value={member.education} />
                 <Row label="Occupation" value={member.occupation} />
                 <Row label="Gotra" value={member.gotra} />
-                <Row label="Phone" value={member.contactNumber ?? member.contactNumber ?? "-"} />
+                <Row label="Phone" value={member.contactNumber ?? "-"} />
                 <Row label="Email" value={member.email ?? "-"} />
                 <Row label="Aadhaar" value={member.aadhaar ?? "-"} />
                 <Row label="PAN" value={member.pan ?? "-"} />
-              </div>
-            </div>
-          </div>
-
-          {/* Addresses */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Current Address</h3>
-              <div className="text-sm text-text-muted space-y-1">
-                <div>{member.currentVillage ?? "-"}, {member.currentTahsil ?? ""}</div>
-                <div>{member.currentDistrict ?? ""}</div>
-                <div>{member.currentState ?? ""}</div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Paternal Address</h3>
-              <div className="text-sm text-text-muted space-y-1">
-                <div>{member.paternalVillage ?? "-"}, {member.paternalTahsil ?? ""}</div>
-                <div>{member.paternalDistrict ?? ""}</div>
-                <div>{member.paternalState ?? ""}</div>
               </div>
             </div>
           </div>
@@ -159,10 +204,28 @@ export default function ViewMember() {
           {member.maritalStatus === "MARRIED" && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold mb-2">Spouse</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className="text-sm"><span className="text-text-muted">Name: </span>{member.spouseName ?? "-"}</div>
-                <div className="text-sm"><span className="text-text-muted">DOB: </span>{member.spouseDob ?? "-"}</div>
-                <div className="text-sm"><span className="text-text-muted">Gotra: </span>{member.spouseGotra ?? "-"}</div>
+              <div className="flex items-start gap-4">
+                <div className="w-24 h-24 bg-gray-100 rounded-md overflow-hidden border">
+                  <SecureImage
+                    photoId={member.spousePhotoId}
+                    alt={`${member.spouseName ?? "Spouse"} photo`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
+                  <div className="text-sm">
+                    <span className="text-text-muted">Name: </span>
+                    {member.spouseName ?? "-"}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-text-muted">DOB: </span>
+                    {member.spouseDob ?? "-"}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-text-muted">Gotra: </span>
+                    {member.spouseGotra ?? "-"}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -171,12 +234,17 @@ export default function ViewMember() {
           {member.children && member.children.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold mb-2">Children</h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {member.children.map((c, i) => (
                   <div key={i} className="flex items-center gap-4">
-                    <div className="text-sm font-medium">{c.name}</div>
-                    <div className="text-sm text-text-muted">{c.dob ?? ""}</div>
-                    <div className="text-sm text-text-muted">{c.education ?? ""}</div>
+                    <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden border">
+                      <SecureImage photoId={c.photoId} alt={`${c.name ?? "Child"} photo`} />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{c.name}</div>
+                      <div className="text-xs text-text-muted">{c.dob ?? ""}</div>
+                      <div className="text-xs text-text-muted">{c.education ?? ""}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -185,10 +253,16 @@ export default function ViewMember() {
 
           {/* Footer actions */}
           <div className="mt-6 flex items-center justify-end gap-2">
-            <button onClick={() => navigate(-1)} className="px-3 py-2 rounded border hover:bg-gray-50">
+            <button
+              onClick={() => navigate(-1)}
+              className="px-3 py-2 rounded border hover:bg-gray-50"
+            >
               Close
             </button>
-            <Link to={`${ROUTES.PRIVATE.MEMBERS}/${member.id}/edit`} className="px-3 py-2 rounded bg-primary text-white">
+            <Link
+              to={`${ROUTES.PRIVATE.MEMBERS}/${member.id}/edit`}
+              className="px-3 py-2 rounded bg-primary text-white"
+            >
               Edit
             </Link>
           </div>

@@ -19,7 +19,7 @@ export default function Contact() {
 
     try {
       // If your backend contact API exists, update the endpoint.
-      const resp = await fetch('/api/v1/contact', {
+      const resp = await fetch('/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
