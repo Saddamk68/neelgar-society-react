@@ -5,7 +5,7 @@ import {
   SubmitErrorHandler,
   type Resolver,
 } from "react-hook-form";
-import { JSX, useEffect } from "react";
+import { JSX, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   MemberZ,
@@ -14,13 +14,103 @@ import {
   defaultMemberValues,
 } from "../../../features/members/member.schema";
 import { LABELS } from "../../../constants/labels";
-import { createMember } from "../../../features/members/services/memberService";
+import { createMember, uploadFile } from "../../../features/members/services/memberService";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
 import { makeIsRequired } from "../../../utils/required";
 import { useNotify } from "../../../services/notifications";
+import { useAuth } from "../../../context/AuthContext"; // ✅ to get username
 
+// ----------------- FileUploader Subcomponent -----------------
+function FileUploader({
+  label,
+  onUploadComplete,
+}: {
+  label: string;
+  onUploadComplete: (uuid: string | null) => void;
+}) {
+  const notify = useNotify();
+  const { user } = useAuth();
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(false);
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    const allowed = ["image/jpeg", "image/png", "image/jpg"];
+    if (!allowed.includes(f.type)) {
+      notify.error("Only JPG and PNG images are allowed");
+      return;
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      notify.error("Image must be 5MB or less");
+      return;
+    }
+
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = (ev) => setPreview(ev.target?.result as string);
+    reader.readAsDataURL(f);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const res = await uploadFile(file, user?.username ?? "system");
+      if (res?.id) {
+        onUploadComplete(res.id);
+        setUploaded(true);
+        notify.success("Image uploaded successfully!");
+      } else {
+        notify.error("Failed to upload image");
+      }
+    } catch (err) {
+      console.error(err);
+      notify.error("Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 border rounded-lg p-4 bg-slate-50">
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
+      {preview && (
+        <div className="mt-3 relative inline-block">
+          <img
+            src={preview}
+            alt="preview"
+            className="h-24 w-24 object-cover rounded-md border"
+          />
+          {uploaded && (
+            <span className="absolute bottom-1 right-1 bg-green-600 text-white text-xs px-2 py-0.5 rounded-full">
+              ✓ Uploaded
+            </span>
+          )}
+        </div>
+      )}
+      {file && !uploaded && (
+        <button
+          type="button"
+          onClick={handleUpload}
+          disabled={isUploading}
+          className="ml-2 px-3 py-1.5 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-60"
+        >
+          {isUploading ? "Uploading..." : "Upload"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ----------------- Main AddMember Form -----------------
 export default function AddMember() {
   const notify = useNotify();
   const navigate = useNavigate();
@@ -38,6 +128,9 @@ export default function AddMember() {
 
   const childrenArray = useFieldArray({ control: form.control, name: "children" as const });
 
+  // track uploaded image UUID
+  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
+
   // Auto-clear spouse & children when not married
   useEffect(() => {
     if (values.maritalStatus !== "MARRIED") {
@@ -46,7 +139,6 @@ export default function AddMember() {
       form.setValue("spouseEducation", "");
       form.setValue("spouseOccupation", "");
       form.setValue("spouseGotra", "");
-      form.setValue("spousePhotoPath", "");
       if (values.maritalStatus === "SINGLE") {
         form.setValue("children", []);
       }
@@ -57,6 +149,10 @@ export default function AddMember() {
   // ---------- Submit ----------
   const onSubmit: SubmitHandler<MemberFormValues> = async (data) => {
     try {
+      // attach uploaded image uuid if available
+      if (uploadedPhotoId) {
+        data.photoId = uploadedPhotoId;
+      }
       await createMember(data);
       notify.success("Member created successfully!");
       navigate(ROUTES.PRIVATE.MEMBERS);
@@ -305,6 +401,12 @@ export default function AddMember() {
               </section>
             );
           })}
+
+        {/* ✅ Added FileUploader here */}
+        <FileUploader
+          label="Upload Member Image"
+          onUploadComplete={(uuid) => setUploadedPhotoId(uuid)}
+        />
 
         {/* Actions */}
         <div className="flex items-center gap-2">

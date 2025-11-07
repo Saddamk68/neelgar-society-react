@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Use fetch with credentials to ensure cookie cleared server-side
       const base = (api.defaults.baseURL ?? "").replace(/\/$/, "");
-      await fetch(`${base}/api/v1/auth/logout`, {
+      await fetch(`${base}/auth/logout`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 2) no token -> attempt refresh using credentialed fetch or internal refresh
       try {
         const base = (api.defaults.baseURL ?? "").replace(/\/$/, "");
-        const resp = await fetch(`${base}/api/v1/auth/refresh`, {
+        const resp = await fetch(`${base}/auth/refresh`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
