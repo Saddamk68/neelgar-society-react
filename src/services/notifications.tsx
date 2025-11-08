@@ -49,6 +49,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const value = useMemo(() => ({ notify: baseNotify }), [baseNotify]);
 
+  // Register the global notifier for non-React modules
+  React.useEffect(() => {
+    setGlobalNotify(baseNotify);
+  }, [baseNotify]);
+
   return (
     <NotificationsContext.Provider value={value}>
       {children}
@@ -95,4 +100,19 @@ export function useNotify() {
   const ctx = useContext(NotificationsContext);
   if (!ctx) throw new Error("useNotify must be used within NotificationsProvider");
   return ctx.notify;
+}
+
+// ===== Global notifier for non-React code (like apiClient.ts) =====
+let globalNotify: NotifyFn | null = null;
+
+export function setGlobalNotify(fn: NotifyFn) {
+  globalNotify = fn;
+}
+
+export function notifyGlobal(type: ToastType, message: string, opts?: Partial<Toast>) {
+  if (globalNotify) {
+    globalNotify(message, { ...opts, type });
+  } else {
+    console.warn("notifyGlobal called before NotificationsProvider mounted");
+  }
 }
