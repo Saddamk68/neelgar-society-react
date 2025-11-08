@@ -5,6 +5,7 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { ENV } from "../config/env";
+import { ErrorType } from "@/constants/errorTypes";
 
 /**
  * Central API client + refresh flow.
@@ -114,18 +115,30 @@ async function attemptRefresh(): Promise<string> {
 
 // Normalize errors into a consistent shape (keeps your previous shape)
 function buildNormalizedError(error: AxiosError<any>) {
+  const hasResponse = !!error.response;
   const status = error.response?.status ?? 0;
   const data = error.response?.data as any;
   const messageFromServer =
-    (data && (data.message || data.error || data.title)) || undefined;
+    data?.message || data?.error || data?.title || undefined;
+
+  // Classify error type for better global handling
+  let type: ErrorType = ErrorType.UNKNOWN;
+
+  if (!hasResponse) type = ErrorType.NETWORK_ERROR;
+  else if (status === 401 || status === 403) type = ErrorType.UNAUTHORIZED;
+  else if (status >= 500) type = ErrorType.SERVER_ERROR;
+  else if (status >= 400) type = ErrorType.CLIENT_ERROR;
 
   return {
     code: status,
+    type, // 👈 added classification
     message:
       messageFromServer ??
       (error.code === "ECONNABORTED"
         ? "Request timed out"
-        : error.message || "Unknown error"),
+        : hasResponse
+        ? `Request failed with status ${status}`
+        : "Network error — unable to reach server"),
     details: data ?? null,
     url: error.config?.url,
     method: (error.config?.method ?? "").toString().toUpperCase(),
@@ -185,15 +198,35 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         isRefreshing = false;
         onRefreshed(null);
-        // refresh failed -> trigger unauthorized handler
-        if (unauthorizedHandler) {
-          try {
-            unauthorizedHandler();
-          } catch {
-            /* swallow */
+
+        // Normalize the error
+        const normalized = buildNormalizedError(refreshErr as AxiosError);
+
+        // ✅ Only trigger logout for real 401/403
+        if (
+          normalized.code === 401 ||
+          normalized.code === 403 ||
+          normalized.type === "UNAUTHORIZED"
+        ) {
+          if (unauthorizedHandler) {
+            try {
+              unauthorizedHandler();
+            } catch {
+              /* swallow */
+            }
           }
+        } else {
+          // ✅ Show toast for other errors (network/server)
+          import("./notifications").then(({ notifyGlobal }) => {
+            if (normalized.type === "NETWORK_ERROR") {
+              notifyGlobal("error", "Network error — please check your connection.");
+            } else if (normalized.type === "SERVER_ERROR") {
+              notifyGlobal("error", "Server error — please try again later.");
+            }
+          });
         }
-        return Promise.reject(buildNormalizedError(error));
+
+        return Promise.reject(normalized);
       }
     }
 
@@ -210,6 +243,24 @@ api.interceptors.response.use(
     return Promise.reject(buildNormalizedError(error));
   }
 );
+
+// ===== Global network/server error handler =====
+api.interceptors.response.use(undefined, (error: AxiosError<any>) => {
+  const normalized = buildNormalizedError(error);
+
+  if (normalized.type === "NETWORK_ERROR") {
+    import("./notifications").then(({ notifyGlobal }) => {
+      notifyGlobal("error", "Network error — please check your connection.");
+    });
+  } else if (normalized.type === "SERVER_ERROR") {
+    import("./notifications").then(({ notifyGlobal }) => {
+      notifyGlobal("error", "Server error — please try again later.");
+    });
+  }
+
+  // Always reject so React Query can see the error
+  return Promise.reject(normalized);
+});
 
 export default api;
 export { api as apiClient };
