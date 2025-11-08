@@ -10,7 +10,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   MemberZ,
   MemberFormValues,
-  MemberFormSections,
   defaultMemberValues,
 } from "../../../features/members/member.schema";
 import {
@@ -24,8 +23,20 @@ import { ROUTES } from "../../../constants/routes";
 import { useNotify } from "../../../services/notifications";
 import { LABELS } from "../../../constants/labels";
 import { getAuthToken } from "../../../services/apiClient";
+import { useAuth } from "../../../context/AuthContext";
 
-/* ------------------ 🖼 Uploadable Image Component ------------------ */
+/* ===========================================================
+   🧩 Utility: Safe Nested Getter
+   =========================================================== */
+function getNestedValue(obj: any, path: string): any {
+  return path
+    .split(".")
+    .reduce((acc, key) => (acc && typeof acc === "object" ? acc[key] : undefined), obj);
+}
+
+/* ===========================================================
+   🖼 UploadableImage Component
+   =========================================================== */
 function UploadableImage({
   photoId,
   alt,
@@ -39,6 +50,7 @@ function UploadableImage({
   const [loading, setLoading] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
   const token = getAuthToken();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!photoId) return;
@@ -68,7 +80,7 @@ function UploadableImage({
 
     try {
       setLoading(true);
-      const res = await uploadFile(file, "system"); // returns { id, ... }
+      const res = await uploadFile(file, user?.username ?? "system");
       if (res.id) {
         onUploadSuccess(res.id);
         setSrc(URL.createObjectURL(file)); // preview immediately
@@ -104,7 +116,9 @@ function UploadableImage({
   );
 }
 
-/* ------------------ ✏️ Main Edit Form ------------------ */
+/* ===========================================================
+   ✏️ Edit Member (Schema-Aligned)
+   =========================================================== */
 export default function EditMember() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -116,31 +130,16 @@ export default function EditMember() {
     mode: "onBlur",
   });
 
-  const values = form.watch();
-  const childrenArray = useFieldArray({
-    control: form.control,
-    name: "children" as const,
-  });
+  const { setValue, watch, reset } = form;
+  const values = watch();
+  const childrenArray = useFieldArray({ control: form.control, name: "children" });
 
   // 🔄 Load Member Details
   useEffect(() => {
-    if (id) {
-      getMember(id)
-        .then((m) =>
-          form.reset({
-            ...m,
-            id: m.id ? String(m.id) : undefined,
-            contactNumber: m.contactNumber ? String(m.contactNumber) : "",
-            email: m.email ?? "",
-            children:
-              m.children?.map((c: any) => ({
-                ...c,
-                dob: c.dob ?? "",
-              })) ?? [],
-          })
-        )
-        .catch(() => notify.error("Failed to load member details"));
-    }
+    if (!id) return;
+    getMember(id)
+      .then((m) => reset(m))
+      .catch(() => notify.error("Failed to load member details"));
   }, [id]);
 
   // ✅ Submit
@@ -151,263 +150,227 @@ export default function EditMember() {
       notify.success("Member updated successfully!");
       navigate(ROUTES.PRIVATE.MEMBERS);
     } catch (err: any) {
+      console.error(err);
       notify.error(err.message || "Failed to update member");
     }
   };
 
-  // ❌ Invalid form
   const onInvalid: SubmitErrorHandler<MemberFormValues> = (errors) => {
-    const messages = Object.values(errors)
-      .map((err: any) => err?.message)
-      .filter(Boolean);
-    if (messages.length > 0) notify.error(messages.join(", "));
+    console.error(errors);
+    notify.error("Please fix form errors before submitting.");
   };
 
   const isRequired = makeIsRequired<MemberFormValues>({
-    always: ["name", "fatherName", "contactNumber"],
-    conditional: [(v) =>
-      v.maritalStatus === "MARRIED" ? ["spouseName"] : [],
-    ],
+    always: ["name", "fatherName", "gotra", "contactNumber"],
+    conditional: [(v) => (v.maritalStatus === "MARRIED" ? ["spouse.name"] : [])],
   });
 
   const optionMap: Record<string, any[]> = {
     gender: LABELS.gender,
     maritalStatus: LABELS.maritalStatus,
     education: LABELS.educationLevels,
-    bloodGroup: LABELS.bloodGroups,
-    state: LABELS.statesIndia,
   };
 
-  const renderField = (fieldName: string, type: string, options?: any[]) => {
+  /* ===========================================================
+     🧱 Field Renderer
+     =========================================================== */
+  const renderField = (fieldName: string, label: string, type: string, options?: any[]) => {
     const error = form.formState.errors as any;
-    const errMsg: string | undefined = error?.[fieldName]?.message;
+    const errMsg: string | undefined = getNestedValue(error, fieldName)?.message;
+    const value = getNestedValue(values, fieldName);
+
     const baseInput =
       "w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition";
     const normalBorder = "border-slate-300 focus:ring-primary/40";
     const errorBorder = "border-red-400 ring-1 ring-red-400 focus:ring-red-400";
     const className = baseInput + " " + (errMsg ? errorBorder : normalBorder);
 
-    if (type === "select") {
-      return (
-        <>
-          <select
-            className={className}
-            value={(values as any)[fieldName] ?? ""}
-            onChange={(e) => form.setValue(fieldName as any, e.target.value)}
-          >
-            <option value="">Select</option>
-            {(options ?? []).map((opt: any) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
-        </>
-      );
-    }
-
-    if (type === "checkbox") {
-      return (
-        <div className="flex items-center gap-2">
+    switch (type) {
+      case "select":
+        return (
+          <>
+            <select
+              className={className}
+              value={value ?? ""}
+              onChange={(e) => setValue(fieldName as any, e.target.value)}
+            >
+              <option value="">Select</option>
+              {(options ?? []).map((opt: any) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
+          </>
+        );
+      case "checkbox":
+        return (
           <input
             type="checkbox"
-            className={`h-4 w-4 rounded ${
-              errMsg
-                ? "border-red-400 ring-1 ring-red-400"
-                : "border-slate-300"
-            }`}
-            checked={(values as any)[fieldName]}
-            onChange={(e) =>
-              form.setValue(fieldName as any, e.target.checked)
-            }
+            className="h-4 w-4 border-slate-300 rounded"
+            checked={!!value}
+            onChange={(e) => setValue(fieldName as any, e.target.checked)}
           />
-        </div>
-      );
+        );
+      default:
+        return (
+          <>
+            <input
+              type={type}
+              {...form.register(fieldName as any)}
+              className={className}
+            />
+            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
+          </>
+        );
     }
-
-    return (
-      <>
-        <input
-          type={type === "date" ? "date" : type}
-          {...form.register(fieldName as any)}
-          className={className}
-        />
-        <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
-      </>
-    );
   };
 
+  /* ===========================================================
+     🧩 UI
+     =========================================================== */
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-1">Edit Member</h1>
-      <p className="text-text-muted mb-6">
-        Update the details of this member.
-      </p>
+      <p className="text-text-muted mb-6">Update existing member information.</p>
 
-      <form
-        onSubmit={form.handleSubmit(onSubmit, onInvalid)}
-        className="space-y-6"
-      >
-        {/* 🖼 Member Photo */}
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+        {/* Photo */}
         <section className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Member Photo</h2>
           <UploadableImage
             photoId={values.photoId}
             alt={`${values.name} photo`}
-            onUploadSuccess={(id) => form.setValue("photoId", id)}
+            onUploadSuccess={(id) => setValue("photoId", id)}
           />
         </section>
 
-        {/* Dynamic Sections */}
-        {MemberFormSections.filter((section) =>
-          section.showIf ? section.showIf(values) : true
-        ).map((section) => {
-          const cols =
-            section.gridCols === 1
-              ? "grid-cols-1"
-              : section.gridCols === 3
-              ? "grid-cols-1 md:grid-cols-3"
-              : "grid-cols-1 md:grid-cols-2";
-
-          return (
-            <section key={section.key} className="bg-white rounded-xl shadow p-6">
-              <h2 className="text-lg font-semibold">{section.title}</h2>
-
-              <div className={`mt-4 grid gap-4 ${cols}`}>
-                {section.fields
-                  .filter((f) => f.type !== "group-array")
-                  .map((f) => (
-                    <div key={f.name as string} className="flex flex-col">
-                      <FieldLabel required={isRequired(f.name as string, values)}>
-                        {f.label}
-                      </FieldLabel>
-                      {renderField(
-                        f.name as string,
-                        f.type,
-                        optionMap[f.name as string]
-                      )}
-                    </div>
-                  ))}
-              </div>
-
-              {/* 👩‍❤️‍👨 Spouse Photo */}
-              {section.key === "spouse" && values.maritalStatus === "MARRIED" && (
-                <div className="mt-4">
-                  <h3 className="font-medium mb-2">Spouse Photo</h3>
-                  <UploadableImage
-                    photoId={values.spousePhotoId}
-                    alt={`${values.spouseName ?? "Spouse"} photo`}
-                    onUploadSuccess={(id) =>
-                      form.setValue("spousePhotoId", id)
-                    }
-                  />
-                </div>
-              )}
-
-              {/* 👶 Children */}
-              {section.fields.some((f) => f.name === "children") && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Children</h3>
-                    <button
-                      type="button"
-                      onClick={() => childrenArray.append({ name: "", dob: "" })}
-                      className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-                    >
-                      + Add Child
-                    </button>
-                  </div>
-
-                  {childrenArray.fields.map((field, idx) => {
-                    const nameErr =
-                      (form.formState.errors.children?.[idx] as any)?.name
-                        ?.message;
-                    const dobErr =
-                      (form.formState.errors.children?.[idx] as any)?.dob
-                        ?.message;
-
-                    return (
-                      <div
-                        key={field.id}
-                        className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start"
-                      >
-                        {/* Name */}
-                        <div>
-                          <FieldLabel required>Name</FieldLabel>
-                          <input
-                            className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition ${
-                              nameErr
-                                ? "border-red-400 ring-1 ring-red-400 focus:ring-red-400"
-                                : "border-slate-300 focus:ring-primary/40"
-                            }`}
-                            {...form.register(`children.${idx}.name` as const)}
-                          />
-                          <div className="min-h-[1rem] text-xs text-danger mt-1">
-                            {nameErr ?? ""}
-                          </div>
-                        </div>
-
-                        {/* DOB */}
-                        <div>
-                          <FieldLabel>DOB</FieldLabel>
-                          <input
-                            type="date"
-                            className="w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                            {...form.register(`children.${idx}.dob` as const)}
-                          />
-                          <div className="min-h-[1rem] text-xs text-danger mt-1">
-                            {dobErr ?? ""}
-                          </div>
-                        </div>
-
-                        {/* Photo */}
-                        <div>
-                          <FieldLabel>Photo</FieldLabel>
-                          <UploadableImage
-                            photoId={field.photoId}
-                            alt={`${field.name || "Child"} photo`}
-                            onUploadSuccess={(id) =>
-                              form.setValue(`children.${idx}.photoId`, id)
-                            }
-                          />
-                        </div>
-
-                        {/* Remove */}
-                        <div className="flex items-end">
-                          <button
-                            type="button"
-                            onClick={() => childrenArray.remove(idx)}
-                            className="px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          );
-        })}
-
-        {/* Role Section */}
+        {/* Basic Info */}
         <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold">Role</h2>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col">
-              <FieldLabel>Role</FieldLabel>
-              <select
-                className="w-full rounded-md border px-3 py-2 bg-gray-100 text-gray-600"
-                value={values.role ?? ""}
-                disabled
-              >
-                <option value="MEMBER">MEMBER</option>
-              </select>
-            </div>
+          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { name: "name", label: "Full Name", type: "text" },
+              { name: "dob", label: "Date of Birth", type: "date" },
+              { name: "gender", label: "Gender", type: "select", options: optionMap.gender },
+              { name: "maritalStatus", label: "Marital Status", type: "select", options: optionMap.maritalStatus },
+              { name: "fatherName", label: "Father's Name", type: "text" },
+              { name: "motherName", label: "Mother's Name", type: "text" },
+              { name: "motherGotra", label: "Mother's Gotra", type: "text" },
+              { name: "occupation", label: "Occupation", type: "text" },
+              { name: "education", label: "Education", type: "text" },
+              { name: "gotra", label: "Gotra", type: "text" },
+            ].map((f) => (
+              <div key={f.name}>
+                <FieldLabel required={isRequired(f.name, values)}>{f.label}</FieldLabel>
+                {renderField(f.name, f.label, f.type, f.options)}
+              </div>
+            ))}
           </div>
         </section>
+
+        {/* Address */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Address</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              "address.currentVillage",
+              "address.currentTahsil",
+              "address.currentDistrict",
+              "address.currentState",
+              "address.paternalVillage",
+              "address.paternalTahsil",
+              "address.paternalDistrict",
+              "address.paternalState",
+            ].map((f) => (
+              <div key={f}>
+                <FieldLabel>{f.split(".")[1]}</FieldLabel>
+                {renderField(f, f, "text")}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Spouse */}
+        {values.maritalStatus === "MARRIED" && (
+          <section className="bg-white rounded-xl shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Spouse</h2>
+            <UploadableImage
+              photoId={values.spouse?.photoId}
+              alt="Spouse photo"
+              onUploadSuccess={(id) => setValue("spouse.photoId", id)}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {[
+                "spouse.name",
+                "spouse.dob",
+                "spouse.gotra",
+                "spouse.education",
+                "spouse.occupation",
+              ].map((f) => (
+                <div key={f}>
+                  <FieldLabel required={isRequired(f, values)}>{f.split(".")[1]}</FieldLabel>
+                  {renderField(f, f, f.includes("dob") ? "date" : "text")}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Children */}
+        {values.maritalStatus !== "SINGLE" && (
+          <section className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Children</h2>
+              <button
+                type="button"
+                onClick={() => childrenArray.append({ name: "", dob: "" })}
+                className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
+              >
+                + Add Child
+              </button>
+            </div>
+            <div className="space-y-3">
+              {childrenArray.fields.map((field, idx) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                  <div>
+                    <FieldLabel>Name</FieldLabel>
+                    <input
+                      {...form.register(`children.${idx}.name` as const)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>DOB</FieldLabel>
+                    <input
+                      type="date"
+                      {...form.register(`children.${idx}.dob` as const)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Photo</FieldLabel>
+                    <UploadableImage
+                      photoId={field.photoId as any}
+                      alt="Child photo"
+                      onUploadSuccess={(id) => setValue(`children.${idx}.photoId`, id)}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => childrenArray.remove(idx)}
+                      className="px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Buttons */}
         <div className="flex items-center gap-2">

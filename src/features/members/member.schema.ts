@@ -1,263 +1,145 @@
 import { z } from "zod";
 
-// ---------- Regex ----------
-const phoneRegex = /^[0-9]{10}$/;
-const aadhaarRegex = /^[0-9]{12}$/;
-const panRegex = /^[A-Z0-9]{10}$/;
+/* ===========================================================
+   🧩 Enums (match backend enums exactly)
+   =========================================================== */
+export const GenderEnum = z.enum(["MALE", "FEMALE", "OTHER"]);
+export const MaritalStatusEnum = z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]);
+export const RoleEnum = z.enum(["ADMIN", "PRESIDENT", "SECRETARY", "EDITOR", "MEMBER"]);
 
-// ---------- Zod validation ----------
+/* ===========================================================
+   📦 Sub-DTO Schemas (Address, Spouse, Child)
+   =========================================================== */
+
+// 🏠 AddressDto
+export const AddressZ = z.object({
+  id: z.number().optional(),
+  memberId: z.number().optional(),
+  currentState: z.string().optional().nullable(),
+  currentDistrict: z.string().optional().nullable(),
+  currentTahsil: z.string().optional().nullable(),
+  currentVillage: z.string().optional().nullable(),
+  paternalState: z.string().optional().nullable(),
+  paternalDistrict: z.string().optional().nullable(),
+  paternalTahsil: z.string().optional().nullable(),
+  paternalVillage: z.string().optional().nullable(),
+});
+export type AddressFormValues = z.input<typeof AddressZ>;
+
+// 💍 SpouseDto
+export const SpouseZ = z.object({
+  id: z.number().optional(),
+  memberId: z.number().optional(),
+  name: z.string().min(2, "Spouse name is required").optional(),
+  dob: z.string().optional().nullable(),
+  gotra: z.string().optional().nullable(),
+  education: z.string().optional().nullable(),
+  occupation: z.string().optional().nullable(),
+  photoId: z.string().uuid().optional().nullable(),
+});
+export type SpouseFormValues = z.input<typeof SpouseZ>;
+
+// 👶 ChildDto
+export const ChildZ = z.object({
+  id: z.number().optional(),
+  memberId: z.number().optional(),
+  name: z.string().min(2, "Child name is required"),
+  dob: z.string().optional().nullable(),
+  education: z.string().optional().nullable(),
+  occupation: z.string().optional().nullable(),
+  photoId: z.string().uuid().optional().nullable(),
+});
+export type ChildFormValues = z.input<typeof ChildZ>;
+
+/* ===========================================================
+   👤 MemberDto (Main Schema)
+   =========================================================== */
+const phoneRegex = /^[0-9]{10}$/;
+
 export const MemberZ = z
   .object({
-    // Basic Info
-    id: z.string().optional(),
+    id: z.number().optional(),
     name: z.string().min(2, "Name is required"),
+    role: RoleEnum.default("MEMBER").optional(),
     fatherName: z.string().min(2, "Father's name is required"),
     motherName: z.string().min(2, "Mother's name is required"),
     motherGotra: z.string().min(2, "Mother's gotra is required"),
-    dob: z.string().optional(),
-    gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-    maritalStatus: z
-      .enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"])
-      .default("MARRIED"),
-    education: z.string().optional(),
-    occupation: z.string().optional(),
+    dob: z.string().optional().nullable(),
+    education: z.string().optional().nullable(),
+    occupation: z.string().optional().nullable(),
     gotra: z.string().min(2, "Gotra is required"),
-
-    // ✅ File references
-    photoId: z.string().uuid().optional().nullable(),
-    role: z
-      .enum(["ADMIN", "PRESIDENT", "SECRETARY", "EDITOR", "MEMBER"])
-      .default("MEMBER")
-      .optional(),
-
-    // Contact
     contactNumber: z.string().regex(phoneRegex, "Enter valid 10 digit phone"),
-    email: z.string().email("Invalid email").optional().or(z.literal("")),
-    active: z.boolean().default(true),
+    photoId: z.string().uuid().optional().nullable(),
+    maritalStatus: MaritalStatusEnum.default("MARRIED"),
+    gender: GenderEnum.optional(),
+    isActive: z.boolean().default(true),
 
-    // IDs
-    aadhaar: z
-      .string()
-      .regex(aadhaarRegex, "Enter valid 12 digit Aadhaar")
-      .optional()
-      .or(z.literal("")),
-    pan: z
-      .string()
-      .regex(panRegex, "Enter valid PAN")
-      .optional()
-      .or(z.literal("")),
-
-    // Address (current + paternal)
-    currentState: z.string().optional(),
-    currentDistrict: z.string().optional(),
-    currentTahsil: z.string().optional(),
-    currentVillage: z.string().optional(),
-
-    paternalState: z.string().optional(),
-    paternalDistrict: z.string().optional(),
-    paternalTahsil: z.string().optional(),
-    paternalVillage: z.string().optional(),
-
-    // ✅ Spouse (uses photoId)
-    spouseName: z.string().optional(),
-    spouseDob: z.string().optional(),
-    spouseEducation: z.string().optional(),
-    spouseOccupation: z.string().optional(),
-    spouseGotra: z.string().optional(),
-    spousePhotoId: z.string().uuid().optional().nullable(),
-
-    // ✅ Children (use photoId, remove photoPath)
-    children: z
-      .array(
-        z.object({
-          name: z.string().min(2, "Child name required"),
-          dob: z.string().optional(),
-          education: z.string().optional(),
-          occupation: z.string().optional(),
-          photoId: z.string().uuid().optional().nullable(),
-        })
-      )
-      .default([]),
+    // 🧩 Nested DTOs
+    address: AddressZ.optional(),
+    spouse: SpouseZ.optional(),
+    children: z.array(ChildZ).default([]),
   })
   .superRefine((val, ctx) => {
-    // If married → spouse name is required
-    if (val.maritalStatus === "MARRIED" && !val.spouseName?.trim()) {
+    if (val.maritalStatus === "MARRIED" && !val.spouse?.name?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["spouseName"],
-        message: "Spouse name is required",
+        path: ["spouse", "name"],
+        message: "Spouse name is required for married members",
       });
     }
   });
 
-// ---------- Type Inference ----------
 export type MemberFormValues = z.input<typeof MemberZ>;
 
-// ---------- Field Config ----------
-export type FieldType =
-  | "text"
-  | "email"
-  | "tel"
-  | "date"
-  | "select"
-  | "textarea"
-  | "checkbox"
-  | "group-array";
-
-export type FieldConfig = {
-  name: keyof MemberFormValues | string;
-  label: string;
-  type: FieldType;
-  placeholder?: string;
-  options?: { value: string; label: string }[];
-  cols?: number;
-  showIf?: (values: MemberFormValues) => boolean;
-};
-
-export type SectionConfig = {
-  key: string;
-  title: string;
-  description?: string;
-  gridCols?: number;
-  fields: FieldConfig[];
-  showIf?: (values: MemberFormValues) => boolean;
-};
-
-// ---------- Updated Form Sections ----------
-export const MemberFormSections: SectionConfig[] = [
-  {
-    key: "basic",
-    title: "Basic Information",
-    gridCols: 2,
-    fields: [
-      { name: "name", label: "Full Name", type: "text" },
-      { name: "dob", label: "Date of Birth", type: "date" },
-      {
-        name: "gender",
-        label: "Gender",
-        type: "select",
-        options: [
-          { value: "MALE", label: "Male" },
-          { value: "FEMALE", label: "Female" },
-          { value: "OTHER", label: "Other" },
-        ],
-      },
-      {
-        name: "maritalStatus",
-        label: "Marital Status",
-        type: "select",
-        options: [
-          { value: "SINGLE", label: "Single" },
-          { value: "MARRIED", label: "Married" },
-          { value: "WIDOWED", label: "Widowed" },
-          { value: "DIVORCED", label: "Divorced" },
-        ],
-      },
-      { name: "fatherName", label: "Father's Name", type: "text" },
-      { name: "motherName", label: "Mother's Name", type: "text" },
-      { name: "motherGotra", label: "Mother's Gotra", type: "text" },
-      { name: "occupation", label: "Occupation", type: "text" },
-      { name: "education", label: "Education", type: "text" },
-      { name: "gotra", label: "Gotra", type: "text" },
-      // Removed "photoPath" field (we handle uploads separately now)
-    ],
-  },
-  {
-    key: "contact",
-    title: "Contact",
-    gridCols: 2,
-    fields: [
-      { name: "contactNumber", label: "Phone", type: "tel" },
-      { name: "email", label: "Email", type: "email" },
-      { name: "active", label: "Active Member", type: "checkbox" },
-    ],
-  },
-  {
-    key: "ids",
-    title: "IDs",
-    gridCols: 2,
-    fields: [
-      { name: "aadhaar", label: "Aadhaar", type: "text" },
-      { name: "pan", label: "PAN", type: "text" },
-    ],
-  },
-  {
-    key: "addressCurrent",
-    title: "Current Address",
-    gridCols: 2,
-    fields: [
-      { name: "currentVillage", label: "Village", type: "text" },
-      { name: "currentTahsil", label: "Tahsil", type: "text" },
-      { name: "currentDistrict", label: "District", type: "text" },
-      { name: "currentState", label: "State", type: "text" },
-    ],
-  },
-  {
-    key: "addressPaternal",
-    title: "Paternal Address",
-    gridCols: 2,
-    fields: [
-      { name: "paternalVillage", label: "Village", type: "text" },
-      { name: "paternalTahsil", label: "Tahsil", type: "text" },
-      { name: "paternalDistrict", label: "District", type: "text" },
-      { name: "paternalState", label: "State", type: "text" },
-    ],
-  },
-  {
-    key: "spouse",
-    title: "Spouse",
-    gridCols: 2,
-    showIf: (v) => v.maritalStatus === "MARRIED",
-    fields: [
-      { name: "spouseName", label: "Spouse Name", type: "text" },
-      { name: "spouseDob", label: "Spouse DOB", type: "date" },
-      { name: "spouseEducation", label: "Spouse Education", type: "text" },
-      { name: "spouseOccupation", label: "Spouse Occupation", type: "text" },
-      { name: "spouseGotra", label: "Spouse Gotra", type: "text" },
-      // Removed spousePhotoPath — upload handled separately
-    ],
-  },
-  {
-    key: "children",
-    title: "Children",
-    showIf: (v) => v.maritalStatus !== "SINGLE",
-    fields: [{ name: "children", label: "Children", type: "group-array" }],
-  },
-];
-
-// ---------- Defaults ----------
+/* ===========================================================
+   🧱 Default Values (for new member form)
+   =========================================================== */
 export const defaultMemberValues: MemberFormValues = {
-  id: "",
-  name: "Saddam Khan",
-  fatherName: "Akhtar Ali",
-  motherName: "Jamila Bano",
-  motherGotra: "Sikarwar",
-  dob: "1992-07-10",
+  name: "ABC Khan",
+  role: "MEMBER",
+  fatherName: "Rashid Khan",
+  motherName: "Fatima Khan",
+  motherGotra: "Chand",
+  dob: "1990-05-10",
+  education: "B.Sc Computer Science",
+  occupation: "Software Engineer",
+  gotra: "Khan",
+  contactNumber: "9876543210",
   gender: "MALE",
   maritalStatus: "MARRIED",
-  occupation: "Engineer",
-  education: "B.E.",
-  gotra: "Gadobbar",
-  photoId: null,
-  contactNumber: "9784561250",
-  email: "saddam@gmail.com",
-  role: "MEMBER",
-  active: true,
-  aadhaar: "745885215236",
-  pan: "",
-  currentState: "Madhya Pradesh",
-  currentDistrict: "Sheopur",
-  currentTahsil: "Sheopur",
-  currentVillage: "Sheopur",
-  paternalState: "",
-  paternalDistrict: "",
-  paternalTahsil: "",
-  paternalVillage: "",
-  spouseName: "Shahnaz Bano",
-  spouseDob: "1998-07-28",
-  spouseEducation: "10",
-  spouseOccupation: "Housewife",
-  spouseGotra: "Pathan",
-  spousePhotoId: null,
-  children: [],
+  isActive: true,
+
+  address: {
+    currentState: "Maharashtra",
+    currentDistrict: "Pune",
+    currentTahsil: "Haveli",
+    currentVillage: "Wakad",
+    paternalState: "Maharashtra",
+    paternalDistrict: "Aurangabad",
+    paternalTahsil: "Sillod",
+    paternalVillage: "Deogaon Rangari",
+  },
+
+  spouse: {
+    name: "Zara Khan",
+    dob: "1992-08-14",
+    gotra: "Sayed",
+    education: "M.Com",
+    occupation: "Teacher",
+  },
+
+  children: [
+    {
+      name: "Rehan Khan",
+      dob: "2015-03-21",
+      education: "Primary School",
+      occupation: null,
+    },
+    {
+      name: "Sara Khan",
+      dob: "2018-09-09",
+      education: "Kindergarten",
+      occupation: null,
+    },
+  ],
 };

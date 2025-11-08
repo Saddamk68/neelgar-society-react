@@ -3,14 +3,12 @@ import {
   useFieldArray,
   SubmitHandler,
   SubmitErrorHandler,
-  type Resolver,
 } from "react-hook-form";
 import { JSX, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   MemberZ,
   MemberFormValues,
-  MemberFormSections,
   defaultMemberValues,
 } from "../../../features/members/member.schema";
 import { LABELS } from "../../../constants/labels";
@@ -20,9 +18,20 @@ import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
 import { makeIsRequired } from "../../../utils/required";
 import { useNotify } from "../../../services/notifications";
-import { useAuth } from "../../../context/AuthContext"; // ✅ to get username
+import { useAuth } from "../../../context/AuthContext";
 
-// ----------------- FileUploader Subcomponent -----------------
+/* ===========================================================
+   🧩 Utility: Safe nested getter (for TS + runtime safety)
+   =========================================================== */
+function getNestedValue(obj: any, path: string): any {
+  return path
+    .split(".")
+    .reduce((acc, key) => (acc && typeof acc === "object" ? acc[key] : undefined), obj);
+}
+
+/* ===========================================================
+   🖼️ FileUploader Subcomponent
+   =========================================================== */
 function FileUploader({
   label,
   onUploadComplete,
@@ -110,46 +119,40 @@ function FileUploader({
   );
 }
 
-// ----------------- Main AddMember Form -----------------
+/* ===========================================================
+   🧾 Main AddMember Form
+   =========================================================== */
 export default function AddMember() {
   const notify = useNotify();
   const navigate = useNavigate();
 
-  const resolver: Resolver<MemberFormValues> = zodResolver(MemberZ);
-
   const form = useForm<MemberFormValues>({
-    resolver,
+    resolver: zodResolver(MemberZ),
     defaultValues: defaultMemberValues,
     mode: "onBlur",
   });
 
-  const { setFocus } = form;
-  const values = form.watch();
+  const { watch, setValue } = form;
+  const values = watch();
+  const childrenArray = useFieldArray({ control: form.control, name: "children" });
 
-  const childrenArray = useFieldArray({ control: form.control, name: "children" as const });
-
-  // track uploaded image UUID
   const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
 
-  // Auto-clear spouse & children when not married
+  // ✅ Auto-clear spouse and children when not married
   useEffect(() => {
     if (values.maritalStatus !== "MARRIED") {
-      form.setValue("spouseName", "");
-      form.setValue("spouseDob", "");
-      form.setValue("spouseEducation", "");
-      form.setValue("spouseOccupation", "");
-      form.setValue("spouseGotra", "");
+      setValue("spouse", undefined);
       if (values.maritalStatus === "SINGLE") {
-        form.setValue("children", []);
+        setValue("children", []);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values.maritalStatus]);
+  }, [values.maritalStatus, setValue]);
 
-  // ---------- Submit ----------
+  /* ===========================================================
+     🚀 Submit Handler
+     =========================================================== */
   const onSubmit: SubmitHandler<MemberFormValues> = async (data) => {
     try {
-      // attach uploaded image uuid if available
       if (uploadedPhotoId) {
         data.photoId = uploadedPhotoId;
       }
@@ -157,258 +160,214 @@ export default function AddMember() {
       notify.success("Member created successfully!");
       navigate(ROUTES.PRIVATE.MEMBERS);
     } catch (err: any) {
+      console.error(err);
       notify.error(err.message || "Failed to create member");
     }
   };
 
-  // ---------- Handle errors ----------
   const onInvalid: SubmitErrorHandler<MemberFormValues> = (errors) => {
-    const findFirst = (obj: any, prefix = ""): string | null => {
-      for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        const path = prefix ? `${prefix}.${key}` : key;
-        if (val && typeof val.message === "string") return path;
-        if (val && typeof val === "object") {
-          const deep = findFirst(val, path);
-          if (deep) return deep;
-        }
-      }
-      return null;
-    };
-    const firstName = findFirst(errors as any) ?? null;
-    if (firstName) {
-      setFocus(firstName as any, { shouldSelect: true });
-      requestAnimationFrame(() => {
-        const el = document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-          `[name="${cssEscape(firstName)}"]`
-        );
-        if (el && typeof el.scrollIntoView === "function") {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      });
-    }
+    console.error(errors);
+    notify.error("Please fix form errors before submitting.");
   };
 
-  function cssEscape(name: string) {
-    return name.replace(/"/g, '\\"');
-  }
-
-  // util for required marks
   const isRequired = makeIsRequired<MemberFormValues>({
     always: ["name", "fatherName", "gotra", "contactNumber"],
-    conditional: [
-      (v) => (v.maritalStatus === "MARRIED" ? ["spouseName"] : []),
-      (_v) => ["children.*.name"],
-    ],
+    conditional: [(v) => (v.maritalStatus === "MARRIED" ? ["spouse.name"] : [])],
   });
 
-  // options for selects
   const optionMap: Record<string, any[]> = {
     gender: LABELS.gender,
     maritalStatus: LABELS.maritalStatus,
     education: LABELS.educationLevels,
   };
 
-  // unified renderer (unchanged from your version)
-  const renderField = (fieldName: string, _label: string, type: string, options?: any[]) => {
+  /* ===========================================================
+     🧱 Field Renderer (with safe TS nested value getter)
+     =========================================================== */
+  const renderField = (fieldName: string, label: string, type: string, options?: any[]) => {
     const error = form.formState.errors as any;
-    const errMsg: string | undefined = error?.[fieldName]?.message;
+    const errMsg: string | undefined = getNestedValue(error, fieldName)?.message;
+    const value = getNestedValue(values, fieldName);
 
-    const baseInput = "w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition";
+    const baseInput =
+      "w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition";
     const normalBorder = "border-slate-300 focus:ring-primary/40";
     const errorBorder = "border-red-400 ring-1 ring-red-400 focus:ring-red-400";
-
     const className = baseInput + " " + (errMsg ? errorBorder : normalBorder);
 
-    const common = {
-      className,
-      ...form.register(fieldName as any),
-      "aria-invalid": !!errMsg,
-      "aria-describedby": `${fieldName}-error`,
-      placeholder: "",
-    };
-
-    let control: JSX.Element | null = null;
     switch (type) {
-      case "text":
-      case "email":
-      case "tel":
-      case "date":
-        control = <input type={type} {...common} />;
-        break;
-      case "textarea":
-        control = <textarea {...common} rows={4} />;
-        break;
+      case "select":
+        return (
+          <>
+            <select
+              className={className}
+              value={value ?? ""}
+              onChange={(e) => setValue(fieldName as any, e.target.value)}
+            >
+              <option value="">Select</option>
+              {(options ?? []).map((opt: any) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
+          </>
+        );
       case "checkbox":
-        control = (
+        return (
           <input
             type="checkbox"
-            className={`h-4 w-4 rounded border ${errMsg ? "border-red-400 ring-1 ring-red-400 focus:ring-red-400" : "border-slate-300"}`}
-            checked={(values as any)[fieldName]}
-            onChange={(e) => form.setValue(fieldName as any, e.target.checked)}
-            aria-invalid={!!errMsg}
-            aria-describedby={`${fieldName}-error`}
+            className="h-4 w-4 border-slate-300 rounded"
+            checked={!!value}
+            onChange={(e) => setValue(fieldName as any, e.target.checked)}
           />
         );
-        break;
-      case "select":
-        control = (
-          <select
-            className={className}
-            value={(values as any)[fieldName] ?? ""}
-            onChange={(e) => form.setValue(fieldName as any, e.target.value)}
-            aria-invalid={!!errMsg}
-            aria-describedby={`${fieldName}-error`}
-          >
-            <option value="">Select</option>
-            {(options ?? []).map((opt: any) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        );
-        break;
       default:
-        control = null;
+        return (
+          <>
+            <input
+              type={type}
+              {...form.register(fieldName as any)}
+              className={className}
+            />
+            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
+          </>
+        );
     }
-
-    return (
-      <>
-        {control}
-        <div id={`${fieldName}-error`} className="h-4 text-xs text-danger mt-1">
-          {errMsg ?? ""}
-        </div>
-      </>
-    );
   };
 
+  /* ===========================================================
+     🧩 UI Rendering
+     =========================================================== */
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-1">Add Member</h1>
       <p className="text-text-muted mb-6">
-        This form is schema-driven and will be expanded to match your HTML.
+        Create a new member with nested data structure.
       </p>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void form.handleSubmit(onSubmit, onInvalid)(e);
-        }}
-        className="space-y-6"
-      >
-        {MemberFormSections
-          .filter((section) => (section.showIf ? section.showIf(values) : true))
-          .map((section) => {
-            const cols =
-              section.gridCols === 1
-                ? "grid-cols-1"
-                : section.gridCols === 3
-                ? "grid-cols-1 md:grid-cols-3"
-                : "grid-cols-1 md:grid-cols-2";
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+        {/* ===== Basic Info ===== */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { name: "name", label: "Full Name", type: "text" },
+              { name: "dob", label: "Date of Birth", type: "date" },
+              { name: "gender", label: "Gender", type: "select", options: optionMap.gender },
+              { name: "maritalStatus", label: "Marital Status", type: "select", options: optionMap.maritalStatus },
+              { name: "fatherName", label: "Father's Name", type: "text" },
+              { name: "motherName", label: "Mother's Name", type: "text" },
+              { name: "motherGotra", label: "Mother's Gotra", type: "text" },
+              { name: "occupation", label: "Occupation", type: "text" },
+              { name: "education", label: "Education", type: "text" },
+              { name: "gotra", label: "Gotra", type: "text" },
+            ].map((f) => (
+              <div key={f.name}>
+                <FieldLabel required={isRequired(f.name, values)}>{f.label}</FieldLabel>
+                {renderField(f.name, f.label, f.type, f.options)}
+              </div>
+            ))}
+          </div>
+        </section>
 
-            return (
-              <section key={section.key} className="bg-white rounded-xl shadow p-6">
-                <h2 className="text-lg font-semibold">{section.title}</h2>
-                {section.description && (
-                  <p className="text-sm text-text-muted mb-4">{section.description}</p>
-                )}
+        {/* ===== Address ===== */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Address</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              "address.currentVillage",
+              "address.currentTahsil",
+              "address.currentDistrict",
+              "address.currentState",
+              "address.paternalVillage",
+              "address.paternalTahsil",
+              "address.paternalDistrict",
+              "address.paternalState",
+            ].map((f) => (
+              <div key={f}>
+                <FieldLabel>{f.split(".")[1]}</FieldLabel>
+                {renderField(f, f, "text")}
+              </div>
+            ))}
+          </div>
+        </section>
 
-                {/* Regular fields */}
-                <div className={`mt-4 grid gap-4 ${cols}`}>
-                  {section.fields
-                    .filter((f) => f.type !== "group-array")
-                    .filter((f) => (f.showIf ? f.showIf(values) : true))
-                    .map((f) => (
-                      <div key={f.name as string} className="flex flex-col">
-                        <FieldLabel required={isRequired(f.name as string, values)}>
-                          {f.label}
-                        </FieldLabel>
-                        {renderField(f.name as string, f.label, f.type, optionMap[f.name as string])}
-                      </div>
-                    ))}
+        {/* ===== Spouse ===== */}
+        {values.maritalStatus === "MARRIED" && (
+          <section className="bg-white rounded-xl shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Spouse</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                "spouse.name",
+                "spouse.dob",
+                "spouse.gotra",
+                "spouse.education",
+                "spouse.occupation",
+              ].map((f) => (
+                <div key={f}>
+                  <FieldLabel required={isRequired(f, values)}>{f.split(".")[1]}</FieldLabel>
+                  {renderField(f, f, f.includes("dob") ? "date" : "text")}
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-                {/* Children group */}
-                {section.fields.some((f) => f.name === "children" && f.type === "group-array") && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium">Children</h3>
-                      <button
-                        type="button"
-                        onClick={() => childrenArray.append({ name: "", dob: "" })}
-                        className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-                      >
-                        + Add Child
-                      </button>
-                    </div>
-
-                    {childrenArray.fields.length === 0 && (
-                      <p className="text-sm text-text-muted">No children added.</p>
-                    )}
-
-                    <div className="space-y-3">
-                      {childrenArray.fields.map((field, idx) => {
-                        const nameErr =
-                          (form.formState.errors.children?.[idx] as any)?.name?.message;
-
-                        const childInputBase =
-                          "w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition";
-                        const childClass =
-                          childInputBase +
-                          " " +
-                          (nameErr
-                            ? "border-red-400 ring-1 ring-red-400 focus:ring-red-400"
-                            : "border-slate-300 focus:ring-primary/40");
-
-                        return (
-                          <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                            <div>
-                              <FieldLabel required={isRequired(`children.${idx}.name`, values)}>
-                                Name
-                              </FieldLabel>
-                              <input
-                                className={childClass}
-                                {...form.register(`children.${idx}.name` as const)}
-                              />
-                              <div className="h-4 text-xs text-danger mt-1">
-                                {nameErr ?? ""}
-                              </div>
-                            </div>
-                            <div>
-                              <FieldLabel>DOB</FieldLabel>
-                              <input
-                                type="date"
-                                className="w-full rounded-md border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                                {...form.register(`children.${idx}.dob` as const)}
-                              />
-                            </div>
-                            <div className="flex items-end">
-                              <button
-                                type="button"
-                                onClick={() => childrenArray.remove(idx)}
-                                className="px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+        {/* ===== Children ===== */}
+        {values.maritalStatus !== "SINGLE" && (
+          <section className="bg-white rounded-xl shadow p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Children</h2>
+              <button
+                type="button"
+                onClick={() => childrenArray.append({ name: "", dob: "" })}
+                className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
+              >
+                + Add Child
+              </button>
+            </div>
+            <div className="space-y-3">
+              {childrenArray.fields.map((field, idx) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <div>
+                    <FieldLabel>Name</FieldLabel>
+                    <input
+                      {...form.register(`children.${idx}.name` as const)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    />
                   </div>
-                )}
-              </section>
-            );
-          })}
+                  <div>
+                    <FieldLabel>DOB</FieldLabel>
+                    <input
+                      type="date"
+                      {...form.register(`children.${idx}.dob` as const)}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => childrenArray.remove(idx)}
+                      className="px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* ✅ Added FileUploader here */}
+        {/* ===== File Upload ===== */}
         <FileUploader
           label="Upload Member Image"
           onUploadComplete={(uuid) => setUploadedPhotoId(uuid)}
         />
 
-        {/* Actions */}
+        {/* ===== Actions ===== */}
         <div className="flex items-center gap-2">
           <button
             type="submit"
