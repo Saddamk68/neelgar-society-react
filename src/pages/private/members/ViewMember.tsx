@@ -8,6 +8,7 @@ import { useNotify } from "../../../services/notifications";
 import { PRIVATE } from "../../../constants/messages";
 import { ROUTES } from "../../../constants/routes";
 import { getAuthToken } from "../../../services/apiClient";
+import { ENV } from "@/config/env";
 
 /* ===========================================================
    🧱 Small Reusable Row
@@ -27,7 +28,7 @@ function Row({ label, value }: { label: string; value?: string | number | null }
 function SecureImage({ photoId, alt }: { photoId?: string | null; alt: string }) {
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+  const baseUrl = ENV.API_BASE_URL ?? "";
   const token = getAuthToken();
 
   useEffect(() => {
