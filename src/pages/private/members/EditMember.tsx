@@ -24,6 +24,7 @@ import { useNotify } from "../../../services/notifications";
 import { LABELS } from "../../../constants/labels";
 import { getAuthToken } from "../../../services/apiClient";
 import { useAuth } from "../../../context/AuthContext";
+import { ENV } from "@/config/env";
 
 /* ===========================================================
    🧩 Utility: Safe Nested Getter
@@ -48,9 +49,10 @@ function UploadableImage({
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+  const baseUrl = ENV.API_BASE_URL ?? "";
   const token = getAuthToken();
   const { user } = useAuth();
+  const notify = useNotify(); // ✅ Notification hook
 
   useEffect(() => {
     if (!photoId) return;
@@ -72,21 +74,33 @@ function UploadableImage({
 
     fetchImage();
     return () => controller.abort();
-  }, [photoId]);
+  }, [photoId, baseUrl, token]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // ✅ Step 1: Validate file size (max 5 MB)
+    const MAX_SIZE_MB = ENV.MAX_UPLOAD_MB;
+    const sizeInMB = file.size / (1024 * 1024);
+    if (sizeInMB > MAX_SIZE_MB) {
+      notify.error(`File size must be less than ${MAX_SIZE_MB} MB.`);
+      e.target.value = ""; // reset file input
+      return;
+    }
+
+    // ✅ Step 2: Proceed with upload
     try {
       setLoading(true);
       const res = await uploadFile(file, user?.username ?? "system");
       if (res.id) {
         onUploadSuccess(res.id);
-        setSrc(URL.createObjectURL(file)); // preview immediately
+        setSrc(URL.createObjectURL(file)); // immediate preview
+        notify.success("File uploaded successfully.");
       }
     } catch (err) {
       console.error("❌ Upload failed:", err);
+      notify.error("File upload failed. Please try again.");
     } finally {
       setLoading(false);
     }

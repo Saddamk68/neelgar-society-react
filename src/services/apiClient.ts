@@ -5,6 +5,7 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { ENV } from "../config/env";
+import { buildAppError } from "@/utils/errorUtils";
 import { ErrorType } from "@/constants/errorTypes";
 
 /**
@@ -16,10 +17,9 @@ import { ErrorType } from "@/constants/errorTypes";
  * - Exports helpers: getAuthToken, setAuthToken, clearAuthToken, onUnauthorized, api.
  */
 
-// Key for localStorage (keep consistent across codebase)
 const ACCESS_TOKEN_KEY = "accessToken";
 
-// Token helpers - single source of truth for access token persistence
+/** ================= Token helpers ================= */
 export function getAuthToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
@@ -31,24 +31,23 @@ export function clearAuthToken() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
 
-// Optional: app-level unauthorized hook (call logout from context)
+/** ================= Unauthorized handler ================= */
 let unauthorizedHandler: (() => void) | null = null;
 export function onUnauthorized(cb: (() => void) | null) {
   unauthorizedHandler = cb;
 }
 
-// Main axios instance used by the app
+/** ================= Main axios instance ================= */
 export const api = axios.create({
-  baseURL: ENV.API_BASE_URL, // e.g. "http://localhost:8080" or "/api/v1"
+  baseURL: ENV.API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
   timeout: 15_000,
-  // Do not set withCredentials globally here; refresh uses refreshClient
 });
 
-// Dedicated client for refresh requests — sends cookies
+/** ================= Refresh client ================= */
 const refreshClient = axios.create({
   baseURL: ENV.API_BASE_URL,
   withCredentials: true,
@@ -59,7 +58,7 @@ const refreshClient = axios.create({
   timeout: 15_000,
 });
 
-// Request interceptor: attach Authorization header synchronously from localStorage
+/** ================= Request interceptor ================= */
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getAuthToken();
   if (token) {
@@ -67,7 +66,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     (config.headers as any).Authorization = `Bearer ${token}`;
   }
 
-  // ✅ IMPORTANT FIX FOR FILE UPLOADS
   if (config.data instanceof FormData) {
     delete (config.headers as any)["Content-Type"];
     delete (config.headers as any)["content-type"];
@@ -80,7 +78,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// ========== Refresh queue implementation ==========
+/** ================= Refresh queue implementation ================= */
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string | null) => void> = [];
 
@@ -93,82 +91,48 @@ function onRefreshed(token: string | null) {
   refreshSubscribers = [];
 }
 
-// Attempt to refresh using refreshClient (cookie will be sent)
 async function attemptRefresh(): Promise<string> {
-  // refresh endpoint - backend sets/reads the HttpOnly refresh cookie
   const url = "/auth/refresh";
   try {
     const resp: AxiosResponse<any> = await refreshClient.post(url, {});
     const newAccessToken = resp?.data?.accessToken;
-    if (!newAccessToken) {
-      throw new Error("no_access_token_in_refresh_response");
-    }
-    // persist token
+    if (!newAccessToken) throw new Error("no_access_token_in_refresh_response");
     setAuthToken(newAccessToken);
     return newAccessToken;
   } catch (err) {
-    // failed refresh -> clear token
     setAuthToken(null);
     throw err;
   }
 }
 
-// Normalize errors into a consistent shape (keeps your previous shape)
+/** ================= Error normalization wrapper ================= */
 function buildNormalizedError(error: AxiosError<any>) {
-  const hasResponse = !!error.response;
-  const status = error.response?.status ?? 0;
-  const data = error.response?.data as any;
-  const messageFromServer =
-    data?.message || data?.error || data?.title || undefined;
-
-  // Classify error type for better global handling
-  let type: ErrorType = ErrorType.UNKNOWN;
-
-  if (!hasResponse) type = ErrorType.NETWORK_ERROR;
-  else if (status === 401 || status === 403) type = ErrorType.UNAUTHORIZED;
-  else if (status >= 500) type = ErrorType.SERVER_ERROR;
-  else if (status >= 400) type = ErrorType.CLIENT_ERROR;
-
-  return {
-    code: status,
-    type, // 👈 added classification
-    message:
-      messageFromServer ??
-      (error.code === "ECONNABORTED"
-        ? "Request timed out"
-        : hasResponse
-        ? `Request failed with status ${status}`
-        : "Network error — unable to reach server"),
-    details: data ?? null,
-    url: error.config?.url,
-    method: (error.config?.method ?? "").toString().toUpperCase(),
-  };
+  return buildAppError(error);
 }
 
-// Response interceptor: on 401 -> try refresh -> retry original request once
+/** ================= Response interceptor ================= */
 api.interceptors.response.use(
   (resp) => resp,
   async (error: AxiosError<any>) => {
     const status = error.response?.status ?? 0;
-    const originalRequest = (error.config as AxiosRequestConfig & { _retry?: boolean }) || {};
+    const originalRequest =
+      (error.config as AxiosRequestConfig & { _retry?: boolean }) || {};
     const requestUrl = originalRequest.url ?? "";
 
-    // Avoid attempting refresh for auth endpoints themselves
     const isAuthEndpoint =
       requestUrl.endsWith("/auth/refresh") ||
       requestUrl.endsWith("/auth/login") ||
       requestUrl.endsWith("/auth/register") ||
       requestUrl.endsWith("/auth/logout");
 
+    // -------- Handle token refresh --------
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
 
       if (isRefreshing) {
-        // queue until refresh completes
         return new Promise((resolve, reject) => {
           subscribeTokenRefresh((token) => {
             if (!token) {
-              // refresh failed -> trigger unauthorized handler
               if (unauthorizedHandler) {
                 try {
                   unauthorizedHandler();
@@ -186,7 +150,6 @@ api.interceptors.response.use(
         });
       }
 
-      // start refresh
       isRefreshing = true;
       try {
         const newToken = await attemptRefresh();
@@ -199,14 +162,13 @@ api.interceptors.response.use(
         isRefreshing = false;
         onRefreshed(null);
 
-        // Normalize the error
         const normalized = buildNormalizedError(refreshErr as AxiosError);
 
-        // ✅ Only trigger logout for real 401/403
+        // ✅ handle unauthorized vs others
         if (
-          normalized.code === 401 ||
-          normalized.code === 403 ||
-          normalized.type === "UNAUTHORIZED"
+          normalized.httpStatus === 401 ||
+          normalized.httpStatus === 403 ||
+          normalized.type === ErrorType.UNAUTHORIZED
         ) {
           if (unauthorizedHandler) {
             try {
@@ -216,11 +178,10 @@ api.interceptors.response.use(
             }
           }
         } else {
-          // ✅ Show toast for other errors (network/server)
           import("./notifications").then(({ notifyGlobal }) => {
-            if (normalized.type === "NETWORK_ERROR") {
+            if (normalized.type === ErrorType.NETWORK_ERROR) {
               notifyGlobal("error", "Network error — please check your connection.");
-            } else if (normalized.type === "SERVER_ERROR") {
+            } else if (normalized.type === ErrorType.SERVER_ERROR) {
               notifyGlobal("error", "Server error — please try again later.");
             }
           });
@@ -230,9 +191,8 @@ api.interceptors.response.use(
       }
     }
 
-    // non-401 or other case
+    // Non-401 case for auth endpoints
     if (status === 401 && unauthorizedHandler && isAuthEndpoint) {
-      // For auth endpoints, if they return 401, run handler too (optional)
       try {
         unauthorizedHandler();
       } catch {
@@ -244,21 +204,20 @@ api.interceptors.response.use(
   }
 );
 
-// ===== Global network/server error handler =====
+/** ================= Global network/server error handler ================= */
 api.interceptors.response.use(undefined, (error: AxiosError<any>) => {
   const normalized = buildNormalizedError(error);
 
-  if (normalized.type === "NETWORK_ERROR") {
+  if (normalized.type === ErrorType.NETWORK_ERROR) {
     import("./notifications").then(({ notifyGlobal }) => {
       notifyGlobal("error", "Network error — please check your connection.");
     });
-  } else if (normalized.type === "SERVER_ERROR") {
+  } else if (normalized.type === ErrorType.SERVER_ERROR) {
     import("./notifications").then(({ notifyGlobal }) => {
       notifyGlobal("error", "Server error — please try again later.");
     });
   }
 
-  // Always reject so React Query can see the error
   return Promise.reject(normalized);
 });
 

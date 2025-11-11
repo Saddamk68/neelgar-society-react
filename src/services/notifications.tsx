@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { ENV } from "@/config/env";
 
 type ToastType = "success" | "info" | "warn" | "error";
 
@@ -20,6 +21,7 @@ type NotifyFn = {
 const NotificationsContext = createContext<{ notify: NotifyFn } | null>(null);
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+  const DEFAULT_TTL = ENV.NOTIFICATION_TIMEOUT_MS;
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const remove = useCallback((id: string) => {
@@ -28,11 +30,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const push = useCallback((t: Toast) => {
     setToasts((prev) => [...prev, t]);
-    const ttl = t.timeout ?? 3000;
+    const ttl = t.timeout ?? DEFAULT_TTL;
     if (ttl > 0) {
       setTimeout(() => remove(t.id), ttl);
     }
-  }, [remove]);
+  }, [remove, DEFAULT_TTL]);
 
   const baseNotify = useCallback<NotifyFn>(
     ((message: string, opts?: Partial<Toast>) => {

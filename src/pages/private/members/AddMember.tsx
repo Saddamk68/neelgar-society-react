@@ -19,9 +19,10 @@ import FieldLabel from "../../../components/form/FieldLabel";
 import { makeIsRequired } from "../../../utils/required";
 import { useNotify } from "../../../services/notifications";
 import { useAuth } from "../../../context/AuthContext";
+import { ENV } from "@/config/env";
 
 /* ===========================================================
-   🧩 Utility: Safe nested getter (for TS + runtime safety)
+   Utility: Safe nested getter (for TS + runtime safety)
    =========================================================== */
 function getNestedValue(obj: any, path: string): any {
   return path
@@ -30,7 +31,7 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 /* ===========================================================
-   🖼️ FileUploader Subcomponent
+   FileUploader Subcomponent
    =========================================================== */
 function FileUploader({
   label,
@@ -45,7 +46,7 @@ function FileUploader({
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
-  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  const MAX_FILE_SIZE = ENV.MAX_UPLOAD_MB;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -56,8 +57,9 @@ function FileUploader({
       notify.error("Only JPG and PNG images are allowed");
       return;
     }
-    if (f.size > MAX_FILE_SIZE) {
-      notify.error("Image must be 5MB or less");
+    const sizeInMB = f.size / (1024 * 1024);
+    if (sizeInMB > MAX_FILE_SIZE) {
+      notify.error(`File size must be less than ${MAX_FILE_SIZE} MB.`);
       return;
     }
 
