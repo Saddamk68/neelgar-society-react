@@ -1,27 +1,26 @@
-// Central registry for backend endpoints (no hardcoded URLs in components/services).
-const API_BASE_URL = "http://localhost:8080/api/v1";
+import { ENV } from "@/config/env";
 
 export const ENDPOINTS = {
   auth: {
-    login: `${API_BASE_URL}/auth/login`,
-    register: `${API_BASE_URL}/auth/register`,
+    login: `${ENV.API_BASE_URL}/auth/login`,
+    register: `${ENV.API_BASE_URL}/auth/register`,
   },
   members: {
-    base: `${API_BASE_URL}/member`,
-    // root: "/members",
-    list: () => `${API_BASE_URL}/member`,
-    get: (id: string | number) => `${API_BASE_URL}/member/${id}`,
-    create: () => `${API_BASE_URL}/member`,
-    update: (id: string | number) => `${API_BASE_URL}/member/${id}`,
-    remove: (id: string | number) => `${API_BASE_URL}/member/${id}`,
+    base: `${ENV.API_BASE_URL}/member`,
+    list: () => `${ENV.API_BASE_URL}/member`,
+    get: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
+    create: () => `${ENV.API_BASE_URL}/member`,
+    update: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
+    remove: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
   },
   logs: {
-    base: `${API_BASE_URL}/logs`,
-    byId: (id: string | number) => `${API_BASE_URL}/logs/${id}`,
+    base: `${ENV.API_BASE_URL}/logs`,
+    byId: (id: string | number) => `${ENV.API_BASE_URL}/logs/${id}`,
   },
   users: {
-    base: `${API_BASE_URL}/users`,
-    byId: (id: string | number) => `${API_BASE_URL}/users/${id}`,
+    base: `${ENV.API_BASE_URL}/user`, // ✅ FIXED: must be singular to match backend
+    getAll: () => `${ENV.API_BASE_URL}/user/get-all-users`, // ✅ new helper
+    byId: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
+    update: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
   },
-  // add logs/users later here
 } as const;

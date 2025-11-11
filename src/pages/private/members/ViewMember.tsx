@@ -32,7 +32,10 @@ function SecureImage({ photoId, alt }: { photoId?: string | null; alt: string })
   const token = getAuthToken();
 
   useEffect(() => {
-    if (!photoId) return;
+    if (!photoId) {
+      setSrc(null);
+      return;
+    }
 
     const controller = new AbortController();
 
@@ -49,16 +52,27 @@ function SecureImage({ photoId, alt }: { photoId?: string | null; alt: string })
         if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
 
         const blob = await res.blob();
-        setSrc(URL.createObjectURL(blob));
-      } catch (err) {
-        console.error("🚨 SecureImage fetch error:", err);
+        const objectUrl = URL.createObjectURL(blob);
+
+        // Set image only if not aborted
+        if (!controller.signal.aborted) {
+          setSrc(objectUrl);
+        }
+      } catch (err: any) {
+        // Ignore AbortError — it's expected during re-renders
+        if (err.name === "AbortError") return;
+        console.error("SecureImage fetch error:", err);
         setSrc(null);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     }
 
     fetchImage();
+
+    // Clean up previous request if photoId changes or component unmounts
     return () => controller.abort();
   }, [photoId, token, baseUrl]);
 

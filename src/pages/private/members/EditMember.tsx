@@ -99,7 +99,7 @@ function UploadableImage({
         notify.success("File uploaded successfully.");
       }
     } catch (err) {
-      console.error("❌ Upload failed:", err);
+      console.error("Upload failed:", err);
       notify.error("File upload failed. Please try again.");
     } finally {
       setLoading(false);
