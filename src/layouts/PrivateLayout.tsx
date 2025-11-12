@@ -154,7 +154,7 @@ export default function PrivateLayout() {
                 role="menuitem"
                 onClick={() => {
                   setProfileOpen(false);
-                  navigate(ROUTES.PRIVATE.DASHBOARD); // TODO: change to /profile later
+                  navigate(ROUTES.PRIVATE.PROFILE);
                 }}
               >
                 {PROFILE_MENU.VIEW_PROFILE}

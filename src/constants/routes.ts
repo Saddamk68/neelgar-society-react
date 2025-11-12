@@ -11,5 +11,6 @@ export const ROUTES = {
     MEMBERS: "/app/members",
     LOGS: "/app/logs",
     USERS: "/app/users",
+    PROFILE: "/app/profile",
   },
 };
