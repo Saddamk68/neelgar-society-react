@@ -18,9 +18,10 @@ export const ENDPOINTS = {
     byId: (id: string | number) => `${ENV.API_BASE_URL}/logs/${id}`,
   },
   users: {
-    base: `${ENV.API_BASE_URL}/user`, // ✅ FIXED: must be singular to match backend
-    getAll: () => `${ENV.API_BASE_URL}/user/get-all-users`, // ✅ new helper
+    base: `${ENV.API_BASE_URL}/user`,
+    getAll: () => `${ENV.API_BASE_URL}/user/get-all-users`,
     byId: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
     update: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
+    current: () => `${ENV.API_BASE_URL}/user`,
   },
 } as const;

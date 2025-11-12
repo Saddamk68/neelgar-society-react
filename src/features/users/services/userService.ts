@@ -1,4 +1,4 @@
-import type { UserRecord } from "../types";
+import type { UserProfile, UserRecord } from "../types";
 import { api } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
 
@@ -8,7 +8,7 @@ import { ENDPOINTS } from "../../../config/endpoints";
  */
 export async function listUsers(): Promise<UserRecord[]> {
   try {
-    const response = await api.get(`${ENDPOINTS.users.base}/get-all-users`);
+    const response = await api.get(ENDPOINTS.users.getAll());
     const content = response.data?.content ?? [];
 
     return content.map((u: any) => ({
@@ -21,6 +21,19 @@ export async function listUsers(): Promise<UserRecord[]> {
     })) as UserRecord[];
   } catch (error) {
     console.error("Error fetching users:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch the authenticated user's profile.
+ */
+export async function getCurrentUser(): Promise<UserProfile> {
+  try {
+    const response = await api.get(ENDPOINTS.users.current());
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching current user:", error);
     throw error;
   }
 }

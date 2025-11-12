@@ -7,3 +7,14 @@ export type UserRecord = {
   role: UserRole;
   createdAt?: string;
 };
+
+export type UserProfile = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  active: boolean;
+  userImage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
