@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, ArrowLeft } from "lucide-react";
+import { Pencil, ArrowLeft, Printer } from "lucide-react";
 import { MemberFormValues } from "@/features/members/member.schema";
 import { getMember } from "../../../features/members/services/memberService";
 import { useNotify } from "../../../services/notifications";
@@ -9,6 +9,7 @@ import { PRIVATE } from "../../../constants/messages";
 import { ROUTES } from "../../../constants/routes";
 import { getAuthToken } from "../../../services/apiClient";
 import { ENV } from "@/config/env";
+import ExportButton from "@/components/ExportButton/ExportButton";
 
 /* ===========================================================
    🧱 Small Reusable Row
@@ -189,10 +190,16 @@ export default function ViewMember() {
                   <div className="text-lg font-semibold">{member.name}</div>
                   <div className="text-text-muted text-sm">ID: {member.id}</div>
                 </div>
-                <div className="text-right text-sm text-text-muted">
-                  <div>{member.gotra ?? "-"}</div>
-                  <div>{member.role ?? ""}</div>
-                </div>
+
+                <ExportButton
+                  path={`/export/member/${member.id}`}
+                  action="newtab"
+                  useCache={true}
+                  className="no-print flex items-center gap-2 text-primary cursor-pointer select-none hover:text-primary/80 transition-colors"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="font-medium text-sm">Print</span>
+                </ExportButton>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
@@ -279,7 +286,7 @@ export default function ViewMember() {
               onClick={() => navigate(-1)}
               className="px-3 py-2 rounded border hover:bg-gray-50"
             >
-              Close
+              Cancel
             </button>
             <Link
               to={`${ROUTES.PRIVATE.MEMBERS}/${member.id}/edit`}
