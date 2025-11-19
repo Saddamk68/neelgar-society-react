@@ -279,18 +279,18 @@ export default function AddMember() {
           <h2 className="text-lg font-semibold mb-4">Address</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              "address.currentVillage",
-              "address.currentTahsil",
-              "address.currentDistrict",
-              "address.currentState",
-              "address.paternalVillage",
-              "address.paternalTahsil",
-              "address.paternalDistrict",
-              "address.paternalState",
+              { name: "address.currentVillage", label: "Current Village" },
+              { name: "address.currentTahsil", label: "Current Tahsil" },
+              { name: "address.currentDistrict", label: "Current District" },
+              { name: "address.currentState", label: "Current State" },
+              { name: "address.paternalVillage", label: "Permanent Village" },
+              { name: "address.paternalTahsil", label: "Permanent Tahsil" },
+              { name: "address.paternalDistrict", label: "Permanent District" },
+              { name: "address.paternalState", label: "Permanent State" },
             ].map((f) => (
-              <div key={f}>
-                <FieldLabel>{f.split(".")[1]}</FieldLabel>
-                {renderField(f, f, "text")}
+              <div key={f.name}>
+                <FieldLabel>{f.label}</FieldLabel>
+                {renderField(f.name, f.label, "text")}
               </div>
             ))}
           </div>
@@ -302,15 +302,15 @@ export default function AddMember() {
             <h2 className="text-lg font-semibold mb-4">Spouse</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                "spouse.name",
-                "spouse.dob",
-                "spouse.gotra",
-                "spouse.education",
-                "spouse.occupation",
+                { name: "spouse.name", label: "Name", type: "text" },
+                { name: "spouse.dob", label: "Date of Birth", type: "date" },
+                { name: "spouse.gotra", label: "Gotra", type: "text" },
+                { name: "spouse.education", label: "Education", type: "text" },
+                { name: "spouse.occupation", label: "Occupation", type: "text" },
               ].map((f) => (
-                <div key={f}>
-                  <FieldLabel required={isRequired(f, values)}>{f.split(".")[1]}</FieldLabel>
-                  {renderField(f, f, f.includes("dob") ? "date" : "text")}
+                <div key={f.name}>
+                  <FieldLabel required={isRequired(f.name, values)}>{f.label}</FieldLabel>
+                  {renderField(f.name, f.label, f.type)}
                 </div>
               ))}
             </div>
