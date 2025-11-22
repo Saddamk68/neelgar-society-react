@@ -1,10 +1,10 @@
 import type { UserProfile, UserRecord } from "../types";
+import type { Role } from "../../../constants/roles";
 import { api } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
 
 /**
- * Fetch all users from the backend (admin-only endpoint).
- * Maps backend UserDto objects to frontend UserRecord format.
+ * Fetch all users
  */
 export async function listUsers(): Promise<UserRecord[]> {
   try {
@@ -15,7 +15,7 @@ export async function listUsers(): Promise<UserRecord[]> {
       id: u.id,
       name: u.username,
       email: u.email,
-      role: (u.role ?? "MEMBER").toLowerCase(),
+      role: (u.role ?? "MEMBER").toUpperCase() as Role,
       active: u.active ?? true,
       createdAt: u.createdAt ?? null,
     })) as UserRecord[];
@@ -26,7 +26,24 @@ export async function listUsers(): Promise<UserRecord[]> {
 }
 
 /**
- * Fetch the authenticated user's profile.
+ * Update user role (Admin-only endpoint)
+ */
+export async function updateUserRole(userId: number, role: Role) {
+  try {
+    const response = await api.patch(ENDPOINTS.users.update(userId), {
+      role,
+      active: true, // preserve active flag unless you want to edit it
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating role for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch the authenticated user's profile
  */
 export async function getCurrentUser(): Promise<UserProfile> {
   try {

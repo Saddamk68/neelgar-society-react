@@ -1,4 +1,3 @@
-// path: neelgar-society-react/src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Role } from "../constants/roles";
@@ -7,7 +6,7 @@ import { ENDPOINTS } from "../config/endpoints";
 
 type User = {
   username: string;
-  roles: Role[];
+  role: Role;
 };
 
 export type AuthState = {
@@ -26,7 +25,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [role, setRole] = useState<Role>("guest");
+  const [role, setRole] = useState<Role>("MEMBER");
   const [user, setUser] = useState<User | null>(null);
 
   const persistUser = (u: User | null) => {
@@ -48,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore network errors
     } finally {
       setIsAuthenticated(false);
-      setRole("guest");
+      setRole("MEMBER");
       setUser(null);
       setAuthToken(null);
       clearAuthToken();
@@ -71,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const parsed = JSON.parse(storedUser) as User;
             setUser(parsed);
-            setRole((parsed.roles[0] as Role) ?? "guest");
+            setRole((user?.role as Role) ?? "MEMBER");
           } catch {
             // ignore parse errors
           }
@@ -94,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!cancelled) {
             setIsAuthenticated(false);
             setUser(null);
-            setRole("guest");
+            setRole("MEMBER");
             persistUser(null);
             setIsInitializing(false);
           }
@@ -111,13 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setAuthToken(accessToken);
             persistUser(userPayload ?? null);
             setUser(userPayload ?? null);
-            setRole((userPayload?.roles?.[0] as Role) ?? "guest");
+            setRole((userPayload?.roles?.[0] as Role) ?? "MEMBER");
           }
         } else {
           if (!cancelled) {
             setIsAuthenticated(false);
             setUser(null);
-            setRole("guest");
+            setRole("MEMBER");
             persistUser(null);
           }
         }
@@ -125,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) {
           setIsAuthenticated(false);
           setUser(null);
-          setRole("guest");
+          setRole("MEMBER");
         }
       } finally {
         if (!cancelled) setIsInitializing(false);
@@ -154,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser(user ?? null);
     setIsAuthenticated(true);
     setUser(user ?? null);
-    setRole((user?.roles?.[0] as Role) ?? "guest");
+    setRole((user?.role as Role) ?? "MEMBER");
   };
 
   const register = async (username: string, password: string, email: string) => {
@@ -164,14 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser(user ?? null);
     setIsAuthenticated(true);
     setUser(user ?? null);
-    setRole((user?.roles?.[0] as Role) ?? "guest");
+    setRole((user?.role as Role) ?? "MEMBER");
   };
 
-  const demoLogin = (newRole: Role = "admin", tokenOverride?: string) => {
+  const demoLogin = (newRole: Role = "ADMIN", tokenOverride?: string) => {
     const token = tokenOverride ?? "demo-token";
     setIsAuthenticated(true);
     setRole(newRole);
-    const demoUser = { username: "demo", roles: [newRole] } as User;
+    const demoUser = { username: "demo", role: newRole } as User;
     setUser(demoUser);
     setAuthToken(token);
     persistUser(demoUser);
