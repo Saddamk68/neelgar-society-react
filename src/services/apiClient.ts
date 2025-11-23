@@ -205,8 +205,10 @@ api.interceptors.response.use(
 );
 
 /** ================= Global network/server error handler ================= */
-api.interceptors.response.use(undefined, (error: AxiosError<any>) => {
-  const normalized = buildNormalizedError(error);
+api.interceptors.response.use(undefined, (error: any) => {
+  // If the error is already a normalized app error (from the previous interceptor),
+  // use it as-is. Otherwise, normalize the raw AxiosError.
+  const normalized = error?.type ? error : buildNormalizedError(error as AxiosError<any>);
 
   if (normalized.type === ErrorType.NETWORK_ERROR) {
     import("./notifications").then(({ notifyGlobal }) => {
