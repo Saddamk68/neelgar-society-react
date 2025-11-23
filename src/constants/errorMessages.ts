@@ -4,6 +4,7 @@ export const DEFAULT_ERROR_MESSAGES = {
   SERVER_ERROR: "Server error — please try again later.",
   CLIENT_ERROR: "Request could not be completed. Please check your input.",
   UNAUTHORIZED: "Unauthorized access. Please sign in again.",
+  BAD_REQUEST: "Bad request. Please check your input.",
   UNKNOWN: "An unexpected error occurred. Please try again.",
 } as const;
 
