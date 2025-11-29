@@ -1,9 +1,20 @@
-export type UserRole = "admin" | "member";
+import { Role } from "@/constants/roles";
 
 export type UserRecord = {
-  id: string;
+  id: number;
   name: string;
   email: string;
-  role: UserRole;
+  role: Role;
   createdAt?: string;
+};
+
+export type UserProfile = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  active: boolean;
+  userImage?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { ENV } from "@/config/env";
 
 type ToastType = "success" | "info" | "warn" | "error";
 
@@ -20,6 +21,7 @@ type NotifyFn = {
 const NotificationsContext = createContext<{ notify: NotifyFn } | null>(null);
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+  const DEFAULT_TTL = ENV.NOTIFICATION_TIMEOUT_MS;
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const remove = useCallback((id: string) => {
@@ -28,11 +30,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const push = useCallback((t: Toast) => {
     setToasts((prev) => [...prev, t]);
-    const ttl = t.timeout ?? 3000;
+    const ttl = t.timeout ?? DEFAULT_TTL;
     if (ttl > 0) {
       setTimeout(() => remove(t.id), ttl);
     }
-  }, [remove]);
+  }, [remove, DEFAULT_TTL]);
 
   const baseNotify = useCallback<NotifyFn>(
     ((message: string, opts?: Partial<Toast>) => {
@@ -48,6 +50,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   baseNotify.error = (message, opts) => baseNotify(message, { ...opts, type: "error" });
 
   const value = useMemo(() => ({ notify: baseNotify }), [baseNotify]);
+
+  // Register the global notifier for non-React modules
+  React.useEffect(() => {
+    setGlobalNotify(baseNotify);
+  }, [baseNotify]);
 
   return (
     <NotificationsContext.Provider value={value}>
@@ -95,4 +102,19 @@ export function useNotify() {
   const ctx = useContext(NotificationsContext);
   if (!ctx) throw new Error("useNotify must be used within NotificationsProvider");
   return ctx.notify;
+}
+
+// ===== Global notifier for non-React code (like apiClient.ts) =====
+let globalNotify: NotifyFn | null = null;
+
+export function setGlobalNotify(fn: NotifyFn) {
+  globalNotify = fn;
+}
+
+export function notifyGlobal(type: ToastType, message: string, opts?: Partial<Toast>) {
+  if (globalNotify) {
+    globalNotify(message, { ...opts, type });
+  } else {
+    console.warn("notifyGlobal called before NotificationsProvider mounted");
+  }
 }

@@ -42,7 +42,7 @@ export const PRIVATE = {
   DASHBOARD_TITLE: "Dashboard",
   DASHBOARD_DESC: "Private area visible after login.",
   MEMBERS_TITLE: "Members",
-  MEMBERS_DESC: "List/add/edit members (to be implemented).",
+  MEMBERS_DESC: "List/add/edit members",
   LOGS_TITLE: "Logs",
   LOGS_DESC: "Audit logs and filters (admin only).",
   USERS_TITLE: "Users",

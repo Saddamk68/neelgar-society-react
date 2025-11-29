@@ -1,30 +1,88 @@
-import { api } from "../../../services/apiClient";
+import { api, getAuthToken } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
-import { FEATURES } from "../../../config/features";
-import type { Member } from "../types";
+import { MemberFormValues } from "../member.schema";
+import { toBackendPayload, fromBackendResponse } from "../member.mapper";
 
-// simple mock data (local only until backend is ready)
-const MOCK_MEMBERS: Member[] = [
-  { id: "1", name: "Asha Patel", flatNo: "A-101", phone: "9876543210", email: "asha@example.com" },
-  { id: "2", name: "Rohit Kumar", flatNo: "B-204", phone: "9876501234", email: "rohit@example.com" },
-  { id: "3", name: "Neha Singh", flatNo: "C-305", phone: "9867002233", email: "neha@example.com" },
-];
+export type MemberListItem = {
+  id: number | string;
+  name: string;
+  fatherName?: string;
+  motherName?: string;
+  gotra?: string;
+  phone?: string;
+  currentVillage?: string;
+};
 
-export async function listMembers(): Promise<Member[]> {
-  if (FEATURES.USE_MOCK_API) {
-    // simulate network
-    await new Promise((r) => setTimeout(r, 250));
-    return MOCK_MEMBERS;
-  }
-  const res = await api.get(ENDPOINTS.members.base);
-  return res.data;
+export type PaginatedResponse<T> = {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+};
+
+export async function listMembers(
+  page = 0,
+  size = 30,
+  search = ""
+): Promise<PaginatedResponse<MemberListItem>> {
+  const res = await api.get(ENDPOINTS.members.list(), { params: { page, size, search } });
+  const raw = res.data;
+
+  return {
+    ...raw,
+    content: raw.content.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      fatherName: m.fatherName ?? "-",
+      motherName: m.motherName ?? "",
+      gotra: m.gotra ?? "",
+      phone: m.contactNumber ?? m.phone ?? "",
+      currentVillage: m.address?.currentVillage ?? "",
+    })),
+  };
 }
 
-export async function createMember(payload: Omit<Member, "id" | "createdAt">): Promise<Member> {
-  if (FEATURES.USE_MOCK_API) {
-    await new Promise((r) => setTimeout(r, 250));
-    return { id: String(Date.now()), createdAt: new Date().toISOString(), ...payload };
-  }
-  const res = await api.post(ENDPOINTS.members.base, payload);
-  return res.data;
+export async function getMember(id: string | number): Promise<MemberFormValues> {
+  const res = await api.get(ENDPOINTS.members.get(id));
+  const member = res.data?.data ?? res.data;
+
+  // ✅ return data directly (don’t transform or strip fields)
+  return member;
 }
+
+
+export async function createMember(payload: MemberFormValues): Promise<MemberFormValues> {
+  const res = await api.post(ENDPOINTS.members.create(), toBackendPayload(payload));
+  const m = res.data?.data ?? res.data;
+  return fromBackendResponse(m);
+}
+
+export async function updateMember(id: string | number, payload: MemberFormValues): Promise<MemberFormValues> {
+  const res = await api.patch(ENDPOINTS.members.update(id), toBackendPayload(payload));
+  const m = res.data?.data ?? res.data;
+  return fromBackendResponse(m);
+}
+
+export async function deleteMember(id: string | number) {
+  const res = await api.delete(ENDPOINTS.members.remove(id));
+  return res.data?.data ?? res.data;
+}
+
+// Upload file and return FileResponseDto (UUID)
+export async function uploadFile(file: File, createdBy = "system") {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("createdBy", createdBy);
+
+  const token = getAuthToken();
+
+  const res = await api.post("/files/upload", formData, {
+    headers: {
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  });
+
+  return res.data; // FileResponseDto with id, etc.
+}
+
