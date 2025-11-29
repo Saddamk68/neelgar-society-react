@@ -1,19 +1,56 @@
-import { FEATURES } from "../../../config/features";
-import type { UserRecord } from "../types";
+import type { UserProfile, UserRecord } from "../types";
+import type { Role } from "../../../constants/roles";
 import { api } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
 
-const MOCK_USERS: UserRecord[] = [
-  { id: "u1", name: "Admin User", email: "admin@neelgar.org", role: "admin" },
-  { id: "u2", name: "Rohit Kumar", email: "rohit@neelgar.org", role: "member" },
-  { id: "u3", name: "Asha Patel", email: "asha@neelgar.org", role: "member" },
-];
-
+/**
+ * Fetch all users
+ */
 export async function listUsers(): Promise<UserRecord[]> {
-  if (FEATURES.USE_MOCK_API) {
-    await new Promise((r) => setTimeout(r, 250));
-    return MOCK_USERS;
+  try {
+    const response = await api.get(ENDPOINTS.users.getAll());
+    const content = response.data?.content ?? [];
+
+    return content.map((u: any) => ({
+      id: u.id,
+      name: u.username,
+      email: u.email,
+      role: (u.role ?? "MEMBER").toUpperCase() as Role,
+      active: u.active ?? true,
+      createdAt: u.createdAt ?? null,
+    })) as UserRecord[];
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
   }
-  const res = await api.get(ENDPOINTS.users.base);
-  return res.data;
+}
+
+/**
+ * Update user role (Admin-only endpoint)
+ */
+export async function updateUserRole(userId: number, role: Role) {
+  try {
+    const response = await api.patch(ENDPOINTS.users.update(userId), {
+      role,
+      active: true, // preserve active flag unless you want to edit it
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating role for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch the authenticated user's profile
+ */
+export async function getCurrentUser(): Promise<UserProfile> {
+  try {
+    const response = await api.get(ENDPOINTS.users.current());
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    throw error;
+  }
 }
