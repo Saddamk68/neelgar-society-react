@@ -4,7 +4,7 @@ import { MemberFormValues } from "../member.schema";
 import { toBackendPayload, fromBackendResponse } from "../member.mapper";
 
 export type MemberListItem = {
-  id: number | string;
+  id: number;
   name: string;
   fatherName?: string;
   motherName?: string;
