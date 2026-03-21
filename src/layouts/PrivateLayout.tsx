@@ -175,7 +175,7 @@ export default function PrivateLayout() {
                 onClick={() => {
                   setProfileOpen(false);
                   logout();
-                  navigate(ROUTES.PUBLIC.HOME);
+                  navigate(ROUTES.PUBLIC.LOGIN);
                 }}
               >
                 {PROFILE_MENU.LOGOUT}
