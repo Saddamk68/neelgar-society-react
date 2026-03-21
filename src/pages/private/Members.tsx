@@ -222,7 +222,7 @@ export default function Members() {
               onClick={(e) => e.stopPropagation()}
               className="p-1 rounded hover:bg-sky-50"
             >
-              <Eye className="w-5 h-5 text-sky-600" />
+              <Eye className="w-5 h-5 text-primary" />
             </Link>
           </Tooltip>
 
@@ -232,7 +232,7 @@ export default function Members() {
               onClick={(e) => e.stopPropagation()}
               className="p-1 rounded hover:bg-sky-50"
             >
-              <Pencil className="w-5 h-5 text-sky-600" />
+              <Pencil className="w-5 h-5 text-primary" />
             </Link>
           </Tooltip>
         </div>
@@ -280,12 +280,20 @@ export default function Members() {
       {/* TEXT LINKS BELOW SEARCH BAR */}
       <div className="flex justify-end items-center gap-4 pr-1 text-sm">
         <button
+          onClick={handleExport}
+          className="flex items-center gap-1 text-primary hover:underline"
+        >
+          <Upload className="w-3 h-3" />
+          Export
+        </button>
+
+        <button
           onClick={() =>
             document.getElementById("member-import-input")?.click()
           }
           className="flex items-center gap-1 text-primary hover:underline"
         >
-          <Upload className="w-3 h-3" />
+          <Download className="w-3 h-3" />
           Import
         </button>
 
@@ -296,14 +304,6 @@ export default function Members() {
           className="hidden"
           onChange={handleImportFileChange}
         />
-
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1 text-primary hover:underline"
-        >
-          <Download className="w-3 h-3" />
-          Export
-        </button>
 
         <button
           onClick={() => downloadImportTemplate()}
