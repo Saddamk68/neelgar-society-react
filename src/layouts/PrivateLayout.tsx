@@ -13,11 +13,19 @@ const HEADER_H = 64;   // h-16
 const FOOTER_H = 40;   // h-10
 
 export default function PrivateLayout() {
-  const { logout, role } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  
+  const { logout, role, isInitializing } = useAuth();
+  if (isInitializing) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   // Close mobile drawer on Escape
   useEffect(() => {
