@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const parsed = JSON.parse(storedUser) as User;
             setUser(parsed);
-            setRole((user?.role as Role) ?? "MEMBER");
+            setRole((parsed?.role as Role) ?? "MEMBER");
           } catch {
             // ignore parse errors
           }
