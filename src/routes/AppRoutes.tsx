@@ -58,6 +58,8 @@ export default function AppRoutes() {
             element={<Members />}
           />
           <Route path="members/new" element={<AddMember />} />
+          <Route path="members/:id/edit" element={<EditMember />} />
+          <Route path="members/:id/view" element={<ViewMember />} />
           <Route
             path={ROUTES.PRIVATE.LOGS.replace("/app/", "")}
             element={<Logs />}
@@ -66,8 +68,6 @@ export default function AppRoutes() {
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
             element={<Users />}
           />
-          <Route path={`${ROUTES.PRIVATE.MEMBERS}/:id/edit`} element={<EditMember />} />
-          <Route path={`${ROUTES.PRIVATE.MEMBERS}/:id/view`} element={<ViewMember />} />
           <Route path="profile" element={<ViewProfile />} />
         </Route>
       </Route>
