@@ -21,6 +21,8 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
       // Handle children/sub-routes (Add/Edit)
       if (pathname.includes("/new")) {
         crumbs.push({ label: "Add Member" });
+      } else if (pathname.match(/\/\d+\/view/)) {
+        crumbs.push({ label: "View Member" });
       } else if (pathname.match(/\/\d+\/edit/)) {
         crumbs.push({ label: "Edit Member" });
       }

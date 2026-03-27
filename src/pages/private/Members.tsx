@@ -257,7 +257,10 @@ export default function Members() {
             type="text"
             placeholder="Search members…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
             className="px-3 py-2 border rounded-md text-sm w-72 focus:ring-primary"
           />
 
