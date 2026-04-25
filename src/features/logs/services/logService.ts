@@ -25,7 +25,7 @@ export async function listLogs(
   size = 20,
   filters: LogFilters = {}
 ): Promise<PaginatedResponse<LogEntry>> {
-  const res = await api.get(ENDPOINTS.logs.base, {
+  const res = await api.get(ENDPOINTS.logs.list(), {
     params: { page, size, ...filters },
   });
   return res.data;

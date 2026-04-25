@@ -1,56 +1,95 @@
-import type { UserProfile, UserRecord } from "../types";
-import type { Role } from "../../../constants/roles";
-import { api } from "../../../services/apiClient";
-import { ENDPOINTS } from "../../../config/endpoints";
+import { api } from "@/services/apiClient";
+import { ENDPOINTS } from "@/config/endpoints";
+import type {
+  UserRecord,
+  UserStatus,
+  PageResponse,
+  UpdateRoleRequest,
+  AdminResetPasswordRequest,
+} from "../types";
+import type { Role } from "@/constants/roles";
 
-/**
- * Fetch all users
- */
-export async function listUsers(): Promise<UserRecord[]> {
-  try {
-    const response = await api.get(ENDPOINTS.users.getAll());
-    const content = response.data?.content ?? [];
-
-    return content.map((u: any) => ({
-      id: u.id,
-      name: u.username,
-      email: u.email,
-      role: (u.role ?? "MEMBER").toUpperCase() as Role,
-      active: u.active ?? true,
-      createdAt: u.createdAt ?? null,
-    })) as UserRecord[];
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    throw error;
-  }
+// Unwrap Spring's { success, message, data: T } envelope
+function unwrap<T>(responseData: any): T {
+  return (responseData?.data ?? responseData) as T;
 }
 
-/**
- * Update user role (Admin-only endpoint)
- */
-export async function updateUserRole(userId: number, role: Role) {
-  try {
-    const response = await api.patch(ENDPOINTS.users.update(userId), {
-      role,
-      active: true, // preserve active flag unless you want to edit it
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating role for user ${userId}:`, error);
-    throw error;
-  }
+function mapToUserRecord(u: any): UserRecord {
+  return {
+    id: u.id,
+    username: u.username,
+    email: u.email ?? null,
+    role: (u.role ?? "MEMBER").toUpperCase() as Role,
+    status: (u.status ?? "PENDING") as UserStatus,
+    isActive: u.isActive ?? false,
+    personName: u.personName ?? null,
+    memberCode: u.memberCode ?? null,
+    createdAt: u.createdAt ?? null,
+  };
 }
 
-/**
- * Fetch the authenticated user's profile
- */
-export async function getCurrentUser(): Promise<UserProfile> {
-  try {
-    const response = await api.get(ENDPOINTS.users.current());
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching current user:", error);
-    throw error;
-  }
+// ── List users (paginated, filterable by status) ──────────────────────────────
+
+export async function listUsers(params?: {
+  status?: UserStatus | "";
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<UserRecord>> {
+  const query: Record<string, any> = {
+    page: params?.page ?? 0,
+    size: params?.size ?? 20,
+    sort: "createdAt,desc",
+  };
+  if (params?.status) query.status = params.status;
+
+  const resp = await api.get(ENDPOINTS.users.list(), { params: query });
+  const page = unwrap<any>(resp.data);
+
+  return {
+    content: (page.content ?? []).map(mapToUserRecord),
+    totalElements: page.totalElements ?? 0,
+    totalPages: page.totalPages ?? 0,
+    number: page.number ?? 0,
+    size: page.size ?? 20,
+    first: page.first ?? true,
+    last: page.last ?? true,
+  };
+}
+
+// ── Approve user ──────────────────────────────────────────────────────────────
+
+export async function approveUser(id: number): Promise<UserRecord> {
+  const resp = await api.patch(ENDPOINTS.users.approve(id));
+  return mapToUserRecord(unwrap(resp.data));
+}
+
+// ── Reject user ───────────────────────────────────────────────────────────────
+
+export async function rejectUser(id: number): Promise<UserRecord> {
+  const resp = await api.patch(ENDPOINTS.users.reject(id));
+  return mapToUserRecord(unwrap(resp.data));
+}
+
+// ── Update role ───────────────────────────────────────────────────────────────
+
+export async function updateUserRole(id: number, role: Role): Promise<UserRecord> {
+  const body: UpdateRoleRequest = { role };
+  const resp = await api.patch(ENDPOINTS.users.updateRole(id), body);
+  return mapToUserRecord(unwrap(resp.data));
+}
+
+// ── Deactivate user ───────────────────────────────────────────────────────────
+
+export async function deactivateUser(id: number): Promise<void> {
+  await api.patch(ENDPOINTS.users.deactivate(id));
+}
+
+// ── Admin reset password ──────────────────────────────────────────────────────
+
+export async function adminResetPassword(
+  id: number,
+  newPassword: string
+): Promise<void> {
+  const body: AdminResetPasswordRequest = { newPassword };
+  await api.post(ENDPOINTS.users.resetPassword(id), body);
 }
