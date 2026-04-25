@@ -1,18 +1,14 @@
 type AppEnv = {
   API_BASE_URL: string;
+  OAUTH2_BASE_URL: string;
+  OAUTH2_CLIENT_ID: string;
+  OAUTH2_CLIENT_SECRET: string;
   MAX_UPLOAD_MB: number;
   NOTIFICATION_TIMEOUT_MS: number;
   ENV: "development" | "production" | "test";
 };
 
-/**
- * Utility to handle missing environment variables gracefully.
- */
-function fallback(
-  name: string,
-  v: string | undefined,
-  def: string
-): string {
+function fallback(name: string, v: string | undefined, def: string): string {
   if (!v) {
     console.warn(
       `[env] Missing ${name}. Falling back to '${def}'. Create .env.local or .env.<env> to override.`
@@ -30,7 +26,22 @@ export const ENV: AppEnv = {
   API_BASE_URL: fallback(
     "VITE_API_BASE_URL",
     import.meta.env.VITE_API_BASE_URL,
-    "http://localhost:8080/api/v1"
+    "/api/v1"
+  ),
+  OAUTH2_BASE_URL: fallback(
+    "VITE_OAUTH2_BASE_URL",
+    import.meta.env.VITE_OAUTH2_BASE_URL,
+    ""
+  ),
+  OAUTH2_CLIENT_ID: fallback(
+    "VITE_OAUTH2_CLIENT_ID",
+    import.meta.env.VITE_OAUTH2_CLIENT_ID,
+    "neelgar-web"
+  ),
+  OAUTH2_CLIENT_SECRET: fallback(
+    "VITE_OAUTH2_CLIENT_SECRET",
+    import.meta.env.VITE_OAUTH2_CLIENT_SECRET,
+    ""
   ),
   MAX_UPLOAD_MB: Number(
     fallback("VITE_MAX_UPLOAD_MB", import.meta.env.VITE_MAX_UPLOAD_MB, "5")
