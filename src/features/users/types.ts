@@ -24,5 +24,43 @@ export type PageResponse<T> = {
   last: boolean;
 };
 
+/**
+ * Full user profile — returned by GET /api/v1/users/me
+ */
+export type UserProfile = {
+  // Account
+  userId: number;
+  username: string;
+  email: string | null;
+  image: string | null;
+  role: string;
+  status: UserStatus;
+  isActive: boolean;
+  createdAt: string | null;
+
+  // Personal details (from linked Person record)
+  personId: number | null;
+  memberCode: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  gender: string | null;
+  dob: string | null;
+  contactNumber: string | null;
+  education: string | null;
+  occupation: string | null;
+
+  // Family + Society
+  familyId: number | null;
+  familyCode: string | null;
+  societyId: number | null;
+  societyCode: string | null;
+  societyName: string | null;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 export type UpdateRoleRequest = { role: string; };
 export type AdminResetPasswordRequest = { newPassword: string; };
