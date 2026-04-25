@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { ROUTES } from "../../constants/routes";
 
 export default function Login() {
-  const { login, register, demoLogin } = useAuth();
+  const { login, demoLogin } = useAuth();
   const navigate = useNavigate();
 
   // Tabs: "login" | "register"
@@ -44,7 +44,7 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      await register(username, password, email);
+      // await register(username, password, email);
       navigate(ROUTES.PRIVATE.DASHBOARD);
     } catch (err: any) {
       setError(err.message || "Registration failed");
@@ -61,25 +61,23 @@ export default function Login() {
         {/* Tabs */}
         <div className="flex mb-4 border-b">
           <button
-            className={`flex-1 py-2 ${
-              tab === "login"
+            className={`flex-1 py-2 ${tab === "login"
                 ? "border-b-2 border-primary font-semibold"
                 : "text-gray-500"
-            }`}
+              }`}
             onClick={() => setTab("login")}
           >
             Login
           </button>
-          <button
-            className={`flex-1 py-2 ${
-              tab === "register"
+          {/* <button
+            className={`flex-1 py-2 ${tab === "register"
                 ? "border-b-2 border-primary font-semibold"
                 : "text-gray-500"
-            }`}
+              }`}
             onClick={() => setTab("register")}
           >
             Register
-          </button>
+          </button> */}
         </div>
 
         {/* Login Form */}
