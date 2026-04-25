@@ -1,123 +1,49 @@
 import { z } from "zod";
 
-/* ===========================================================
-   🧩 Enums (match backend enums exactly)
-   =========================================================== */
-export const GenderEnum = z.enum(["MALE", "FEMALE", "OTHER"]);
-export const MaritalStatusEnum = z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]);
-export const RoleEnum = z.enum(["ADMIN", "PRESIDENT", "SECRETARY", "EDITOR", "MEMBER"]);
+// ── Address block (reusable) ──────────────────────────────────────────────────
 
-/* ===========================================================
-   📦 Sub-DTO Schemas (Address, Spouse, Child)
-   =========================================================== */
-
-// 🏠 AddressDto
-export const AddressZ = z.object({
-  id: z.number().optional(),
-  memberId: z.number().optional(),
-  currentState: z.string().optional().nullable(),
-  currentDistrict: z.string().optional().nullable(),
-  currentTahsil: z.string().optional().nullable(),
-  currentVillage: z.string().optional().nullable(),
-  paternalState: z.string().optional().nullable(),
-  paternalDistrict: z.string().optional().nullable(),
-  paternalTahsil: z.string().optional().nullable(),
-  paternalVillage: z.string().optional().nullable(),
+export const addressSchema = z.object({
+  village: z.string().min(1, "Village is required").max(120),
+  tahsil: z.string().max(120).optional().or(z.literal("")),
+  district: z.string().max(120).optional().or(z.literal("")),
+  state: z.string().max(120).optional().or(z.literal("")),
+  country: z.string().max(120).optional().or(z.literal("")),
 });
-export type AddressFormValues = z.input<typeof AddressZ>;
 
-// 💍 SpouseDto
-export const SpouseZ = z.object({
-  id: z.number().optional(),
-  memberId: z.number().optional(),
-  name: z.string().min(2, "Spouse name is required").optional(),
-  dob: z.string().optional().nullable(),
-  gotra: z.string().optional().nullable(),
-  education: z.string().optional().nullable(),
-  occupation: z.string().optional().nullable(),
-  photoId: z.string().uuid().optional().nullable(),
+export type AddressValues = z.infer<typeof addressSchema>;
+
+// ── Duplicate check ───────────────────────────────────────────────────────────
+
+export const duplicateCheckSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().max(100).optional().or(z.literal("")),
+  dob: z.string().optional().or(z.literal("")),
 });
-export type SpouseFormValues = z.input<typeof SpouseZ>;
 
-// 👶 ChildDto
-export const ChildZ = z.object({
-  id: z.number().optional(),
-  memberId: z.number().optional(),
-  name: z.string().min(2, "Child name is required"),
-  dob: z.string().optional().nullable(),
-  education: z.string().optional().nullable(),
-  occupation: z.string().optional().nullable(),
-  photoId: z.string().uuid().optional().nullable(),
-});
-export type ChildFormValues = z.input<typeof ChildZ>;
+export type DuplicateCheckValues = z.infer<typeof duplicateCheckSchema>;
 
-/* ===========================================================
-   👤 MemberDto (Main Schema)
-   =========================================================== */
-const phoneRegex = /^[0-9]{10}$/;
+// ── Main member form ──────────────────────────────────────────────────────────
 
-export const MemberZ = z
-  .object({
-    id: z.number().optional(),
-    name: z.string().min(2, "Name is required"),
-    role: RoleEnum.default("MEMBER").optional(),
-    fatherName: z.string().min(2, "Father's name is required"),
-    motherName: z.string().min(2, "Mother's name is required"),
-    motherGotra: z.string().min(2, "Mother's gotra is required"),
-    dob: z.string().optional().nullable(),
-    education: z.string().optional().nullable(),
-    occupation: z.string().optional().nullable(),
-    gotra: z.string().min(2, "Gotra is required"),
-    contactNumber: z.string().regex(phoneRegex, "Enter valid 10 digit phone"),
-    photoId: z.string().uuid().optional().nullable(),
-    maritalStatus: MaritalStatusEnum.default("MARRIED"),
-    gender: GenderEnum.optional(),
-    isActive: z.boolean().default(true),
+export const memberSchema = z.object({
+  societyId: z.number({ error: "Society ID is required" }),
+  familyId: z.number({ error: "Family ID is required" }),
 
-    // 🧩 Nested DTOs
-    address: AddressZ.optional(),
-    spouse: SpouseZ.optional(),
-    children: z.array(ChildZ).default([]),
-  })
-  .superRefine((val, ctx) => {
-    if (val.maritalStatus === "MARRIED" && !val.spouse?.name?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["spouse", "name"],
-        message: "Spouse name is required for married members",
-      });
-    }
-  });
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().max(100).optional().or(z.literal("")),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  dob: z.string().optional().or(z.literal("")),
+  contactNumber: z.string().max(20).optional().or(z.literal("")),
+  education: z.string().max(120).optional().or(z.literal("")),
+  occupation: z.string().max(120).optional().or(z.literal("")),
 
-export type MemberFormValues = z.input<typeof MemberZ>;
+  currentAddress: addressSchema,
+  parentalAddress: addressSchema.optional(),
 
-/* ===========================================================
-   🧱 Default Values (for new member form)
-   =========================================================== */
-export const defaultMemberValues: MemberFormValues = {
-  name: "",
-  role: "MEMBER",
-  fatherName: "",
-  motherName: "",
-  motherGotra: "",
-  dob: "",
-  education: "",
-  occupation: "",
-  gotra: "",
-  contactNumber: "",
-  gender: undefined,
-  maritalStatus: "SINGLE",
-  isActive: true,
-  address: {
-    currentState: "",
-    currentDistrict: "",
-    currentTahsil: "",
-    currentVillage: "",
-    paternalState: "",
-    paternalDistrict: "",
-    paternalTahsil: "",
-    paternalVillage: "",
-  },
-  spouse: undefined,
-  children: [],
-};
+  createAccount: z.boolean().default(false),
+  email: z.string().email("Invalid email").max(150).optional().or(z.literal("")),
+}).refine(
+  (data) => !data.createAccount || (data.email && data.email.length > 0),
+  { message: "Email is required when creating an account", path: ["email"] }
+);
+
+export type MemberFormValues = z.infer<typeof memberSchema>;
