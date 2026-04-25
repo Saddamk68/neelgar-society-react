@@ -1,143 +1,75 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, ArrowLeft, Printer } from "lucide-react";
-import { MemberFormValues } from "@/features/members/member.schema";
+import { Pencil, ArrowLeft } from "lucide-react";
 import { getMember } from "../../../features/members/services/memberService";
+import { Member } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
-import { PRIVATE } from "../../../constants/messages";
 import { ROUTES } from "../../../constants/routes";
-import { getAuthToken } from "../../../services/apiClient";
-import { ENV } from "@/config/env";
-import ExportButton from "@/components/ExportButton/ExportButton";
 
-/* ===========================================================
-   🧱 Small Reusable Row
-   =========================================================== */
+// ── Reusable label/value row ──────────────────────────────────────────────────
+
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   return (
-    <div className="flex gap-2">
-      <div className="w-36 text-text-muted text-sm">{label}</div>
-      <div className="flex-1 font-medium">{value ?? "-"}</div>
+    <div className="flex gap-2 text-sm">
+      <div className="w-36 text-slate-500 shrink-0">{label}</div>
+      <div className="flex-1 font-medium text-slate-800">{value || "—"}</div>
     </div>
   );
 }
 
-/* ===========================================================
-   🖼 Secure Authenticated Image Loader
-   =========================================================== */
-function SecureImage({ photoId, alt }: { photoId?: string | null; alt: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const baseUrl = ENV.API_BASE_URL ?? "";
-  const token = getAuthToken();
+// ── Section wrapper ───────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!photoId) {
-      setSrc(null);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    async function fetchImage() {
-      setLoading(true);
-      try {
-        const imageUrl = `${baseUrl}/files/${photoId}/view`;
-
-        const res = await fetch(imageUrl, {
-          headers: { Authorization: token ? `Bearer ${token}` : "" },
-          signal: controller.signal,
-        });
-
-        if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        // Set image only if not aborted
-        if (!controller.signal.aborted) {
-          setSrc(objectUrl);
-        }
-      } catch (err: any) {
-        // Ignore AbortError — it's expected during re-renders
-        if (err.name === "AbortError") return;
-        console.error("SecureImage fetch error:", err);
-        setSrc(null);
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchImage();
-
-    // Clean up previous request if photoId changes or component unmounts
-    return () => controller.abort();
-  }, [photoId, token, baseUrl]);
-
-  if (loading)
-    return (
-      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-        Loading...
-      </div>
-    );
-
-  if (!photoId || !src)
-    return (
-      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-        No photo
-      </div>
-    );
-
-  return <img src={src} alt={alt} className="w-full h-full object-cover rounded" />;
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-6">
+      <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
 }
 
-/* ===========================================================
-   👤 View Member
-   =========================================================== */
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function ViewMember() {
-  const { id } = useParams<{ id: string }>();
+  const { memberCode } = useParams<{ memberCode: string }>();
   const navigate = useNavigate();
   const notify = useNotify();
 
-  const {
-    data: member,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<MemberFormValues>({
-    queryKey: ["member", id],
+  const { data: member, isLoading, isError, refetch } = useQuery<Member>({
+    queryKey: ["member", memberCode],
     queryFn: () => {
-      if (!id) throw new Error("Missing member id");
-      return getMember(id);
+      if (!memberCode) throw new Error("Missing member code");
+      return getMember(memberCode);
     },
-    enabled: !!id,
+    enabled: !!memberCode,
     staleTime: 1000 * 60 * 2,
   });
 
   useEffect(() => {
     if (isError) notify.error("Failed to load member details.");
-  }, [isError, notify]);
+  }, [isError]);
 
-  /* ===========================================================
-     🧩 UI
-     =========================================================== */
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-4 max-w-3xl mx-auto">
+
+      {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold">{PRIVATE.MEMBERS_TITLE}</h1>
-          <p className="text-text-muted">Member details</p>
+          <h1 className="text-2xl font-semibold">Member Details</h1>
+          <p className="text-slate-500 text-sm">
+            {member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : "Loading…"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 px-3 py-2 rounded-md border hover:bg-gray-50"
-            aria-label="Back"
+            className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -145,9 +77,8 @@ export default function ViewMember() {
 
           {member && (
             <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${member.id}/edit`}
-              className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white hover:opacity-95"
-              aria-label="Edit member"
+              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
+              className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
             >
               <Pencil className="w-4 h-4" />
               Edit
@@ -156,143 +87,114 @@ export default function ViewMember() {
         </div>
       </div>
 
-      {/* Loading / Error */}
+      {/* Loading */}
       {isLoading && (
-        <div className="bg-white rounded-xl shadow p-4">
-          <div className="text-sm text-text-muted">Loading member…</div>
-        </div>
-      )}
-      {isError && (
-        <div className="bg-white rounded-xl shadow p-4">
-          <div className="text-sm text-danger">
-            Failed to load member.{" "}
-            <button onClick={() => refetch()} className="underline">
-              Retry
-            </button>
-          </div>
+        <div className="bg-white rounded-xl shadow p-6 text-sm text-slate-500">
+          Loading member…
         </div>
       )}
 
-      {/* Details */}
+      {/* Error */}
+      {isError && (
+        <div className="bg-white rounded-xl shadow p-6 text-sm text-red-500">
+          Failed to load member.{" "}
+          <button onClick={() => refetch()} className="underline">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Member card */}
       {!isLoading && !isError && member && (
         <div className="bg-white rounded-xl shadow p-6">
-          {/* Member Header */}
-          <div className="flex gap-6 items-start">
-            <div className="w-36 flex-shrink-0">
-              <div className="w-36 h-36 bg-gray-100 rounded-md overflow-hidden border">
-                <SecureImage photoId={member.photoId} alt={`${member.name} photo`} />
+
+          {/* Identity header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <div className="text-xl font-semibold text-slate-800">
+                {member.firstName} {member.lastName ?? ""}
+              </div>
+              <div className="text-sm text-slate-500 mt-0.5">
+                {member.memberCode}
+                <span className="mx-2 text-slate-300">·</span>
+                Family: {member.familyCode}
               </div>
             </div>
-
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-lg font-semibold">{member.name}</div>
-                  <div className="text-text-muted text-sm">ID: {member.id}</div>
-                </div>
-
-                <ExportButton
-                  path={`/export/member/${member.id}`}
-                  action="newtab"
-                  useCache={true}
-                  className="no-print flex items-center gap-2 text-primary cursor-pointer select-none hover:text-primary/80 transition-colors"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span className="font-medium text-sm">Print</span>
-                </ExportButton>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                <Row label="Father" value={member.fatherName} />
-                <Row label="Mother" value={member.motherName} />
-                <Row label="Gender" value={member.gender ?? "-"} />
-                <Row label="Marital Status" value={member.maritalStatus ?? "-"} />
-                <Row label="DOB" value={member.dob ?? "-"} />
-                <Row label="Education" value={member.education ?? "-"} />
-                <Row label="Occupation" value={member.occupation ?? "-"} />
-                <Row label="Gotra" value={member.gotra ?? "-"} />
-                <Row label="Phone" value={member.contactNumber ?? "-"} />
-                <Row label="Aadhaar" value={(member as any).aadhaar ?? "-"} />
-                <Row label="PAN" value={(member as any).pan ?? "-"} />
-              </div>
-            </div>
+            <span
+              className={[
+                "text-xs font-medium px-3 py-1 rounded-full",
+                member.isActive
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-600",
+              ].join(" ")}
+            >
+              {member.isActive ? "Active" : "Inactive"}
+            </span>
           </div>
 
-          {/* Address */}
-          {member.address && (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-2">Address</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                <Row label="Current Village" value={member.address.currentVillage} />
-                <Row label="Current Tahsil" value={member.address.currentTahsil} />
-                <Row label="Current District" value={member.address.currentDistrict} />
-                <Row label="Current State" value={member.address.currentState} />
-                <Row label="Paternal Village" value={member.address.paternalVillage} />
-                <Row label="Paternal Tahsil" value={member.address.paternalTahsil} />
-                <Row label="Paternal District" value={member.address.paternalDistrict} />
-                <Row label="Paternal State" value={member.address.paternalState} />
-              </div>
+          {/* Personal details */}
+          <Section title="Personal Information">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+              <Row label="First Name" value={member.firstName} />
+              <Row label="Last Name" value={member.lastName} />
+              <Row label="Gender" value={member.gender} />
+              <Row label="Date of Birth" value={member.dob} />
+              <Row label="Contact" value={member.contactNumber} />
+              <Row label="Education" value={member.education} />
+              <Row label="Occupation" value={member.occupation} />
             </div>
+          </Section>
+
+          {/* Current address */}
+          {(member as any).currentAddress && (
+            <Section title="Current Address">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                <Row label="Village" value={(member as any).currentAddress?.village} />
+                <Row label="Tahsil" value={(member as any).currentAddress?.tahsil} />
+                <Row label="District" value={(member as any).currentAddress?.district} />
+                <Row label="State" value={(member as any).currentAddress?.state} />
+                <Row label="Country" value={(member as any).currentAddress?.country} />
+              </div>
+            </Section>
           )}
 
-          {/* Spouse */}
-          {member.maritalStatus === "MARRIED" && member.spouse && (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-2">Spouse</h3>
-              <div className="flex items-start gap-4">
-                <div className="w-24 h-24 bg-gray-100 rounded-md overflow-hidden border">
-                  <SecureImage
-                    photoId={member.spouse?.photoId}
-                    alt={`${member.spouse?.name ?? "Spouse"} photo`}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1 text-sm">
-                  <Row label="Name" value={member.spouse?.name ?? "-"} />
-                  <Row label="DOB" value={member.spouse?.dob ?? "-"} />
-                  <Row label="Gotra" value={member.spouse?.gotra ?? "-"} />
-                  <Row label="Education" value={member.spouse?.education ?? "-"} />
-                  <Row label="Occupation" value={member.spouse?.occupation ?? "-"} />
-                </div>
+          {/* Parental address */}
+          {(member as any).parentalAddress && (
+            <Section title="Parental Address">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                <Row label="Village" value={(member as any).parentalAddress?.village} />
+                <Row label="Tahsil" value={(member as any).parentalAddress?.tahsil} />
+                <Row label="District" value={(member as any).parentalAddress?.district} />
+                <Row label="State" value={(member as any).parentalAddress?.state} />
+                <Row label="Country" value={(member as any).parentalAddress?.country} />
               </div>
-            </div>
+            </Section>
           )}
 
-          {/* Children */}
-          {member.children && member.children.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-2">Children</h3>
-              <div className="space-y-3">
-                {member.children.map((c, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden border">
-                      <SecureImage photoId={c.photoId} alt={`${c.name ?? "Child"} photo`} />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">{c.name ?? "-"}</div>
-                      <div className="text-xs text-text-muted">{c.dob ?? ""}</div>
-                      <div className="text-xs text-text-muted">{c.education ?? ""}</div>
-                      <div className="text-xs text-text-muted">{c.occupation ?? ""}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Society & family */}
+          <Section title="Society & Family">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+              <Row label="Society" value={`${member.societyName ?? ""} (${member.societyCode})`} />
+              <Row label="Family Code" value={member.familyCode} />
+              <Row label="Member Code" value={member.memberCode} />
+              <Row label="Created By" value={member.createdBy} />
+              <Row label="Created At" value={member.createdAt} />
             </div>
-          )}
+          </Section>
 
           {/* Footer actions */}
-          <div className="mt-6 flex items-center justify-end gap-2">
+          <div className="mt-8 flex items-center justify-end gap-2 pt-4 border-t">
             <button
               onClick={() => navigate(-1)}
-              className="px-3 py-2 rounded border hover:bg-gray-50"
+              className="px-4 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
             >
-              Cancel
+              Back
             </button>
             <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${member.id}/edit`}
-              className="px-3 py-2 rounded bg-primary text-white"
+              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
+              className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
             >
-              Edit
+              Edit Member
             </Link>
           </div>
         </div>

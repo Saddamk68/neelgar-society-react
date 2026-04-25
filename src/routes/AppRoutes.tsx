@@ -15,6 +15,7 @@ import AddMember from "../pages/private/members/AddMember";
 import EditMember from "../pages/private/members/EditMember";
 import ViewMember from "../pages/private/members/ViewMember";
 import ViewProfile from "@/pages/private/profile/ViewProfile";
+import ImportMembers from "@/pages/private/members/ImportMembers";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -58,8 +59,9 @@ export default function AppRoutes() {
             element={<Members />}
           />
           <Route path="members/new" element={<AddMember />} />
-          <Route path="members/:id/edit" element={<EditMember />} />
-          <Route path="members/:id/view" element={<ViewMember />} />
+          <Route path="members/:memberCode/edit" element={<EditMember />} />
+          <Route path="members/:memberCode/view" element={<ViewMember />} />
+          <Route path="members/import" element={<ImportMembers />} />
           <Route
             path={ROUTES.PRIVATE.LOGS.replace("/app/", "")}
             element={<Logs />}

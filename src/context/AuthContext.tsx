@@ -25,8 +25,9 @@ import { jwtDecode } from "jwt-decode";
 export type AuthUser = {
   username: string;
   role: Role;
-  personName?: string;  // display name, e.g. "Ravi Sharma"
+  personName?: string;
   memberCode?: string;
+  societyId?: number;
 };
 
 export type AuthState = {
@@ -87,6 +88,7 @@ function toAuthUser(accessToken: string, extraData?: any): AuthUser {
     role: ((extraData?.role ?? claims.role ?? "MEMBER") as string).toUpperCase() as Role,
     personName: extraData?.personName ?? claims.personName ?? undefined,
     memberCode: extraData?.memberCode ?? claims.memberCode ?? undefined,
+    societyId: extraData?.societyId ?? claims.societyId ?? undefined,
   };
 }
 
