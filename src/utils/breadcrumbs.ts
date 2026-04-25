@@ -30,6 +30,8 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
         crumbs.push({ label: "View Member" });
       } else if (pathname.endsWith("/edit")) {
         crumbs.push({ label: "Edit Member" });
+      } else if (pathname.endsWith("/print")) {
+        crumbs.push({ label: "Print Member" });
       }
 
       break;

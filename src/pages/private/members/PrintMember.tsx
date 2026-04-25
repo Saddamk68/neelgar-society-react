@@ -1,0 +1,289 @@
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Printer, ArrowLeft } from "lucide-react";
+import { getMember } from "../../../features/members/services/memberService";
+import { getFamily, getFamilyMembers } from "../../../features/members/services/familyService";
+import { Member } from "../../../features/members/types";
+import { ROUTES } from "../../../constants/routes";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDate(val?: string | null): string {
+    if (!val) return "—";
+    try {
+        return new Date(val).toLocaleDateString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric",
+        });
+    } catch {
+        return val;
+    }
+}
+
+function val(v?: string | null) {
+    return v || "—";
+}
+
+// ── Member detail block ───────────────────────────────────────────────────────
+
+function MemberBlock({
+    member,
+    index,
+    isHead,
+}: {
+    member: Member;
+    index?: number;
+    isHead?: boolean;
+}) {
+    const address = (member as any).currentAddress;
+
+    return (
+        <div
+            className={[
+                "border rounded-lg p-4 mb-4 print:border-slate-300 print:mb-3",
+                isHead ? "border-primary/40 bg-primary/5" : "border-slate-200 bg-white",
+            ].join(" ")}
+        >
+            {/* Member header row */}
+            <div className="flex items-center justify-between mb-3">
+                <div>
+                    <span className="font-semibold text-slate-800 text-base">
+                        {index !== undefined ? `${index + 1}. ` : ""}
+                        {member.firstName} {member.lastName ?? ""}
+                    </span>
+                    {isHead && (
+                        <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                            Family Head
+                        </span>
+                    )}
+                </div>
+                <span className="text-xs text-slate-400 font-mono">{member.memberCode}</span>
+            </div>
+
+            {/* Details grid */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                <div className="flex gap-2">
+                    <span className="text-slate-400 w-24 shrink-0">Gender</span>
+                    <span>{val(member.gender)}</span>
+                </div>
+                <div className="flex gap-2">
+                    <span className="text-slate-400 w-24 shrink-0">Date of Birth</span>
+                    <span>{formatDate(member.dob)}</span>
+                </div>
+                <div className="flex gap-2">
+                    <span className="text-slate-400 w-24 shrink-0">Contact</span>
+                    <span>{val(member.contactNumber)}</span>
+                </div>
+                <div className="flex gap-2">
+                    <span className="text-slate-400 w-24 shrink-0">Occupation</span>
+                    <span>{val(member.occupation)}</span>
+                </div>
+                <div className="flex gap-2">
+                    <span className="text-slate-400 w-24 shrink-0">Education</span>
+                    <span>{val(member.education)}</span>
+                </div>
+                {address?.village && (
+                    <div className="flex gap-2">
+                        <span className="text-slate-400 w-24 shrink-0">Village</span>
+                        <span>
+                            {[address.village, address.tahsil, address.district]
+                                .filter(Boolean)
+                                .join(", ")}
+                        </span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function PrintMember() {
+    const { memberCode } = useParams<{ memberCode: string }>();
+    const [includeFamily, setIncludeFamily] = useState(false);
+
+    // Fetch the main member
+    const {
+        data: member,
+        isLoading: memberLoading,
+        isError: memberError,
+    } = useQuery<Member>({
+        queryKey: ["member", memberCode],
+        queryFn: () => getMember(memberCode!),
+        enabled: !!memberCode,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    // Fetch family details (to know who the actual head is)
+    const { data: familyData } = useQuery({
+        queryKey: ["family", member?.familyCode],
+        queryFn: () => getFamily(member!.familyCode),
+        enabled: !!member?.familyCode && includeFamily,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    // Fetch family members only when toggle is on
+    const {
+        data: familyMembers,
+        isLoading: familyLoading,
+    } = useQuery<Member[]>({
+        queryKey: ["family-members", member?.familyCode],
+        queryFn: () => getFamilyMembers(member!.familyCode),
+        enabled: !!member?.familyCode && includeFamily,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    const isLoading = memberLoading || (includeFamily && familyLoading);
+
+    // Other family members excluding the current one
+    const headPersonId = familyData?.headPersonId ?? null;
+
+    // Separate head from other members using actual headPersonId from family
+    const otherMembers = (familyMembers ?? []).filter(
+        (m) => m.memberCode !== memberCode
+    );
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    if (memberError) {
+        return (
+            <div className="p-6 text-red-500 text-sm">
+                Failed to load member details.{" "}
+                <Link to={ROUTES.PRIVATE.MEMBERS} className="underline">
+                    Go back
+                </Link>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            {/* ── Screen-only controls (hidden on print) ──────────────────────── */}
+            <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                    <Link
+                        to={member ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view` : ROUTES.PRIVATE.MEMBERS}
+                        className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
+                    </Link>
+                    <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {/* Family toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
+                        <div
+                            onClick={() => setIncludeFamily((v) => !v)}
+                            className={[
+                                "relative w-10 h-5 rounded-full transition-colors cursor-pointer",
+                                includeFamily ? "bg-primary" : "bg-slate-300",
+                            ].join(" ")}
+                        >
+                            <div
+                                className={[
+                                    "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                                    includeFamily ? "translate-x-5" : "translate-x-0.5",
+                                ].join(" ")}
+                            />
+                        </div>
+                        Include all family members
+                    </label>
+
+                    <button
+                        onClick={() => window.print()}
+                        disabled={isLoading}
+                        className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
+                    >
+                        <Printer className="w-4 h-4" />
+                        {isLoading ? "Loading…" : "Print"}
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Printable content ──────────────────────────────────────────── */}
+            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
+                <div className="p-6 print:p-4">
+
+                    {/* Letterhead */}
+                    <div className="border-b-2 border-slate-800 pb-4 mb-6 print:mb-4">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <div className="text-xl font-bold text-slate-800 tracking-wide">
+                                    {member?.societyName ?? member?.societyCode ?? "Society"}
+                                </div>
+                                <div className="text-sm text-slate-500 mt-0.5">
+                                    Member Registration Record
+                                </div>
+                            </div>
+                            <div className="text-right text-xs text-slate-400">
+                                <div>Printed: {new Date().toLocaleDateString("en-IN", {
+                                    day: "2-digit", month: "short", year: "numeric"
+                                })}</div>
+                                {member && <div className="mt-1">Family: {member.familyCode}</div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading state */}
+                    {memberLoading && (
+                        <div className="text-sm text-slate-500 py-8 text-center">
+                            Loading member details…
+                        </div>
+                    )}
+
+                    {/* Member details */}
+                    {member && (
+                        <>
+                            {/* Section title */}
+                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                                {includeFamily ? "Family Head / Primary Member" : "Member Details"}
+                            </div>
+                            <MemberBlock
+                                member={member}
+                                isHead={includeFamily && headPersonId !== null && member.id === headPersonId}
+                            />
+
+                            {/* Family members */}
+                            {includeFamily && (
+                                <>
+                                    {familyLoading ? (
+                                        <div className="text-sm text-slate-400 py-4 text-center">
+                                            Loading family members…
+                                        </div>
+                                    ) : otherMembers.length > 0 ? (
+                                        <>
+                                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 mt-5">
+                                                Other Family Members ({otherMembers.length})
+                                            </div>
+                                            {otherMembers.map((m, i) => (
+                                                <MemberBlock
+                                                    key={m.memberCode}
+                                                    member={m}
+                                                    index={i}
+                                                    isHead={headPersonId !== null && m.id === headPersonId}
+                                                />
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <div className="text-sm text-slate-400 py-2">
+                                            No other active members in this family.
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Footer */}
+                            <div className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-400 flex justify-between">
+                                <span>Member Code: {member.memberCode}</span>
+                                <span>Society: {member.societyCode}</span>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </>
+    );
+}
