@@ -4,6 +4,10 @@
  */
 export const ENDPOINTS = {
 
+  dashboard: {
+    stats: () => `/dashboard/stats`,
+  },
+  
   members: {
     list: () => `/members`,
     get: (memberCode: string) => `/members/${memberCode}`,

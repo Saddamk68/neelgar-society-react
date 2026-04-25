@@ -7,9 +7,13 @@ export type BreadcrumbItem = {
 };
 
 /**
- * Builds breadcrumb items based on the current pathname
- * Example:
- *   /app/members/new → [ Members, Add Member ]
+ * Builds breadcrumb items based on the current pathname.
+ * Examples:
+ *   /app/members           → [ Members ]
+ *   /app/members/new       → [ Members, Add Member ]
+ *   /app/members/import    → [ Members, Import Members ]
+ *   /app/members/NEE2603-4F7A9C/view  → [ Members, View Member ]
+ *   /app/members/NEE2603-4F7A9C/edit  → [ Members, Edit Member ]
  */
 export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const crumbs: BreadcrumbItem[] = [];
@@ -18,21 +22,23 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
     if (item.path && pathname.startsWith(item.path)) {
       crumbs.push({ label: item.label, path: item.path, icon: item.icon });
 
-      // Handle children/sub-routes (Add/Edit)
-      if (pathname.includes("/new")) {
+      if (pathname.endsWith("/new")) {
         crumbs.push({ label: "Add Member" });
-      } else if (pathname.match(/\/\d+\/view/)) {
+      } else if (pathname.endsWith("/import")) {
+        crumbs.push({ label: "Import Members" });
+      } else if (pathname.endsWith("/view")) {
         crumbs.push({ label: "View Member" });
-      } else if (pathname.match(/\/\d+\/edit/)) {
+      } else if (pathname.endsWith("/edit")) {
         crumbs.push({ label: "Edit Member" });
       }
+
       break;
     }
   }
 
   // Fallback → Dashboard
   if (crumbs.length === 0) {
-    const dashboard = MENU.find(m => m.key === "dashboard");
+    const dashboard = MENU.find((m) => m.key === "dashboard");
     if (dashboard) {
       crumbs.push({ label: dashboard.label, path: dashboard.path, icon: dashboard.icon });
     }
