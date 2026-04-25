@@ -1,6 +1,6 @@
 import { api } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
-import { Family } from "../types";
+import { Family, Member } from "../types";
 
 function unwrap<T>(res: any): T {
     return res.data?.data ?? res.data;
@@ -52,4 +52,11 @@ export async function createFamily(
 export async function getFamily(familyCode: string): Promise<Family> {
     const res = await api.get(ENDPOINTS.families.get(familyCode));
     return unwrap<Family>(res);
+}
+
+// ── Get all active members of a family ────────────────────────────────────────
+
+export async function getFamilyMembers(familyCode: string): Promise<Member[]> {
+  const res = await api.get(ENDPOINTS.families.members(familyCode));
+  return unwrap<Member[]>(res);
 }

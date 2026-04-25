@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, ArrowLeft } from "lucide-react";
+import { Pencil, ArrowLeft, Printer } from "lucide-react";
 import { getMember } from "../../../features/members/services/memberService";
 import { Member } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
@@ -184,18 +184,15 @@ export default function ViewMember() {
 
           {/* Footer actions */}
           <div className="mt-8 flex items-center justify-end gap-2 pt-4 border-t">
-            <button
-              onClick={() => navigate(-1)}
-              className="px-4 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-            >
-              Back
-            </button>
-            <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
-              className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
-            >
-              Edit Member
-            </Link>
+            {member && (
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Link>
+            )}
           </div>
         </div>
       )}
