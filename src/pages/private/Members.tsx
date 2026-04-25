@@ -40,7 +40,7 @@ export default function Members() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["members", page, search],
-    queryFn: () => listMembers(page, size, search),
+    queryFn: () => listMembers(user?.societyId, page, size, search),
   });
 
   useEffect(() => {

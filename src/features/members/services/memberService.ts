@@ -20,12 +20,13 @@ export type MemberPage = {
 };
 
 export async function listMembers(
+  societyId: number | undefined,
   page = 0,
   size = 30,
   search = ""
 ): Promise<MemberPage> {
   const res = await api.get(ENDPOINTS.members.list(), {
-    params: { page, size, ...(search ? { search } : {}) },
+    params: { ...(societyId ? { societyId } : {}), page, size, ...(search ? { search } : {}) },
   });
   return unwrap<MemberPage>(res);
 }
