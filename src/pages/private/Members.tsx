@@ -12,6 +12,7 @@ import { downloadImportTemplate } from "../../features/members/services/memberIm
 import MembersSkeleton from "../../components/skeletons/MembersSkeleton";
 import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
 import Tooltip from "../../components/Tooltip";
+import MemberAvatar from "@/components/MemberAvatar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -115,7 +116,7 @@ export default function Members() {
   // ── Table columns ───────────────────────────────────────────────────────────
 
   const columns: ColumnConfig<Member>[] = MEMBER_COLUMNS.map((c) => ({
-    key: c.key as keyof Member,
+    key: c.key as any,
     title: c.title,
     align: (c as any).align,
     truncate: (c as any).truncate,
@@ -132,6 +133,25 @@ export default function Members() {
   // ── Cell renderer ───────────────────────────────────────────────────────────
 
   const renderCell = (row: Member, col: ColumnConfig<Member>) => {
+    if (col.key === "memberCode") {
+      return (
+        <div className="flex items-center gap-2.5">
+          <MemberAvatar
+            memberCode={row.memberCode}
+            firstName={row.firstName}
+            lastName={row.lastName}
+            hasPhoto={row.hasPhoto ?? false}
+            size="thumb"
+          />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-slate-800 truncate">
+              {row.firstName} {row.lastName ?? ""}
+            </div>
+            <div className="text-xs text-slate-400 font-mono">{row.memberCode}</div>
+          </div>
+        </div>
+      );
+    }
     if (col.key === "actions") {
       return (
         <div className="flex items-center justify-center gap-2">
