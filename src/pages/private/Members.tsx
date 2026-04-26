@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Eye, Pencil, Download, FileSpreadsheet, UserX } from "lucide-react";
-import { listMembers, deactivateMember } from "../../features/members/services/memberService";
+import { listMembers, deactivateMember, searchMembers } from "../../features/members/services/memberService";
 import { Member } from "../../features/members/types";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
@@ -38,9 +38,24 @@ export default function Members() {
 
   // ── Data fetching ───────────────────────────────────────────────────────────
 
+  const isSearching = search.trim().length > 0;
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["members", page, search],
-    queryFn: () => listMembers(user?.societyId, page, size, search),
+    queryFn: async () => {
+      if (isSearching) {
+        const results = await searchMembers(search.trim());
+        // Wrap in MemberPage shape so the table works the same way
+        return {
+          content: results,
+          totalElements: results.length,
+          totalPages: 1,
+          size: results.length,
+          number: 0,
+        };
+      }
+      return listMembers(user?.societyId, page, size);
+    },
   });
 
   useEffect(() => {

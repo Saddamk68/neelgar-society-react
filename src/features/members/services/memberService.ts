@@ -149,3 +149,12 @@ export async function updateMember(
   });
   return unwrap<Member>(res);
 }
+
+// ── Search members ────────────────────────────────────────────────────────────
+
+export async function searchMembers(query: string): Promise<Member[]> {
+  const res = await api.get(ENDPOINTS.members.search(), {
+    params: { query },
+  });
+  return unwrap<Member[]>(res);
+}
