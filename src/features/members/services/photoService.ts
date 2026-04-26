@@ -39,6 +39,24 @@ export async function fetchMemberPhotoUrl(memberCode: string): Promise<string> {
     return URL.createObjectURL(blob);
 }
 
+// ── Fetch thumbnail (40×40) — for list pages ──────────────────────────────────
+// Browser caches this for 24h (Cache-Control: public from backend).
+// We still need fetch() here because the endpoint requires a JWT header.
+
+export async function fetchMemberThumbUrl(memberCode: string): Promise<string> {
+    const token = getAuthToken();
+    const url = `${(ENV.API_BASE_URL ?? "").replace(/\/$/, "")}${ENDPOINTS.members.photoThumb(memberCode)}`;
+
+    const resp = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!resp.ok) throw new Error("No photo");
+
+    const blob = await resp.blob();
+    return URL.createObjectURL(blob);
+}
+
 export function revokeMemberPhotoUrl(objectUrl: string): void {
     URL.revokeObjectURL(objectUrl);
 }

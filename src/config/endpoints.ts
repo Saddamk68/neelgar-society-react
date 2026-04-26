@@ -18,6 +18,7 @@ export const ENDPOINTS = {
     search: () => `/members/search`,
     uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,
     deletePhoto: (memberCode: string) => `/members/${memberCode}/photo`,
+    photoThumb: (memberCode: string) => `/members/${memberCode}/photo/thumb`,
   },
 
   families: {
