@@ -15,6 +15,7 @@ export type Member = {
   education?: string;
   occupation?: string;
   isActive: boolean;
+  hasPhoto?: boolean;
   createdAt?: string;
   createdBy?: string;
 };

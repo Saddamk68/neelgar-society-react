@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Printer, ArrowLeft } from "lucide-react";
 import { getMember } from "../../../features/members/services/memberService";
-import { getFamily, getFamilyMembers } from "../../../features/members/services/familyService";
+import { getFamilyMembers, getFamily } from "../../../features/members/services/familyService";
 import { Member } from "../../../features/members/types";
 import { ROUTES } from "../../../constants/routes";
+import MemberAvatar from "../../../components/MemberAvatar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,19 +46,32 @@ function MemberBlock({
             ].join(" ")}
         >
             {/* Member header row */}
-            <div className="flex items-center justify-between mb-3">
-                <div>
-                    <span className="font-semibold text-slate-800 text-base">
-                        {index !== undefined ? `${index + 1}. ` : ""}
-                        {member.firstName} {member.lastName ?? ""}
-                    </span>
-                    {isHead && (
-                        <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
-                            Family Head
-                        </span>
-                    )}
+            <div className="flex items-center gap-4 mb-3">
+                {/* Avatar — hidden on print to save ink unless browser supports it */}
+                <div className="print:hidden">
+                    <MemberAvatar
+                        memberCode={member.memberCode}
+                        firstName={member.firstName}
+                        lastName={member.lastName}
+                        hasPhoto={member.hasPhoto ?? false}
+                        size="sm"
+                    />
                 </div>
-                <span className="text-xs text-slate-400 font-mono">{member.memberCode}</span>
+
+                <div className="flex-1 flex items-center justify-between">
+                    <div>
+                        <span className="font-semibold text-slate-800 text-base">
+                            {index !== undefined ? `${index + 1}. ` : ""}
+                            {member.firstName} {member.lastName ?? ""}
+                        </span>
+                        {isHead && (
+                            <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                                Family Head
+                            </span>
+                        )}
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono">{member.memberCode}</span>
+                </div>
             </div>
 
             {/* Details grid */}
@@ -135,11 +149,9 @@ export default function PrintMember() {
     });
 
     const isLoading = memberLoading || (includeFamily && familyLoading);
-
-    // Other family members excluding the current one
     const headPersonId = familyData?.headPersonId ?? null;
 
-    // Separate head from other members using actual headPersonId from family
+    // Other family members excluding the current one
     const otherMembers = (familyMembers ?? []).filter(
         (m) => m.memberCode !== memberCode
     );
@@ -159,11 +171,13 @@ export default function PrintMember() {
 
     return (
         <>
-            {/* ── Screen-only controls (hidden on print) ──────────────────────── */}
+            {/* ── Screen-only controls (hidden on print) ───────────────────────── */}
             <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                     <Link
-                        to={member ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view` : ROUTES.PRIVATE.MEMBERS}
+                        to={member
+                            ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`
+                            : ROUTES.PRIVATE.MEMBERS}
                         className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
                     >
                         <ArrowLeft className="w-4 h-4" />
@@ -203,26 +217,42 @@ export default function PrintMember() {
                 </div>
             </div>
 
-            {/* ── Printable content ──────────────────────────────────────────── */}
+            {/* ── Printable content ─────────────────────────────────────────────── */}
             <div className="max-w-2xl mx-auto bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
                 <div className="p-6 print:p-4">
 
                     {/* Letterhead */}
                     <div className="border-b-2 border-slate-800 pb-4 mb-6 print:mb-4">
                         <div className="flex items-start justify-between">
-                            <div>
-                                <div className="text-xl font-bold text-slate-800 tracking-wide">
-                                    {member?.societyName ?? member?.societyCode ?? "Society"}
-                                </div>
-                                <div className="text-sm text-slate-500 mt-0.5">
-                                    Member Registration Record
+                            <div className="flex items-center gap-3">
+                                {/* Show member avatar in letterhead only when single member view */}
+                                {!includeFamily && member && (
+                                    <MemberAvatar
+                                        memberCode={member.memberCode}
+                                        firstName={member.firstName}
+                                        lastName={member.lastName}
+                                        hasPhoto={member.hasPhoto ?? false}
+                                        size="md"
+                                    />
+                                )}
+                                <div>
+                                    <div className="text-xl font-bold text-slate-800 tracking-wide">
+                                        {member?.societyName ?? member?.societyCode ?? "Society"}
+                                    </div>
+                                    <div className="text-sm text-slate-500 mt-0.5">
+                                        Member Registration Record
+                                    </div>
                                 </div>
                             </div>
                             <div className="text-right text-xs text-slate-400">
-                                <div>Printed: {new Date().toLocaleDateString("en-IN", {
-                                    day: "2-digit", month: "short", year: "numeric"
-                                })}</div>
-                                {member && <div className="mt-1">Family: {member.familyCode}</div>}
+                                <div>
+                                    Printed: {new Date().toLocaleDateString("en-IN", {
+                                        day: "2-digit", month: "short", year: "numeric",
+                                    })}
+                                </div>
+                                {member && (
+                                    <div className="mt-1">Family: {member.familyCode}</div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -237,13 +267,16 @@ export default function PrintMember() {
                     {/* Member details */}
                     {member && (
                         <>
-                            {/* Section title */}
                             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                                 {includeFamily ? "Family Head / Primary Member" : "Member Details"}
                             </div>
                             <MemberBlock
                                 member={member}
-                                isHead={includeFamily && headPersonId !== null && member.id === headPersonId}
+                                isHead={
+                                    includeFamily &&
+                                    headPersonId !== null &&
+                                    member.id === headPersonId
+                                }
                             />
 
                             {/* Family members */}

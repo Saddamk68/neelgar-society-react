@@ -7,7 +7,7 @@ export const ENDPOINTS = {
   dashboard: {
     stats: () => `/dashboard/stats`,
   },
-  
+
   members: {
     list: () => `/members`,
     get: (memberCode: string) => `/members/${memberCode}`,
@@ -17,6 +17,7 @@ export const ENDPOINTS = {
     checkDuplicate: () => `/members/check-duplicates`,
     search: () => `/members/search`,
     uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,
+    deletePhoto: (memberCode: string) => `/members/${memberCode}/photo`,
   },
 
   families: {

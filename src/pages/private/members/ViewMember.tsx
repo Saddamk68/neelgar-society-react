@@ -6,6 +6,7 @@ import { getMember } from "../../../features/members/services/memberService";
 import { Member } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
+import MemberAvatar from "@/components/MemberAvatar";
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -110,14 +111,23 @@ export default function ViewMember() {
 
           {/* Identity header */}
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="text-xl font-semibold text-slate-800">
-                {member.firstName} {member.lastName ?? ""}
-              </div>
-              <div className="text-sm text-slate-500 mt-0.5">
-                {member.memberCode}
-                <span className="mx-2 text-slate-300">·</span>
-                Family: {member.familyCode}
+            <div className="flex items-center gap-4">
+              <MemberAvatar
+                memberCode={member.memberCode}
+                firstName={member.firstName}
+                lastName={member.lastName}
+                hasPhoto={member.hasPhoto ?? false}
+                size="lg"
+              />
+              <div>
+                <div className="text-xl font-semibold text-slate-800">
+                  {member.firstName} {member.lastName ?? ""}
+                </div>
+                <div className="text-sm text-slate-500 mt-0.5">
+                  {member.memberCode}
+                  <span className="mx-2 text-slate-300">·</span>
+                  Family: {member.familyCode}
+                </div>
               </div>
             </div>
             <span
