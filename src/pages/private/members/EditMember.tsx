@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -14,6 +14,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
+import { deleteMemberPhoto, uploadMemberPhoto } from "@/features/members/services/photoService";
+import MemberAvatar from "@/components/MemberAvatar";
 
 // ── Shared input style ────────────────────────────────────────────────────────
 
@@ -88,7 +90,10 @@ export default function EditMember() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = form;
-
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const createAccount = watch("createAccount");
 
   // ── Load member on mount ──────────────────────────────────────────────────
@@ -99,6 +104,7 @@ export default function EditMember() {
     getMember(memberCode)
       .then((m) => {
         setOriginalMember(m);
+        setHasPhoto(m.hasPhoto ?? false);
 
         // Map Member (PersonResponse) → MemberFormValues for the form
         const formValues: MemberFormValues = {
@@ -152,6 +158,49 @@ export default function EditMember() {
       navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
     } catch (err: any) {
       notify.error(err.message || "Failed to update member.");
+    }
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error("File must be under 5 MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      notify.error("Only JPEG, PNG and WEBP are allowed");
+      return;
+    }
+
+    // Show local preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+
+    setPhotoUploading(true);
+    try {
+      await uploadMemberPhoto(memberCode!, file);
+      setHasPhoto(true);
+      notify.success("Photo uploaded successfully!");
+    } catch (err: any) {
+      notify.error(err.message || "Failed to upload photo");
+      setPhotoPreview(null);
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!confirm("Remove this member's photo?")) return;
+    try {
+      await deleteMemberPhoto(memberCode!);
+      setHasPhoto(false);
+      setPhotoPreview(null);
+      notify.success("Photo removed.");
+    } catch (err: any) {
+      notify.error(err.message || "Failed to remove photo");
     }
   };
 
@@ -280,6 +329,64 @@ export default function EditMember() {
               Optional — check the box above to edit the parental address.
             </p>
           )}
+        </section>
+
+        {/* Photo */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Profile Photo</h2>
+          <div className="flex items-center gap-5">
+
+            {/* Avatar — shows preview if just uploaded, else fetches from server */}
+            {photoPreview ? (
+              <div className="w-24 h-24 rounded-full overflow-hidden shrink-0">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <MemberAvatar
+                memberCode={memberCode ?? ""}
+                firstName={originalMember?.firstName ?? ""}
+                lastName={originalMember?.lastName}
+                hasPhoto={hasPhoto}
+                size="lg"
+              />
+            )}
+
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">
+                JPEG, PNG or WEBP · Max 5 MB
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoUploading}
+                  className="px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-slate-50 disabled:opacity-60 transition"
+                >
+                  {photoUploading ? "Uploading…" : hasPhoto ? "Replace Photo" : "Upload Photo"}
+                </button>
+                {hasPhoto && !photoUploading && (
+                  <button
+                    type="button"
+                    onClick={handlePhotoDelete}
+                    className="px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-sm hover:bg-red-50 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
+          </div>
         </section>
 
         {/* Actions */}
