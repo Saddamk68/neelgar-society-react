@@ -1,13 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { api } from "@/services/apiClient";
-import { getAuthToken } from "@/services/apiClient";
-import { ENV } from "@/config/env";
 import { ENDPOINTS } from "@/config/endpoints";
 import { useAuth } from "@/context/AuthContext";
 import { useNotify } from "@/services/notifications";
 import { ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 import type { UserProfile, UserStatus, ChangePasswordRequest } from "@/features/users/types";
+import MemberAvatar from "@/components/MemberAvatar";
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 
@@ -46,42 +45,6 @@ const STATUS_STYLES: Record<UserStatus, string> = {
     APPROVED: "bg-green-100 text-green-800",
     REJECTED: "bg-red-100   text-red-700",
 };
-
-// ── Secure image (needs auth token to load) ───────────────────────────────────
-
-function SecureImage({ imageId, alt }: { imageId?: string | null; alt: string }) {
-    const [src, setSrc] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const token = getAuthToken();
-    const baseUrl = ENV.API_BASE_URL;
-
-    useEffect(() => {
-        if (!imageId) return;
-        const controller = new AbortController();
-        setLoading(true);
-
-        fetch(`${baseUrl}/files/${imageId}/view`, {
-            headers: { Authorization: token ? `Bearer ${token}` : "" },
-            signal: controller.signal,
-        })
-            .then((r) => (r.ok ? r.blob() : Promise.reject()))
-            .then((blob) => setSrc(URL.createObjectURL(blob)))
-            .catch(() => setSrc(null))
-            .finally(() => setLoading(false));
-
-        return () => controller.abort();
-    }, [imageId, token, baseUrl]);
-
-    if (loading) return <div className="text-xs text-text-muted">Loading…</div>;
-    if (!imageId || !src) {
-        return (
-            <div className="w-full h-full flex items-center justify-center bg-slate-100 text-text-muted text-xs rounded-lg">
-                No photo
-            </div>
-        );
-    }
-    return <img src={src} alt={alt} className="w-full h-full object-cover rounded-lg" />;
-}
 
 // ── Change password section ───────────────────────────────────────────────────
 
@@ -297,9 +260,13 @@ export default function ViewProfile() {
                     {/* Top: avatar + name + status */}
                     <div className="flex flex-col sm:flex-row gap-6 mb-4">
                         <div className="shrink-0">
-                            <div className="w-28 h-28 rounded-lg overflow-hidden border">
-                                <SecureImage imageId={profile.image} alt={`${profile.username} photo`} />
-                            </div>
+                            <MemberAvatar
+                                memberCode={profile.memberCode ?? ""}
+                                firstName={profile.firstName ?? profile.username}
+                                lastName={profile.lastName ?? undefined}
+                                hasPhoto={profile.hasPhoto ?? false}
+                                size="lg"
+                            />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center gap-3 flex-wrap">
