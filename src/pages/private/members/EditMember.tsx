@@ -60,7 +60,10 @@ import {
   linkParent,
   linkSpouse,
   deactivateRelationship,
-} from "../../../features/members/services/relationshipService";
+  createAndLinkParent,
+  createAndLinkSpouse,
+  createAndLinkChild,
+} from "@/features/members/services/relationshipService";
 import { Member, PersonRelationshipsResponse } from "../../../features/members/types";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
@@ -440,56 +443,217 @@ function MemberSearchDialog({
   );
 }
 
+// ── Mini form for creating a new person inline ────────────────────────────────
+
+function CreatePersonForm({
+  title,
+  defaultVillage,
+  onSubmit,
+  onClose,
+  loading,
+}: {
+  title: string;
+  defaultVillage: string;
+  onSubmit: (data: {
+    firstName: string;
+    lastName: string;
+    gender: "MALE" | "FEMALE" | "OTHER" | "";
+    dob: string;
+    village: string;
+  }) => void;
+  onClose: () => void;
+  loading: boolean;
+}) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
+  const [dob, setDob] = useState("");
+  const [village, setVillage] = useState(defaultVillage);
+  const [firstNameError, setFirstNameError] = useState("");
+  const [villageError, setVillageError] = useState("");
+
+  function handleSubmit() {
+    let valid = true;
+    if (!firstName.trim()) {
+      setFirstNameError("First name is required");
+      valid = false;
+    } else {
+      setFirstNameError("");
+    }
+    if (!village.trim()) {
+      setVillageError("Village is required");
+      valid = false;
+    } else {
+      setVillageError("");
+    }
+    if (!valid) return;
+    onSubmit({ firstName, lastName, gender, dob, village });
+  }
+
+  const fieldCls = (err?: string) =>
+    [
+      "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition",
+      err ? "border-red-400 ring-1 ring-red-400" : "border-slate-300 focus:ring-primary/40",
+    ].join(" ");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800">{title}</h3>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <FieldLabel required>First Name</FieldLabel>
+            <input
+              className={fieldCls(firstNameError)}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoFocus
+            />
+            {firstNameError && <p className="text-xs text-red-500 mt-1">{firstNameError}</p>}
+          </div>
+
+          <div>
+            <FieldLabel>Last Name</FieldLabel>
+            <input
+              className={fieldCls()}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <FieldLabel>Gender</FieldLabel>
+            <select
+              className={fieldCls()}
+              value={gender}
+              onChange={(e) => setGender(e.target.value as any)}
+            >
+              <option value="">Select</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <FieldLabel>Date of Birth</FieldLabel>
+            <input
+              type="date"
+              className={fieldCls()}
+              value={dob}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDob(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <FieldLabel required>Village (for address)</FieldLabel>
+            <input
+              className={fieldCls(villageError)}
+              value={village}
+              onChange={(e) => setVillage(e.target.value)}
+            />
+            {villageError && <p className="text-xs text-red-500 mt-1">{villageError}</p>}
+            <p className="text-xs text-slate-400 mt-1">
+              You can update the full address later from the member's Edit screen.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
+          >
+            {loading ? "Creating…" : "Create & Link"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Family Relationships section ──────────────────────────────────────────────
 
 function FamilyRelationshipsSection({
   memberCode,
   memberId,
+  currentMember,
   currentUsername,
   notify,
 }: {
   memberCode: string;
   memberId: number;
+  currentMember: Member | null;
   currentUsername: string;
   notify: ReturnType<typeof useNotify>;
 }) {
   const [relationships, setRelationships] =
     useState<PersonRelationshipsResponse | null>(null);
   const [loadingRel, setLoadingRel] = useState(true);
-
-  // Dialog state
-  const [dialog, setDialog] = useState<
-    null | "spouse" | "father" | "mother" | "child"
-  >(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // dialog = which role we are filling, mode = "search" or "create"
+  const [dialog, setDialog] = useState<{
+    role: "spouse" | "father" | "mother" | "child";
+    mode: "search" | "create";
+  } | null>(null);
+
+  async function reload() {
+    const updated = await getPersonRelationships(memberCode);
+    setRelationships(updated);
+  }
 
   useEffect(() => {
     setLoadingRel(true);
     getPersonRelationships(memberCode)
       .then(setRelationships)
-      .catch(() => {
-        // If endpoint doesn't exist yet, fail silently
-        setRelationships({
-          memberCode,
-          personName: "",
-          children: [],
-        });
-      })
+      .catch(() =>
+        setRelationships({ memberCode, personName: "", children: [] })
+      )
       .finally(() => setLoadingRel(false));
   }, [memberCode]);
 
-  async function handleLinkParent(
-    parent: Member,
-    type: "FATHER" | "MOTHER"
-  ) {
+  // ── Link existing member ──────────────────────────────────────────────────
+
+  async function handleLinkExisting(m: Member) {
+    if (!dialog) return;
     setActionLoading(true);
     try {
-      await linkParent(memberCode, parent.memberCode, type, currentUsername);
-      notify.success(
-        `${type === "FATHER" ? "Father" : "Mother"} linked successfully.`
-      );
-      const updated = await getPersonRelationships(memberCode);
-      setRelationships(updated);
+      if (dialog.role === "spouse") {
+        await linkSpouse(memberCode, m.memberCode, undefined, currentUsername);
+        notify.success("Spouse linked successfully.");
+      } else if (dialog.role === "father") {
+        await linkParent(memberCode, m.memberCode, "FATHER", currentUsername);
+        notify.success("Father linked successfully.");
+      } else if (dialog.role === "mother") {
+        await linkParent(memberCode, m.memberCode, "MOTHER", currentUsername);
+        notify.success("Mother linked successfully.");
+      } else if (dialog.role === "child") {
+        // For child: the current member is the parent, linked person is the child.
+        // We need to know if this member is FATHER or MOTHER.
+        const parentType =
+          currentMember?.gender === "FEMALE" ? "MOTHER" : "FATHER";
+        await linkParent(m.memberCode, memberCode, parentType, currentUsername);
+        notify.success("Child linked successfully.");
+      }
+      await reload();
     } catch (err: any) {
       notify.error(err.message || "Failed to link relationship.");
     } finally {
@@ -498,34 +662,65 @@ function FamilyRelationshipsSection({
     }
   }
 
-  async function handleLinkSpouse(spouse: Member) {
+  // ── Create new member and link ────────────────────────────────────────────
+
+  async function handleCreateAndLink(data: {
+    firstName: string;
+    lastName: string;
+    gender: "MALE" | "FEMALE" | "OTHER" | "";
+    dob: string;
+    village: string;
+  }) {
+    if (!dialog || !currentMember) return;
     setActionLoading(true);
+
+    const personData = {
+      firstName: data.firstName,
+      lastName: data.lastName || undefined,
+      gender: data.gender || undefined,
+      dob: data.dob || undefined,
+      societyId: currentMember.societyId,
+      familyId: currentMember.familyId,
+      village: data.village,
+    };
+
     try {
-      await linkSpouse(memberCode, spouse.memberCode, undefined, currentUsername);
-      notify.success("Spouse linked successfully.");
-      const updated = await getPersonRelationships(memberCode);
-      setRelationships(updated);
+      if (dialog.role === "spouse") {
+        await createAndLinkSpouse(memberCode, personData, undefined, currentUsername);
+        notify.success("Spouse created and linked successfully.");
+      } else if (dialog.role === "father") {
+        await createAndLinkParent(memberCode, personData, "FATHER", currentUsername);
+        notify.success("Father created and linked successfully.");
+      } else if (dialog.role === "mother") {
+        await createAndLinkParent(memberCode, personData, "MOTHER", currentUsername);
+        notify.success("Mother created and linked successfully.");
+      } else if (dialog.role === "child") {
+        const parentType =
+          currentMember?.gender === "FEMALE" ? "MOTHER" : "FATHER";
+        await createAndLinkChild(memberCode, personData, parentType, currentUsername);
+        notify.success("Child created and linked successfully.");
+      }
+      await reload();
     } catch (err: any) {
-      notify.error(err.message || "Failed to link spouse.");
+      notify.error(err.message || "Failed to create and link.");
     } finally {
       setActionLoading(false);
       setDialog(null);
     }
   }
 
-  // Children are linked by going to the child's record and setting parent.
-  // For this screen we just display existing children.
+  // ── Relation card ─────────────────────────────────────────────────────────
 
   function RelationCard({
     label,
     member,
-    onAdd,
     canAdd,
+    onAdd,
   }: {
     label: string;
     member?: Member | null;
-    onAdd?: () => void;
     canAdd: boolean;
+    onAdd?: () => void;
   }) {
     return (
       <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
@@ -534,24 +729,36 @@ function FamilyRelationshipsSection({
           {member ? (
             <p className="text-sm font-medium text-slate-700">
               {member.firstName} {member.lastName ?? ""}
-              <span className="ml-2 text-xs text-slate-400">
-                {member.memberCode}
-              </span>
+              <span className="ml-2 text-xs text-slate-400">{member.memberCode}</span>
             </p>
           ) : (
             <p className="text-sm text-slate-400 italic">Not linked</p>
           )}
         </div>
         {canAdd && !member && onAdd && (
-          <button
-            type="button"
-            onClick={onAdd}
-            disabled={actionLoading}
-            className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Link
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onAdd()}
+              disabled={actionLoading}
+              className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+            >
+              <Search className="w-3 h-3" />
+              Link existing
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Switch to create mode for same role
+                setDialog((prev) => prev ? { ...prev, mode: "create" } : null);
+              }}
+              disabled={actionLoading}
+              className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+            >
+              <UserPlus className="w-3 h-3" />
+              Create new
+            </button>
+          </div>
         )}
       </div>
     );
@@ -566,41 +773,159 @@ function FamilyRelationshipsSection({
     );
   }
 
+  // Default village from the current member's address for pre-filling
+  const defaultVillage = currentMember?.currentAddress?.village ?? "";
+
   return (
     <>
       <section className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-1">Family Relationships</h2>
         <p className="text-xs text-slate-400 mb-4">
-          Link family members already registered in the system.
+          Link existing members or create new ones to establish family connections.
         </p>
 
         <div className="space-y-2">
-          <RelationCard
-            label="Spouse"
-            member={relationships?.spouse}
-            canAdd={true}
-            onAdd={() => setDialog("spouse")}
-          />
-          <RelationCard
-            label="Father"
-            member={relationships?.father}
-            canAdd={true}
-            onAdd={() => setDialog("father")}
-          />
-          <RelationCard
-            label="Mother"
-            member={relationships?.mother}
-            canAdd={true}
-            onAdd={() => setDialog("mother")}
-          />
+          {/* Spouse */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Spouse</p>
+              {relationships?.spouse ? (
+                <p className="text-sm font-medium text-slate-700">
+                  {relationships.spouse.firstName} {relationships.spouse.lastName ?? ""}
+                  <span className="ml-2 text-xs text-slate-400">{relationships.spouse.memberCode}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            {!relationships?.spouse && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "spouse", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  <Search className="w-3 h-3" />
+                  Link existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "spouse", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Create new
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Father */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Father</p>
+              {relationships?.father ? (
+                <p className="text-sm font-medium text-slate-700">
+                  {relationships.father.firstName} {relationships.father.lastName ?? ""}
+                  <span className="ml-2 text-xs text-slate-400">{relationships.father.memberCode}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            {!relationships?.father && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "father", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  <Search className="w-3 h-3" />
+                  Link existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "father", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Create new
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mother */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Mother</p>
+              {relationships?.mother ? (
+                <p className="text-sm font-medium text-slate-700">
+                  {relationships.mother.firstName} {relationships.mother.lastName ?? ""}
+                  <span className="ml-2 text-xs text-slate-400">{relationships.mother.memberCode}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            {!relationships?.mother && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "mother", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  <Search className="w-3 h-3" />
+                  Link existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "mother", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Create new
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Children — display only; to add a child you go to the child's edit screen */}
-        {relationships?.children && relationships.children.length > 0 && (
-          <div className="mt-4">
-            <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">
+        {/* Children */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
               Children
             </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDialog({ role: "child", mode: "search" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                <Search className="w-3 h-3" />
+                Link existing
+              </button>
+              <button
+                type="button"
+                onClick={() => setDialog({ role: "child", mode: "create" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+              >
+                <UserPlus className="w-3 h-3" />
+                Add child
+              </button>
+            </div>
+          </div>
+
+          {relationships?.children && relationships.children.length > 0 ? (
             <div className="space-y-1">
               {relationships.children.map((child) => (
                 <div
@@ -609,49 +934,45 @@ function FamilyRelationshipsSection({
                 >
                   <p className="text-sm text-slate-700">
                     {child.firstName} {child.lastName ?? ""}
-                    <span className="ml-2 text-xs text-slate-400">
-                      {child.memberCode}
-                    </span>
+                    <span className="ml-2 text-xs text-slate-400">{child.memberCode}</span>
                   </p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-2 italic">
-              To add a child, open the child's Edit Member screen and link their parent there.
-            </p>
-          </div>
-        )}
-
-        {(!relationships?.children || relationships.children.length === 0) && (
-          <p className="text-xs text-slate-400 mt-4 italic">
-            No children linked. To add a child, open the child's Edit Member screen and link their parent there.
-          </p>
-        )}
+          ) : (
+            <p className="text-xs text-slate-400 italic">No children linked yet.</p>
+          )}
+        </div>
       </section>
 
-      {/* Search dialogs */}
-      {dialog === "spouse" && (
+      {/* Search dialog — for "Link existing" */}
+      {dialog?.mode === "search" && (
         <MemberSearchDialog
-          title="Link Spouse"
+          title={
+            dialog.role === "spouse" ? "Link Spouse" :
+              dialog.role === "father" ? "Link Father" :
+                dialog.role === "mother" ? "Link Mother" :
+                  "Link Child"
+          }
           excludeMemberCode={memberCode}
-          onSelect={handleLinkSpouse}
+          onSelect={handleLinkExisting}
           onClose={() => setDialog(null)}
         />
       )}
-      {dialog === "father" && (
-        <MemberSearchDialog
-          title="Link Father"
-          excludeMemberCode={memberCode}
-          onSelect={(m) => handleLinkParent(m, "FATHER")}
+
+      {/* Create dialog — for "Create new" */}
+      {dialog?.mode === "create" && (
+        <CreatePersonForm
+          title={
+            dialog.role === "spouse" ? "Create & Link Spouse" :
+              dialog.role === "father" ? "Create & Link Father" :
+                dialog.role === "mother" ? "Create & Link Mother" :
+                  "Create & Link Child"
+          }
+          defaultVillage={defaultVillage}
+          onSubmit={handleCreateAndLink}
           onClose={() => setDialog(null)}
-        />
-      )}
-      {dialog === "mother" && (
-        <MemberSearchDialog
-          title="Link Mother"
-          excludeMemberCode={memberCode}
-          onSelect={(m) => handleLinkParent(m, "MOTHER")}
-          onClose={() => setDialog(null)}
+          loading={actionLoading}
         />
       )}
     </>
@@ -1077,6 +1398,7 @@ export default function EditMember() {
           <FamilyRelationshipsSection
             memberCode={memberCode ?? ""}
             memberId={originalMember.id}
+            currentMember={originalMember}
             currentUsername={user?.username ?? "system"}
             notify={notify}
           />
