@@ -51,4 +51,17 @@ export const ENDPOINTS = {
     byId: (id: string | number) => `/logs/${id}`,
   },
 
+  relationships: {
+    // GET /relationships/person/{memberCode} — full summary (father, mother, spouse, children, siblings)
+    forPerson: (memberCode: string) => `/relationships/person/${memberCode}`,
+    // POST /relationships/parent — link a parent
+    linkParent: () => `/relationships/parent`,
+    // POST /relationships/spouse — link a spouse
+    linkSpouse: () => `/relationships/spouse`,
+    // PATCH /relationships/{id}/end — end a relationship
+    end: (id: number) => `/relationships/${id}/end`,
+    // PATCH /relationships/{id}/deactivate — soft delete
+    deactivate: (id: number) => `/relationships/${id}/deactivate`,
+  },
+
 } as const;

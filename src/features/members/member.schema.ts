@@ -35,6 +35,9 @@ export const memberSchema = z.object({
   contactNumber: z.string().max(20).optional().or(z.literal("")),
   education: z.string().max(120).optional().or(z.literal("")),
   occupation: z.string().max(120).optional().or(z.literal("")),
+  maritalStatus: z
+    .enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"])
+    .optional(),
 
   currentAddress: addressSchema,
   parentalAddress: addressSchema.optional(),

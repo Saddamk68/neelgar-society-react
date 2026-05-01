@@ -14,10 +14,22 @@ export type Member = {
   contactNumber?: string;
   education?: string;
   occupation?: string;
+  maritalStatus?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
   isActive: boolean;
   hasPhoto?: boolean;
   createdAt?: string;
   createdBy?: string;
+  // Address fields — populated once backend includes them in PersonResponse
+  currentAddress?: AddressData;
+  parentalAddress?: AddressData;
+};
+
+export type AddressData = {
+  village: string;
+  tahsil?: string;
+  district?: string;
+  state?: string;
+  country?: string;
 };
 
 // Matches FamilyResponse from the REST API
@@ -43,4 +55,33 @@ export type DuplicateCandidate = {
   dob?: string;
   familyCode: string;
   societyCode: string;
+};
+
+// Relationship types — matches backend enums
+export type RelationshipType = "FATHER" | "MOTHER" | "SPOUSE";
+
+export type RelationshipResponse = {
+  id: number;
+  person1Id: number;
+  person1MemberCode: string;
+  person1Name: string;
+  person2Id: number;
+  person2MemberCode: string;
+  person2Name: string;
+  relationshipType: RelationshipType;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  warning?: string;
+};
+
+// GET /relationships/person/{memberCode} response
+export type PersonRelationshipsResponse = {
+  memberCode: string;
+  personName: string;
+  father?: Member;
+  mother?: Member;
+  spouse?: Member;
+  children?: Member[];
+  siblings?: Member[];
 };
