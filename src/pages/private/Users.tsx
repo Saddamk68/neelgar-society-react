@@ -29,12 +29,15 @@ const STATUS_STYLES: Record<UserStatus, string> = {
   PENDING: "bg-amber-100 text-amber-800",
   APPROVED: "bg-green-100 text-green-800",
   REJECTED: "bg-red-100   text-red-700",
+  INACTIVE: "bg-slate-100 text-slate-500",
 };
 
-function StatusBadge({ status }: { status: UserStatus }) {
+function StatusBadge({ status, isActive }: { status: UserStatus; isActive: boolean }) {
+  // If user is deactivated, show Inactive regardless of their status field
+  const displayStatus: UserStatus = !isActive ? "INACTIVE" : status;
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[status]}`}>
-      {status.charAt(0) + status.slice(1).toLowerCase()}
+    <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[displayStatus]}`}>
+      {displayStatus.charAt(0) + displayStatus.slice(1).toLowerCase()}
     </span>
   );
 }
@@ -200,6 +203,7 @@ const TABS: { label: string; value: UserStatus | "" }[] = [
   { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
   { label: "Rejected", value: "REJECTED" },
+  { label: "Inactive", value: "INACTIVE" }, 
 ];
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -363,7 +367,7 @@ export default function Users() {
                       </td>
 
                       <td className="py-2.5 px-4">
-                        <StatusBadge status={u.status} />
+                        <StatusBadge status={u.status} isActive={u.isActive} />
                       </td>
 
                       <td className="py-2.5 px-4 text-text-muted font-mono text-xs">
