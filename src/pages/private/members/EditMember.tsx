@@ -1042,7 +1042,7 @@ export default function EditMember() {
           contactNumber: m.contactNumber ?? "",
           education: m.education ?? "",
           occupation: m.occupation ?? "",
-          maritalStatus: m.maritalStatus ?? undefined,
+          maritalStatus: m.maritalStatus ?? "SINGLE",
           createAccount: false,
           email: "",
           currentAddress: {
@@ -1064,6 +1064,9 @@ export default function EditMember() {
         };
 
         reset(formValues);
+
+        // Force maritalStatus to always be set so it appears in submit payload
+        setValue("maritalStatus", m.maritalStatus ?? "SINGLE");
 
         if (m.parentalAddress?.village) {
           setShowParentalAddress(true);
@@ -1231,8 +1234,11 @@ export default function EditMember() {
             {/* Marital Status */}
             <div>
               <FieldLabel>Marital Status</FieldLabel>
-              <select {...register("maritalStatus")} className={inputClass()}>
-                <option value="">Select</option>
+              <select
+                {...register("maritalStatus")}
+                className={inputClass(!!errors.maritalStatus)}
+              >
+                <option value="" disabled>Select status</option>  
                 <option value="SINGLE">Single</option>
                 <option value="MARRIED">Married</option>
                 <option value="DIVORCED">Divorced</option>

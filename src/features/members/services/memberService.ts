@@ -68,6 +68,7 @@ export async function createMember(
     contactNumber: values.contactNumber || undefined,
     education: values.education || undefined,
     occupation: values.occupation || undefined,
+    maritalStatus: values.maritalStatus || undefined,
     currentAddress: {
       village: values.currentAddress.village,
       tahsil: values.currentAddress.tahsil || undefined,
@@ -124,6 +125,7 @@ export async function updateMember(
     contactNumber: values.contactNumber || undefined,
     education: values.education || undefined,
     occupation: values.occupation || undefined,
+    maritalStatus: values.maritalStatus || undefined,
     currentAddress: {
       village: values.currentAddress.village,
       tahsil: values.currentAddress.tahsil || undefined,
