@@ -17,6 +17,8 @@ export type Member = {
   maritalStatus?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
   currentAddress?: AddressData;
   parentalAddress?: AddressData;
+  gotraId?: number;
+  gotraName?: string;
   isActive: boolean;
   hasPhoto?: boolean;
   createdAt?: string;

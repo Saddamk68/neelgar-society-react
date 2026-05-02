@@ -38,6 +38,10 @@ export const memberSchema = z.object({
   maritalStatus: z
     .enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"])
     .optional(),
+  gotraId: z.coerce.number({ error: "Gotra is required" })
+    .int()
+    .positive("Please select a gotra"),
+
   currentAddress: addressSchema,
   parentalAddress: addressSchema.optional(),
 

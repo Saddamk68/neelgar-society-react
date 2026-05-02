@@ -58,19 +58,29 @@ function MemberBlock({
                     />
                 </div>
 
-                <div className="flex-1 flex items-center justify-between">
+                <div className="flex-1 flex items-start justify-between">
                     <div>
-                        <span className="font-semibold text-slate-800 text-base">
-                            {index !== undefined ? `${index + 1}. ` : ""}
-                            {member.firstName} {member.lastName ?? ""}
-                        </span>
-                        {isHead && (
-                            <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
-                                Family Head
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-800 text-base">
+                                {index !== undefined ? `${index + 1}. ` : ""}
+                                {member.firstName} {member.lastName ?? ""}
                             </span>
-                        )}
+                            {isHead && (
+                                <span className="text-xs bg-primary text-white px-2 py-0.5 rounded-full">
+                                    Family Head
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-xs text-slate-400 font-mono mt-0.5 block">
+                            {member.memberCode}
+                        </span>
                     </div>
-                    <span className="text-xs text-slate-400 font-mono">{member.memberCode}</span>
+                    {member.gotraName && (
+                        <div className="text-right shrink-0">
+                            <span className="text-xs text-slate-400">Gotra</span>
+                            <div className="text-sm font-semibold text-slate-700">{member.gotraName}</div>
+                        </div>
+                    )}
                 </div>
             </div>
 

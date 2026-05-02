@@ -73,6 +73,7 @@ import {
 import MemberAvatar from "@/components/MemberAvatar";
 import { useQueryClient } from "@tanstack/react-query";
 import DatePicker from "../../../components/form/DatePicker";
+import GotraSelect from "@/features/gotras/components/GotraSelect";
 
 
 function inputClass(hasError?: boolean) {
@@ -777,6 +778,8 @@ export default function EditMember() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dobValue = watch("dob") ?? "";
+  const gotraId = watch("gotraId");
+  const societyId = watch("societyId");
 
   // ── Load member on mount ──────────────────────────────────────────────────
 
@@ -809,6 +812,7 @@ export default function EditMember() {
           education: m.education ?? "",
           occupation: m.occupation ?? "",
           maritalStatus: m.maritalStatus ?? "SINGLE",
+          gotraId: m.gotraId ?? 0,
           createAccount: false,
           email: "",
           currentAddress: {
@@ -1066,7 +1070,7 @@ export default function EditMember() {
                 {...register("maritalStatus")}
                 className={inputClass(!!errors.maritalStatus)}
               >
-                <option value="" disabled>Select status</option>  
+                <option value="" disabled>Select status</option>
                 <option value="SINGLE">Single</option>
                 <option value="MARRIED">Married</option>
                 <option value="DIVORCED">Divorced</option>
@@ -1087,6 +1091,19 @@ export default function EditMember() {
                 <p className="text-xs text-red-500 mt-1">
                   {errors.dob.message}
                 </p>
+              )}
+            </div>
+
+            <div>
+              <FieldLabel required>Gotra</FieldLabel>
+              <GotraSelect
+                societyId={societyId ?? originalMember?.societyId ?? 0}
+                value={gotraId || undefined}
+                onChange={(id) => setValue("gotraId", id, { shouldValidate: true, shouldDirty: true })}
+                hasError={!!errors.gotraId}
+              />
+              {errors.gotraId && (
+                <p className="text-xs text-red-500 mt-1">{errors.gotraId.message}</p>
               )}
             </div>
 

@@ -14,7 +14,7 @@ export const ENDPOINTS = {
     create: () => `/members`,
     update: (memberCode: string) => `/members/${memberCode}`,
     deactivate: (memberCode: string) => `/members/${memberCode}/deactivate`,
-    reactivate: (memberCode: string) => `/members/${memberCode}/reactivate`, 
+    reactivate: (memberCode: string) => `/members/${memberCode}/reactivate`,
     checkDuplicate: () => `/members/check-duplicates`,
     search: () => `/members/search`,
     uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,
@@ -51,6 +51,13 @@ export const ENDPOINTS = {
   logs: {
     list: () => `/logs`,
     byId: (id: string | number) => `/logs/${id}`,
+  },
+
+  gotras: {
+    list: () => `/gotras`,
+    create: () => `/gotras`,
+    update: (id: number) => `/gotras/${id}`,
+    deactivate: (id: number) => `/gotras/${id}`,
   },
 
   relationships: {
