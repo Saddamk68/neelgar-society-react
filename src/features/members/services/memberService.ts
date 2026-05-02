@@ -115,6 +115,17 @@ export async function deactivateMember(
   });
 }
 
+// ── Reactivate member ─────────────────────────────────────────────────────────
+
+export async function reactivateMember(
+  memberCode: string,
+  updatedBy: string
+): Promise<void> {
+  await api.patch(ENDPOINTS.members.reactivate(memberCode), null, {
+    headers: { "X-Created-By": updatedBy },
+  });
+}
+
 // ── Update member ─────────────────────────────────────────────────────────────
 
 export async function updateMember(

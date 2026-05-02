@@ -84,6 +84,13 @@ export async function deactivateUser(id: number): Promise<void> {
   await api.patch(ENDPOINTS.users.deactivate(id));
 }
 
+// ── Reactivate user ───────────────────────────────────────────────────────────
+
+export async function reactivateUser(id: number): Promise<UserRecord> {
+  const resp = await api.patch(ENDPOINTS.users.reactivate(id));
+  return mapToUserRecord(unwrap(resp.data));
+}
+
 // ── Admin reset password ──────────────────────────────────────────────────────
 
 export async function adminResetPassword(
