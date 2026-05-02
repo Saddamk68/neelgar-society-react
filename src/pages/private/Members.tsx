@@ -13,6 +13,7 @@ import MembersSkeleton from "../../components/skeletons/MembersSkeleton";
 import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
 import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
+import { REACTIVATE_ROLES } from "@/constants/roles";
 
 type LocalSortConfig = {
   key: keyof Member | null;
@@ -31,6 +32,7 @@ const TABS = [
 export default function Members() {
   const notify = useNotify();
   const { user } = useAuth();
+  const canReactivate = !!user && REACTIVATE_ROLES.includes(user.role);
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<boolean>(true);
@@ -205,14 +207,23 @@ export default function Members() {
             </>
           )}
 
-          {/* Reactivate button — only on Inactive tab */}
+          {/* Reactivate button — only on Inactive tab, only for authorized roles */}
           {!activeTab && (
-            <Tooltip content="Reactivate" offset={20}>
+            <Tooltip content={canReactivate ? "Reactivate" : "No permission"} offset={20}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleReactivate(row.memberCode); }}
-                className="p-1 rounded hover:bg-green-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (canReactivate) handleReactivate(row.memberCode);
+                }}
+                disabled={!canReactivate}
+                className={[
+                  "p-1 rounded transition",
+                  canReactivate
+                    ? "hover:bg-green-50 cursor-pointer"
+                    : "opacity-30 cursor-not-allowed",
+                ].join(" ")}
               >
-                <UserCheck className="w-4 h-4 text-green-600" />
+                <UserCheck className={`w-4 h-4 ${canReactivate ? "text-green-600" : "text-slate-400"}`} />
               </button>
             </Tooltip>
           )}
@@ -303,8 +314,13 @@ export default function Members() {
 
       {/* Inactive notice banner */}
       {!activeTab && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-800">
-          Showing inactive members — these records are read-only. Contact a system admin to reactivate.
+        <div className={`border rounded-lg px-4 py-2 text-sm ${canReactivate
+            ? "bg-green-50 border-green-200 text-green-800"
+            : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}>
+          {canReactivate
+            ? "Showing inactive members — click the reactivate button to restore a member."
+            : "Showing inactive members — these records are read-only. Contact an admin to reactivate."}
         </div>
       )}
 
