@@ -23,7 +23,8 @@ import type { UserRecord, UserStatus } from "@/features/users/types";
 import { useAuth } from "@/context/AuthContext";
 import { useNotify } from "@/services/notifications";
 import type { Role } from "@/constants/roles";
-import { ALL_ROLES } from "@/constants/roles";
+import { ALL_ROLES, REACTIVATE_ROLES } from "@/constants/roles";
+import Tooltip from "@/components/Tooltip";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -212,6 +213,7 @@ const TABS: { label: string; value: UserStatus | "" }[] = [
 
 export default function Users() {
   const { user: authUser } = useAuth();
+  const canReactivate = !!authUser && REACTIVATE_ROLES.includes(authUser.role);
   const notify = useNotify();
   const queryClient = useQueryClient();
 
@@ -444,16 +446,23 @@ export default function Users() {
                             </button>
                           )}
 
-                          {/* Reactivate — only for inactive users */}
+                          {/* Reactivate — only for inactive users, only for authorized roles */}
                           {!u.isActive && (
-                            <button
-                              title="Reactivate"
-                              onClick={() => reactivateMutation.mutate(u.id)}
-                              disabled={reactivateMutation.isPending}
-                              className="text-slate-400 hover:text-green-600 transition"
-                            >
-                              <UserCheck className="w-4 h-4" />
-                            </button>
+                            <Tooltip content={canReactivate ? "Reactivate" : "No permission"}>
+                              <button
+                                title={canReactivate ? "Reactivate" : "No permission to reactivate"}
+                                onClick={() => canReactivate && reactivateMutation.mutate(u.id)}
+                                disabled={!canReactivate || reactivateMutation.isPending}
+                                className={[
+                                  "transition",
+                                  canReactivate
+                                    ? "text-slate-400 hover:text-green-600 cursor-pointer"
+                                    : "text-slate-300 cursor-not-allowed",
+                                ].join(" ")}
+                              >
+                                <UserCheck className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
                           )}
 
                         </div>

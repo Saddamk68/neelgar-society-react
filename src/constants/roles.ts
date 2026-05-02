@@ -18,3 +18,6 @@ export const ALL_ROLES: Role[] = [
     "EDITOR",
     "MEMBER",
 ];
+
+/** Roles that can reactivate members/users */
+export const REACTIVATE_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN", "PRESIDENT", "SECRETARY"];
