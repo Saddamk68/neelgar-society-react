@@ -15,13 +15,12 @@ export type Member = {
   education?: string;
   occupation?: string;
   maritalStatus?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+  currentAddress?: AddressData;
+  parentalAddress?: AddressData;
   isActive: boolean;
   hasPhoto?: boolean;
   createdAt?: string;
   createdBy?: string;
-  // Address fields — populated once backend includes them in PersonResponse
-  currentAddress?: AddressData;
-  parentalAddress?: AddressData;
 };
 
 export type AddressData = {
