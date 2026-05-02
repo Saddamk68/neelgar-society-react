@@ -147,37 +147,51 @@ export default function ViewMember() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
               <Row label="First Name" value={member.firstName} />
               <Row label="Last Name" value={member.lastName} />
-              <Row label="Gender" value={member.gender} />
+              <Row
+                label="Gender"
+                value={
+                  member.gender
+                    ? { MALE: "Male", FEMALE: "Female", OTHER: "Other" }[member.gender]
+                    : undefined
+                }
+              />
               <Row label="Date of Birth" value={member.dob} />
               <Row label="Contact" value={member.contactNumber} />
               <Row label="Education" value={member.education} />
-              <Row label="Marital Status" value={member.maritalStatus} />
               <Row label="Occupation" value={member.occupation} />
+              <Row
+                label="Marital Status"
+                value={
+                  member.maritalStatus
+                    ? { SINGLE: "Single", MARRIED: "Married", DIVORCED: "Divorced", WIDOWED: "Widowed" }[member.maritalStatus]
+                    : undefined
+                }
+              />
             </div>
           </Section>
 
           {/* Current address */}
-          {(member as any).currentAddress && (
+          {member.currentAddress && (
             <Section title="Current Address">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                <Row label="Village" value={(member as any).currentAddress?.village} />
-                <Row label="Tahsil" value={(member as any).currentAddress?.tahsil} />
-                <Row label="District" value={(member as any).currentAddress?.district} />
-                <Row label="State" value={(member as any).currentAddress?.state} />
-                <Row label="Country" value={(member as any).currentAddress?.country} />
+                <Row label="Village" value={member.currentAddress?.village} />
+                <Row label="Tahsil" value={member.currentAddress?.tahsil} />
+                <Row label="District" value={member.currentAddress?.district} />
+                <Row label="State" value={member.currentAddress?.state} />
+                <Row label="Country" value={member.currentAddress?.country} />
               </div>
             </Section>
           )}
 
           {/* Parental address */}
-          {(member as any).parentalAddress && (
+          {member.parentalAddress && (
             <Section title="Parental Address">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                <Row label="Village" value={(member as any).parentalAddress?.village} />
-                <Row label="Tahsil" value={(member as any).parentalAddress?.tahsil} />
-                <Row label="District" value={(member as any).parentalAddress?.district} />
-                <Row label="State" value={(member as any).parentalAddress?.state} />
-                <Row label="Country" value={(member as any).parentalAddress?.country} />
+                <Row label="Village" value={member.parentalAddress?.village} />
+                <Row label="Tahsil" value={member.parentalAddress?.tahsil} />
+                <Row label="District" value={member.parentalAddress?.district} />
+                <Row label="State" value={member.parentalAddress?.state} />
+                <Row label="Country" value={member.parentalAddress?.country} />
               </div>
             </Section>
           )}
