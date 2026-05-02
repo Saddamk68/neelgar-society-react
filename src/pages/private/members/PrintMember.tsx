@@ -151,10 +151,18 @@ export default function PrintMember() {
     const isLoading = memberLoading || (includeFamily && familyLoading);
     const headPersonId = familyData?.headPersonId ?? null;
 
-    // Other family members excluding the current one
-    const otherMembers = (familyMembers ?? []).filter(
-        (m) => m.memberCode !== memberCode
-    );
+    // When showing full family: always lead with the family head.
+    // Find head from the full members list (not just "other" members).
+    const allFamilyMembers = familyMembers ?? [];
+
+    const headMember = includeFamily && headPersonId
+        ? (allFamilyMembers.find(m => m.id === headPersonId) ?? member!)
+        : null;
+
+    // Everyone except the head — preserves original order
+    const nonHeadMembers = includeFamily
+        ? allFamilyMembers.filter(m => m.id !== headPersonId)
+        : [];
 
     // ── Render ────────────────────────────────────────────────────────────────
 
@@ -267,44 +275,65 @@ export default function PrintMember() {
                     {/* Member details */}
                     {member && (
                         <>
-                            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                                {includeFamily ? "Family Head / Primary Member" : "Member Details"}
-                            </div>
-                            <MemberBlock
-                                member={member}
-                                isHead={
-                                    includeFamily &&
-                                    headPersonId !== null &&
-                                    member.id === headPersonId
-                                }
-                            />
-
-                            {/* Family members */}
-                            {includeFamily && (
+                            {/* ── Full family view ── */}
+                            {includeFamily ? (
                                 <>
+                                    {/* Section label */}
+                                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                                        Family Head
+                                    </div>
+
+                                    {/* Head member — always first */}
                                     {familyLoading ? (
                                         <div className="text-sm text-slate-400 py-4 text-center">
                                             Loading family members…
                                         </div>
-                                    ) : otherMembers.length > 0 ? (
+                                    ) : headMember ? (
+                                        <MemberBlock
+                                            member={headMember}
+                                            isHead={true}
+                                        />
+                                    ) : (
+                                        // Family data not yet loaded — show current member as placeholder
+                                        <MemberBlock
+                                            member={member}
+                                            isHead={member.id === headPersonId}
+                                        />
+                                    )}
+
+                                    {/* Rest of family */}
+                                    {!familyLoading && nonHeadMembers.length > 0 && (
                                         <>
                                             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 mt-5">
-                                                Other Family Members ({otherMembers.length})
+                                                Other Family Members ({nonHeadMembers.length})
                                             </div>
-                                            {otherMembers.map((m, i) => (
+                                            {nonHeadMembers.map((m, i) => (
                                                 <MemberBlock
                                                     key={m.memberCode}
                                                     member={m}
                                                     index={i}
-                                                    isHead={headPersonId !== null && m.id === headPersonId}
+                                                    isHead={false}
                                                 />
                                             ))}
                                         </>
-                                    ) : (
+                                    )}
+
+                                    {!familyLoading && allFamilyMembers.length === 0 && (
                                         <div className="text-sm text-slate-400 py-2">
-                                            No other active members in this family.
+                                            No active members found in this family.
                                         </div>
                                     )}
+                                </>
+                            ) : (
+                                /* ── Single member view ── */
+                                <>
+                                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                                        Member Details
+                                    </div>
+                                    <MemberBlock
+                                        member={member}
+                                        isHead={false}
+                                    />
                                 </>
                             )}
 
