@@ -29,11 +29,9 @@ function val(v?: string | null) {
 
 function MemberBlock({
     member,
-    index,
     isHead,
 }: {
     member: Member;
-    index?: number;
     isHead?: boolean;
 }) {
     const address = (member as any).currentAddress;
@@ -62,7 +60,6 @@ function MemberBlock({
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="font-semibold text-slate-800 text-base">
-                                {index !== undefined ? `${index + 1}. ` : ""}
                                 {member.firstName} {member.lastName ?? ""}
                             </span>
                             {isHead && (
@@ -321,7 +318,6 @@ export default function PrintMember() {
                                                 <MemberBlock
                                                     key={m.memberCode}
                                                     member={m}
-                                                    index={i}
                                                     isHead={false}
                                                 />
                                             ))}
