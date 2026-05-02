@@ -74,8 +74,7 @@ import {
   uploadMemberPhoto,
 } from "@/features/members/services/photoService";
 import MemberAvatar from "@/components/MemberAvatar";
-
-// ── Shared input style ────────────────────────────────────────────────────────
+import { useQueryClient } from "@tanstack/react-query";
 
 function inputClass(hasError?: boolean) {
   return [
@@ -987,6 +986,8 @@ export default function EditMember() {
   const notify = useNotify();
   const { user } = useAuth();
 
+  const queryClient = useQueryClient();
+
   const [loading, setLoading] = useState(true);
   const [showParentalAddress, setShowParentalAddress] = useState(false);
   const [originalMember, setOriginalMember] = useState<Member | null>(null);
@@ -1082,6 +1083,8 @@ export default function EditMember() {
     if (!memberCode) return;
     try {
       await updateMember(memberCode, data, user?.username ?? "system");
+      // Invalidate cached member so ViewMember fetches fresh data
+      queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
       notify.success("Member updated successfully!");
       navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
     } catch (err: any) {
