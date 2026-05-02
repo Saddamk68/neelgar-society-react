@@ -17,6 +17,7 @@ import ViewMember from "../pages/private/members/ViewMember";
 import ViewProfile from "@/pages/private/profile/ViewProfile";
 import ImportMembers from "@/pages/private/members/ImportMembers";
 import PrintMember from "@/pages/private/members/PrintMember";
+import Gotras from "@/pages/private/Gotras";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -73,6 +74,7 @@ export default function AppRoutes() {
             element={<Users />}
           />
           <Route path="profile" element={<ViewProfile />} />
+          <Route path="gotras" element={<Gotras />} />
         </Route>
       </Route>
 

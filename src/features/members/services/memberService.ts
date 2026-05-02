@@ -76,6 +76,7 @@ export async function createMember(
     education: values.education || undefined,
     occupation: values.occupation || undefined,
     maritalStatus: values.maritalStatus || undefined,
+    gotraId: values.gotraId || undefined,
     currentAddress: {
       village: values.currentAddress.village,
       tahsil: values.currentAddress.tahsil || undefined,
@@ -144,6 +145,7 @@ export async function updateMember(
     education: values.education || undefined,
     occupation: values.occupation || undefined,
     maritalStatus: values.maritalStatus || undefined,
+    gotraId: values.gotraId > 0 ? values.gotraId : undefined,
     currentAddress: {
       village: values.currentAddress.village,
       tahsil: values.currentAddress.tahsil || undefined,

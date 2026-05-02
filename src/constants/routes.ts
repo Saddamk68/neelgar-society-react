@@ -12,5 +12,6 @@ export const ROUTES = {
     LOGS: "/app/logs",
     USERS: "/app/users",
     PROFILE: "/app/profile",
+    GOTRAS: "/app/gotras",
   },
 };

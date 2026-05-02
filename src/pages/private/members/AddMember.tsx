@@ -17,6 +17,7 @@ import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
 import DatePicker from "../../../components/form/DatePicker";
+import GotraSelect from "@/features/gotras/components/GotraSelect";
 
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -156,6 +157,7 @@ export default function AddMember() {
       contactNumber: "",
       education: "",
       occupation: "",
+      gotraId: undefined as unknown as number,   // ← use undefined so schema doesn't fail on initial render
       createAccount: false,
       currentAddress: { village: "", tahsil: "", district: "", state: "", country: "" },
     },
@@ -163,6 +165,8 @@ export default function AddMember() {
 
   const { register, watch, setValue, handleSubmit, formState: { errors, isSubmitting } } = form;
   const createAccount = watch("createAccount");
+  const gotraId = watch("gotraId");
+  const societyId = watch("societyId");
 
   // Pre-fill firstName/lastName/dob from Step 1 into Step 3
   useEffect(() => {
@@ -554,6 +558,19 @@ export default function AddMember() {
               <div>
                 <FieldLabel>Occupation</FieldLabel>
                 <input {...register("occupation")} className={inputClass()} />
+              </div>
+
+              <div>
+                <FieldLabel required>Gotra</FieldLabel>
+                <GotraSelect
+                  societyId={societyId}
+                  value={gotraId || undefined}
+                  onChange={(id) => setValue("gotraId", id, { shouldValidate: true })}
+                  hasError={!!errors.gotraId}
+                />
+                {errors.gotraId && (
+                  <p className="text-xs text-red-500 mt-1">{errors.gotraId.message}</p>
+                )}
               </div>
             </div>
           </section>

@@ -156,6 +156,7 @@ export default function ViewMember() {
                 }
               />
               <Row label="Date of Birth" value={member.dob} />
+              <Row label="Gotra" value={member.gotraName} />
               <Row label="Contact" value={member.contactNumber} />
               <Row label="Education" value={member.education} />
               <Row label="Occupation" value={member.occupation} />

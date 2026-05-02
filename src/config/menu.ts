@@ -1,4 +1,4 @@
-import { Home, Users, FileText, User } from "lucide-react";
+import { Home, Users, FileText, User, BookOpen } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import type { Permission } from "../constants/permissions";
 
@@ -40,4 +40,12 @@ export const MENU: MenuItem[] = [
     required: ["MANAGE_USERS"],
     icon: User,
   },
+  {
+    key: "gotras",
+    label: "Gotras",
+    path: "/app/gotras",
+    required: ["MANAGE_GOTRAS"],
+    icon: BookOpen,
+  },
+  
 ];
