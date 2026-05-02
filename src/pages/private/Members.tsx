@@ -14,12 +14,17 @@ import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/Resp
 import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type LocalSortConfig = {
   key: keyof Member | null;
   direction: "asc" | "desc";
 };
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { label: "Active", active: true },
+  { label: "Inactive", active: false },
+] as const;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +33,7 @@ export default function Members() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<boolean>(true);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [size] = useState(30);
@@ -37,25 +43,33 @@ export default function Members() {
     direction: "asc",
   });
 
+  // Reset to page 0 when switching tabs
+  const handleTabChange = (tab: boolean) => {
+    setActiveTab(tab);
+    setPage(0);
+    setSearch("");
+  };
+
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   const isSearching = search.trim().length > 0;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["members", page, search],
+    queryKey: ["members", activeTab, page, search],
     queryFn: async () => {
       if (isSearching) {
         const results = await searchMembers(search.trim());
-        // Wrap in MemberPage shape so the table works the same way
+        // Filter search results by active/inactive tab
+        const filtered = results.filter((m) => m.isActive === activeTab);
         return {
-          content: results,
-          totalElements: results.length,
+          content: filtered,
+          totalElements: filtered.length,
           totalPages: 1,
-          size: results.length,
+          size: filtered.length,
           number: 0,
         };
       }
-      return listMembers(user?.societyId, page, size);
+      return listMembers(user?.societyId, page, size, "", activeTab);
     },
   });
 
@@ -63,7 +77,7 @@ export default function Members() {
     if (isError) notify.error("Failed to load members.");
   }, [isError]);
 
-  // ── Client-side sort (server handles pagination + search) ──────────────────
+  // ── Client-side sort ────────────────────────────────────────────────────────
 
   const sorted = useMemo(() => {
     if (!data?.content) return [];
@@ -100,17 +114,6 @@ export default function Members() {
     } finally {
       setDeactivating(null);
     }
-  };
-
-  // ── Import ──────────────────────────────────────────────────────────────────
-
-  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Import is handled via the dedicated Import page — this is just template download for now
-    notify.info("Please use the Import page for bulk uploads.");
-    e.target.value = "";
   };
 
   // ── Table columns ───────────────────────────────────────────────────────────
@@ -152,6 +155,7 @@ export default function Members() {
         </div>
       );
     }
+
     if (col.key === "actions") {
       return (
         <div className="flex items-center justify-center gap-2">
@@ -165,28 +169,34 @@ export default function Members() {
             </Link>
           </Tooltip>
 
-          <Tooltip content="Edit" offset={20}>
-            <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/edit`}
-              onClick={(e) => e.stopPropagation()}
-              className="p-1 rounded hover:bg-sky-50"
-            >
-              <Pencil className="w-4 h-4 text-primary" />
-            </Link>
-          </Tooltip>
+          {/* Edit and Deactivate only shown for active members */}
+          {activeTab && (
+            <>
+              <Tooltip content="Edit" offset={20}>
+                <Link
+                  to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/edit`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded hover:bg-sky-50"
+                >
+                  <Pencil className="w-4 h-4 text-primary" />
+                </Link>
+              </Tooltip>
 
-          <Tooltip content="Deactivate" offset={20}>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDeactivate(row.memberCode); }}
-              disabled={deactivating === row.memberCode}
-              className="p-1 rounded hover:bg-red-50 disabled:opacity-40"
-            >
-              <UserX className="w-4 h-4 text-red-500" />
-            </button>
-          </Tooltip>
+              <Tooltip content="Deactivate" offset={20}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeactivate(row.memberCode); }}
+                  disabled={deactivating === row.memberCode}
+                  className="p-1 rounded hover:bg-red-50 disabled:opacity-40"
+                >
+                  <UserX className="w-4 h-4 text-red-500" />
+                </button>
+              </Tooltip>
+            </>
+          )}
         </div>
       );
     }
+
     return undefined;
   };
 
@@ -200,7 +210,7 @@ export default function Members() {
         <div>
           <h1 className="text-2xl font-semibold">Members</h1>
           <p className="text-slate-500 text-sm">
-            {data ? `${data.totalElements} member(s) total` : "Manage society members"}
+            {data ? `${data.totalElements} member(s)` : "Manage society members"}
           </p>
         </div>
 
@@ -212,38 +222,68 @@ export default function Members() {
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             className="px-3 py-2 border rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/new`}
-            className="hidden md:flex items-center px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
-          >
-            Add Member
-          </Link>
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/new`}
-            className="md:hidden flex items-center justify-center w-9 h-9 bg-primary text-white rounded-full text-lg"
-          >
-            +
-          </Link>
+          {activeTab && (
+            <>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/new`}
+                className="hidden md:flex items-center px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+              >
+                Add Member
+              </Link>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/new`}
+                className="md:hidden flex items-center justify-center w-9 h-9 bg-primary text-white rounded-full text-lg"
+              >
+                +
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex justify-end items-center gap-4 pr-1 text-sm">
-        <Link
-          to={`${ROUTES.PRIVATE.MEMBERS}/import`}
-          className="flex items-center gap-1 text-primary hover:underline text-sm"
-        >
-          <Download className="w-3 h-3" />
-          Import
-        </Link>
-        <button
-          onClick={() => downloadImportTemplate()}
-          className="flex items-center gap-1 text-primary hover:underline"
-        >
-          <FileSpreadsheet className="w-3 h-3" />
-          Template
-        </button>
+      {/* Tabs + toolbar row */}
+      <div className="flex items-center justify-between border-b">
+        <div className="flex items-center gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={String(tab.active)}
+              onClick={() => handleTabChange(tab.active)}
+              className={[
+                "px-4 py-2 text-sm font-medium transition",
+                activeTab === tab.active
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-slate-500 hover:text-slate-800",
+              ].join(" ")}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4 pr-1 text-sm pb-1">
+          <Link
+            to={`${ROUTES.PRIVATE.MEMBERS}/import`}
+            className="flex items-center gap-1 text-primary hover:underline text-sm"
+          >
+            <Download className="w-3 h-3" />
+            Import
+          </Link>
+          <button
+            onClick={() => downloadImportTemplate()}
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            <FileSpreadsheet className="w-3 h-3" />
+            Template
+          </button>
+        </div>
       </div>
+
+      {/* Inactive notice banner */}
+      {!activeTab && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-800">
+          Showing inactive members — these records are read-only. Contact a system admin to reactivate.
+        </div>
+      )}
 
       {/* Table */}
       {isLoading && <MembersSkeleton />}

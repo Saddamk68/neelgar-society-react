@@ -23,10 +23,17 @@ export async function listMembers(
   societyId: number | undefined,
   page = 0,
   size = 30,
-  search = ""
+  search = "",
+  active = true           // ← add this parameter
 ): Promise<MemberPage> {
   const res = await api.get(ENDPOINTS.members.list(), {
-    params: { ...(societyId ? { societyId } : {}), page, size, ...(search ? { search } : {}) },
+    params: {
+      ...(societyId ? { societyId } : {}),
+      page,
+      size,
+      ...(search ? { search } : {}),
+      active,             // ← pass to backend
+    },
   });
   return unwrap<MemberPage>(res);
 }
