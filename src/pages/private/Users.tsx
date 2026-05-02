@@ -8,6 +8,7 @@ import {
   KeyRound,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
 } from "lucide-react";
 import {
   listUsers,
@@ -16,6 +17,7 @@ import {
   updateUserRole,
   deactivateUser,
   adminResetPassword,
+  reactivateUser,
 } from "@/features/users/services/userService";
 import type { UserRecord, UserStatus } from "@/features/users/types";
 import { useAuth } from "@/context/AuthContext";
@@ -203,7 +205,7 @@ const TABS: { label: string; value: UserStatus | "" }[] = [
   { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
   { label: "Rejected", value: "REJECTED" },
-  { label: "Inactive", value: "INACTIVE" }, 
+  { label: "Inactive", value: "INACTIVE" },
 ];
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -256,6 +258,16 @@ export default function Users() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (err: any) => notify.error(err?.message || "Failed to deactivate."),
+  });
+
+  // ── Deactivate ──────────────────────────────────────────────────────────
+  const reactivateMutation = useMutation({
+    mutationFn: (id: number) => reactivateUser(id),
+    onSuccess: (u) => {
+      notify.success(`${u.username} reactivated.`);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: any) => notify.error(err?.message || "Failed to reactivate."),
   });
 
   // ── Reset password ──────────────────────────────────────────────────────
@@ -429,6 +441,18 @@ export default function Users() {
                               className="text-slate-400 hover:text-red-500 transition"
                             >
                               <UserX className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Reactivate — only for inactive users */}
+                          {!u.isActive && (
+                            <button
+                              title="Reactivate"
+                              onClick={() => reactivateMutation.mutate(u.id)}
+                              disabled={reactivateMutation.isPending}
+                              className="text-slate-400 hover:text-green-600 transition"
+                            >
+                              <UserCheck className="w-4 h-4" />
                             </button>
                           )}
 

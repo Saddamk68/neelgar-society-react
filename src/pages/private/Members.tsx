@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Pencil, Download, FileSpreadsheet, UserX } from "lucide-react";
-import { listMembers, deactivateMember, searchMembers } from "../../features/members/services/memberService";
+import { Eye, Pencil, Download, FileSpreadsheet, UserX, UserCheck } from "lucide-react";
+import { listMembers, deactivateMember, searchMembers, reactivateMember } from "../../features/members/services/memberService";
 import { Member } from "../../features/members/types";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
@@ -116,6 +116,19 @@ export default function Members() {
     }
   };
 
+  // ── Reactivate ──────────────────────────────────────────────────────────────
+
+  const handleReactivate = async (memberCode: string) => {
+    if (!confirm(`Reactivate member ${memberCode}?`)) return;
+    try {
+      await reactivateMember(memberCode, user?.username ?? "system");
+      notify.success(`Member ${memberCode} reactivated.`);
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+    } catch (err: any) {
+      notify.error(err.message || "Failed to reactivate member.");
+    }
+  };
+
   // ── Table columns ───────────────────────────────────────────────────────────
 
   const columns: ColumnConfig<Member>[] = MEMBER_COLUMNS.map((c) => ({
@@ -169,7 +182,6 @@ export default function Members() {
             </Link>
           </Tooltip>
 
-          {/* Edit and Deactivate only shown for active members */}
           {activeTab && (
             <>
               <Tooltip content="Edit" offset={20}>
@@ -181,7 +193,6 @@ export default function Members() {
                   <Pencil className="w-4 h-4 text-primary" />
                 </Link>
               </Tooltip>
-
               <Tooltip content="Deactivate" offset={20}>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDeactivate(row.memberCode); }}
@@ -192,6 +203,18 @@ export default function Members() {
                 </button>
               </Tooltip>
             </>
+          )}
+
+          {/* Reactivate button — only on Inactive tab */}
+          {!activeTab && (
+            <Tooltip content="Reactivate" offset={20}>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleReactivate(row.memberCode); }}
+                className="p-1 rounded hover:bg-green-50"
+              >
+                <UserCheck className="w-4 h-4 text-green-600" />
+              </button>
+            </Tooltip>
           )}
         </div>
       );
