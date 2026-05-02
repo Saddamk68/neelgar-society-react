@@ -309,12 +309,10 @@ function CreatePersonForm({
 
           <div>
             <FieldLabel>Date of Birth</FieldLabel>
-            <input
-              type="date"
-              className={fieldCls()}
+            <DatePicker
               value={dob}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setDob(e.target.value)}
+              onChange={(val) => setDob(val)}
+              maxDate={new Date()}
             />
           </div>
 

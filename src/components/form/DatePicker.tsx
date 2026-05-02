@@ -1,33 +1,46 @@
 /**
- * DatePicker.tsx — Modern enterprise date picker
+ * DatePicker.tsx — Drill-down date picker
  *
- * Design: Two-panel layout — year/month selector on left, calendar grid on right.
- * Blue primary header showing selected date. Consistent with app theme.
+ * 3-step flow: Year → Month → Day
+ * Clicking the header breadcrumb navigates back up.
  *
  * Usage:
  *   import DatePicker from "@/components/form/DatePicker";
  *
  *   <DatePicker
  *     value="2024-07-19"
- *     onChange={(val) => ...}
+ *     onChange={(val) => ...}   // "YYYY-MM-DD" or ""
  *     hasError={!!errors.dob}
  *     maxDate={new Date()}
+ *     minDate={new Date("1900-01-01")}
  *   />
  */
 
 import { useEffect, useRef, useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+];
 const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_YEAR = 1900;
+const YEARS_PER_PAGE = 16; // 4×4 grid
 
-function parseDate(value: string): Date | null {
-    if (!value) return null;
-    const d = new Date(value + "T00:00:00");
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parseDate(v: string): Date | null {
+    if (!v) return null;
+    const d = new Date(v + "T00:00:00");
     return isNaN(d.getTime()) ? null : d;
+}
+
+function toYMD(y: number, m: number, d: number) {
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 function daysInMonth(y: number, m: number) {
@@ -38,9 +51,9 @@ function firstDayOfMonth(y: number, m: number) {
     return new Date(y, m, 1).getDay();
 }
 
-function toYMD(y: number, m: number, d: number) {
-    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
+type Step = "year" | "month" | "day";
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DatePicker({
     value,
@@ -62,90 +75,176 @@ export default function DatePicker({
     const minY = minDate ? minDate.getFullYear() : MIN_YEAR;
 
     const [open, setOpen] = useState(false);
-    const [viewYear, setViewYear] = useState(() => selected?.getFullYear() ?? CURRENT_YEAR);
-    const [viewMonth, setViewMonth] = useState(() => selected?.getMonth() ?? new Date().getMonth());
+    const [step, setStep] = useState<Step>("year");
+    const [pickYear, setPickYear] = useState<number>(selected?.getFullYear() ?? CURRENT_YEAR);
+    const [pickMonth, setPickMonth] = useState<number>(selected?.getMonth() ?? 0);
 
-    useEffect(() => {
-        if (selected) {
-            setViewYear(selected.getFullYear());
-            setViewMonth(selected.getMonth());
-        }
-    }, [value]);
+    // Which page of years we're on (each page = YEARS_PER_PAGE years)
+    // Page 0 = most recent years, page 1 = older, etc.
+    const [yearPage, setYearPage] = useState<number>(() => {
+        const startYear = selected?.getFullYear() ?? CURRENT_YEAR;
+        return Math.floor((maxY - startYear) / YEARS_PER_PAGE);
+    });
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const yearScrollRef = useRef<HTMLDivElement>(null);
 
+    // Reset step to year when opening
+    function handleOpen() {
+        if (selected) {
+            setPickYear(selected.getFullYear());
+            setPickMonth(selected.getMonth());
+            // Open at month step if date already selected — feels more natural for edits
+            setStep("month");
+            setYearPage(Math.floor((maxY - selected.getFullYear()) / YEARS_PER_PAGE));
+        } else {
+            setStep("year");
+            setYearPage(0);
+        }
+        setOpen(true);
+    }
+
+    // Close on outside click
     useEffect(() => {
-        function onMouseDown(e: MouseEvent) {
+        function handler(e: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setOpen(false);
             }
         }
-        if (open) document.addEventListener("mousedown", onMouseDown);
-        return () => document.removeEventListener("mousedown", onMouseDown);
+        if (open) document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
     }, [open]);
 
-    useEffect(() => {
-        if (!open || !yearScrollRef.current) return;
-        const el = yearScrollRef.current.querySelector<HTMLElement>("[data-selected='true']");
-        if (el) el.scrollIntoView({ block: "center", behavior: "instant" });
-    }, [open]);
+    // ── Year page helpers ───────────────────────────────────────────────────────
 
-    function prevMonth() {
-        if (viewMonth === 0) { setViewMonth(11); setViewYear(y => Math.max(minY, y - 1)); }
-        else setViewMonth(m => m - 1);
+    // Years for the current page — descending (newest first)
+    const totalPages = Math.ceil((maxY - minY + 1) / YEARS_PER_PAGE);
+
+    function yearsOnPage(page: number): number[] {
+        // page 0 = maxY down to maxY - YEARS_PER_PAGE + 1
+        const start = maxY - page * YEARS_PER_PAGE;
+        const end = Math.max(minY, start - YEARS_PER_PAGE + 1);
+        const result: number[] = [];
+        for (let y = start; y >= end; y--) result.push(y);
+        return result;
     }
 
-    function nextMonth() {
-        if (viewMonth === 11) { setViewMonth(0); setViewYear(y => Math.min(maxY, y + 1)); }
-        else setViewMonth(m => m + 1);
-    }
+    const pageYears = yearsOnPage(yearPage);
+    const pageStart = pageYears[pageYears.length - 1];
+    const pageEnd = pageYears[0];
 
-    function isDisabled(day: number) {
-        const d = new Date(viewYear, viewMonth, day);
-        if (maxDate) { const max = new Date(maxDate); max.setHours(23, 59, 59, 999); if (d > max) return true; }
-        if (minDate) { const min = new Date(minDate); min.setHours(0, 0, 0, 0); if (d < min) return true; }
+    // ── Day helpers ─────────────────────────────────────────────────────────────
+
+    function isDayDisabled(day: number) {
+        const d = new Date(pickYear, pickMonth, day);
+        if (maxDate) { const m = new Date(maxDate); m.setHours(23, 59, 59, 999); if (d > m) return true; }
+        if (minDate) { const m = new Date(minDate); m.setHours(0, 0, 0, 0); if (d < m) return true; }
         return false;
     }
 
-    function isSelected(day: number) {
-        return !!(selected &&
-            selected.getFullYear() === viewYear &&
-            selected.getMonth() === viewMonth &&
-            selected.getDate() === day);
+    function isYearDisabled(y: number) {
+        if (maxDate && y > maxDate.getFullYear()) return true;
+        if (minDate && y < minDate.getFullYear()) return true;
+        return false;
     }
 
-    function isToday(day: number) {
-        const t = new Date();
-        return t.getFullYear() === viewYear && t.getMonth() === viewMonth && t.getDate() === day;
+    function isMonthDisabled(m: number) {
+        if (maxDate && pickYear === maxDate.getFullYear() && m > maxDate.getMonth()) return true;
+        if (minDate && pickYear === minDate.getFullYear() && m < minDate.getMonth()) return true;
+        return false;
     }
 
-    function selectDay(day: number) {
-        if (isDisabled(day)) return;
-        onChange(toYMD(viewYear, viewMonth, day));
-        setOpen(false);
-    }
-
-    const totalDays = daysInMonth(viewYear, viewMonth);
-    const startDay = firstDayOfMonth(viewYear, viewMonth);
+    const totalDays = daysInMonth(pickYear, pickMonth);
+    const startDay = firstDayOfMonth(pickYear, pickMonth);
     const cells: (number | null)[] = [
         ...Array(startDay).fill(null),
         ...Array.from({ length: totalDays }, (_, i) => i + 1),
     ];
 
-    const years = Array.from({ length: maxY - minY + 1 }, (_, i) => maxY - i);
+    // ── Display ─────────────────────────────────────────────────────────────────
 
     const display = selected
         ? selected.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
         : "";
 
+    // ── Header breadcrumb text ──────────────────────────────────────────────────
+    // Shows where the user is and what they can click to go back
+
+    function headerContent() {
+        if (step === "year") {
+            return (
+                <div className="flex items-center justify-between w-full">
+                    <button
+                        type="button"
+                        onClick={() => yearPage < totalPages - 1 && setYearPage(p => p + 1)}
+                        disabled={yearPage >= totalPages - 1}
+                        className="p-1.5 rounded-lg hover:bg-white/20 disabled:opacity-30 transition"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm font-semibold">
+                        {pageStart} – {pageEnd}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => yearPage > 0 && setYearPage(p => p - 1)}
+                        disabled={yearPage === 0}
+                        className="p-1.5 rounded-lg hover:bg-white/20 disabled:opacity-30 transition"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            );
+        }
+
+        if (step === "month") {
+            return (
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setStep("year")}
+                        className="flex items-center gap-1 font-bold hover:underline text-sm transition"
+                    >
+                        {pickYear}
+                    </button>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                    <span className="text-sm opacity-90">Select month</span>
+                </div>
+            );
+        }
+
+        // day step
+        return (
+            <div className="flex items-center gap-2 text-sm">
+                <button
+                    type="button"
+                    onClick={() => setStep("year")}
+                    className="font-bold hover:underline transition"
+                >
+                    {pickYear}
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                <button
+                    type="button"
+                    onClick={() => setStep("month")}
+                    className="font-bold hover:underline transition"
+                >
+                    {MONTHS_SHORT[pickMonth]}
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                <span className="opacity-90">Select day</span>
+            </div>
+        );
+    }
+
+    // ── Render ──────────────────────────────────────────────────────────────────
+
     return (
         <div className="relative" ref={containerRef}>
 
-            {/* Trigger */}
+            {/* ── Trigger ── */}
             <button
                 type="button"
-                onClick={() => setOpen(o => !o)}
+                onClick={() => open ? setOpen(false) : handleOpen()}
                 className={[
                     "w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm bg-white transition-all duration-150 focus:outline-none",
                     hasError
@@ -174,106 +273,97 @@ export default function DatePicker({
                 )}
             </button>
 
-            {/* Dropdown */}
+            {/* ── Dropdown ── */}
             {open && (
-                <div className="absolute z-50 mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" style={{ minWidth: "22rem" }}>
+                <div className="absolute z-50 mt-1.5 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden w-72">
 
-                    {/* Header bar */}
-                    <div className="bg-primary px-4 py-3">
-                        <p className="text-blue-100 text-xs font-semibold uppercase tracking-widest mb-0.5">
-                            Selected Date
-                        </p>
-                        <p className="text-white text-base font-semibold leading-tight">
-                            {selected
-                                ? selected.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long", year: "numeric" })
-                                : <span className="text-blue-200 font-normal italic text-sm">No date selected</span>}
-                        </p>
+                    {/* Header */}
+                    <div className="bg-primary text-white px-4 py-3 flex items-center justify-between min-h-[3.25rem]">
+                        {headerContent()}
                     </div>
 
-                    {/* Two panels */}
-                    <div className="flex">
-
-                        {/* Left — Year + Month */}
-                        <div className="w-[6.5rem] border-r border-slate-100 bg-slate-50/60 flex flex-col py-2 gap-2">
-
-                            {/* Year scroll */}
-                            <div className="px-2">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-1">Year</p>
-                                <div
-                                    ref={yearScrollRef}
-                                    className="h-32 overflow-y-auto app-scroll rounded-lg"
-                                >
-                                    {years.map(y => (
-                                        <button
-                                            key={y}
-                                            type="button"
-                                            data-selected={y === viewYear ? "true" : "false"}
-                                            onClick={() => setViewYear(y)}
-                                            className={[
-                                                "w-full text-left px-2 py-[3px] rounded-md text-xs transition-all font-medium",
-                                                y === viewYear
-                                                    ? "bg-primary text-white"
-                                                    : "text-slate-600 hover:bg-white hover:shadow-sm",
-                                                y > maxY || y < minY ? "opacity-30 pointer-events-none" : "",
-                                            ].join(" ")}
-                                        >
-                                            {y}
-                                        </button>
-                                    ))}
-                                </div>
+                    {/* ── Step 1: Year grid ── */}
+                    {step === "year" && (
+                        <div className="p-3">
+                            <div className="grid grid-cols-4 gap-1.5">
+                                {pageYears.map(y => (
+                                    <button
+                                        key={y}
+                                        type="button"
+                                        disabled={isYearDisabled(y)}
+                                        onClick={() => {
+                                            if (isYearDisabled(y)) return;
+                                            setPickYear(y);
+                                            setStep("month");
+                                        }}
+                                        className={[
+                                            "py-2 rounded-xl text-sm font-medium transition-all",
+                                            selected?.getFullYear() === y
+                                                ? "bg-primary text-white shadow-sm shadow-blue-200 scale-105"
+                                                : isYearDisabled(y)
+                                                    ? "text-slate-300 cursor-not-allowed"
+                                                    : "text-slate-700 hover:bg-blue-50 hover:text-primary",
+                                        ].join(" ")}
+                                    >
+                                        {y}
+                                    </button>
+                                ))}
                             </div>
-
-                            {/* Month grid */}
-                            <div className="px-2 border-t border-slate-200 pt-2">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-1">Month</p>
-                                <div className="grid grid-cols-3 gap-0.5">
-                                    {MONTHS_SHORT.map((m, i) => (
-                                        <button
-                                            key={m}
-                                            type="button"
-                                            onClick={() => setViewMonth(i)}
-                                            className={[
-                                                "py-1 rounded-md text-[11px] font-medium transition-all",
-                                                i === viewMonth
-                                                    ? "bg-primary text-white shadow-sm"
-                                                    : "text-slate-500 hover:bg-white hover:text-slate-700 hover:shadow-sm",
-                                            ].join(" ")}
-                                        >
-                                            {m}
-                                        </button>
-                                    ))}
-                                </div>
+                            {/* Quick jump: today's year */}
+                            <div className="mt-2 pt-2 border-t border-slate-100 text-center">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const y = CURRENT_YEAR;
+                                        setPickYear(y);
+                                        setYearPage(0);
+                                        setStep("month");
+                                    }}
+                                    className="text-xs text-primary font-semibold hover:underline transition"
+                                >
+                                    Jump to {CURRENT_YEAR}
+                                </button>
                             </div>
                         </div>
+                    )}
 
-                        {/* Right — Calendar */}
-                        <div className="flex-1 p-3">
-
-                            {/* Month/year nav */}
-                            <div className="flex items-center justify-between mb-2">
-                                <button
-                                    type="button"
-                                    onClick={prevMonth}
-                                    className="p-1 rounded-lg hover:bg-slate-100 transition text-slate-500 hover:text-slate-700"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-                                <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                                    {MONTHS_FULL[viewMonth]} {viewYear}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={nextMonth}
-                                    className="p-1 rounded-lg hover:bg-slate-100 transition text-slate-500 hover:text-slate-700"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
+                    {/* ── Step 2: Month grid ── */}
+                    {step === "month" && (
+                        <div className="p-3">
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {MONTHS.map((m, i) => (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        disabled={isMonthDisabled(i)}
+                                        onClick={() => {
+                                            if (isMonthDisabled(i)) return;
+                                            setPickMonth(i);
+                                            setStep("day");
+                                        }}
+                                        className={[
+                                            "py-2.5 rounded-xl text-sm font-medium transition-all",
+                                            selected?.getFullYear() === pickYear && selected?.getMonth() === i
+                                                ? "bg-primary text-white shadow-sm shadow-blue-200"
+                                                : isMonthDisabled(i)
+                                                    ? "text-slate-300 cursor-not-allowed"
+                                                    : "text-slate-700 hover:bg-blue-50 hover:text-primary",
+                                        ].join(" ")}
+                                    >
+                                        {MONTHS_SHORT[i]}
+                                    </button>
+                                ))}
                             </div>
+                        </div>
+                    )}
 
-                            {/* Day headers */}
+                    {/* ── Step 3: Day calendar ── */}
+                    {step === "day" && (
+                        <div className="p-3">
+                            {/* Day name headers */}
                             <div className="grid grid-cols-7 mb-1">
                                 {DAYS_SHORT.map(d => (
-                                    <div key={d} className="text-center text-[11px] font-semibold text-slate-400 py-0.5">
+                                    <div key={d} className="text-center text-[11px] font-semibold text-slate-400 py-1">
                                         {d}
                                     </div>
                                 ))}
@@ -288,15 +378,25 @@ export default function DatePicker({
                                         <button
                                             key={day}
                                             type="button"
-                                            disabled={isDisabled(day)}
-                                            onClick={() => selectDay(day)}
+                                            disabled={isDayDisabled(day)}
+                                            onClick={() => {
+                                                if (isDayDisabled(day)) return;
+                                                onChange(toYMD(pickYear, pickMonth, day));
+                                                setOpen(false);
+                                            }}
                                             className={[
-                                                "w-8 h-8 mx-auto flex items-center justify-center text-xs rounded-full transition-all duration-100 font-medium",
-                                                isSelected(day)
+                                                "w-8 h-8 mx-auto flex items-center justify-center text-xs rounded-full transition-all font-medium",
+                                                selected &&
+                                                    selected.getFullYear() === pickYear &&
+                                                    selected.getMonth() === pickMonth &&
+                                                    selected.getDate() === day
                                                     ? "bg-primary text-white shadow shadow-blue-200 scale-110"
-                                                    : isToday(day)
+                                                    : (() => {
+                                                        const t = new Date();
+                                                        return t.getFullYear() === pickYear && t.getMonth() === pickMonth && t.getDate() === day;
+                                                    })()
                                                         ? "text-primary ring-2 ring-primary/30 bg-blue-50"
-                                                        : isDisabled(day)
+                                                        : isDayDisabled(day)
                                                             ? "text-slate-300 cursor-not-allowed"
                                                             : "text-slate-700 hover:bg-blue-50 hover:text-primary cursor-pointer",
                                             ].join(" ")}
@@ -312,11 +412,12 @@ export default function DatePicker({
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        const today = new Date();
-                                        setViewYear(today.getFullYear());
-                                        setViewMonth(today.getMonth());
-                                        if (!isDisabled(today.getDate())) {
-                                            onChange(toYMD(today.getFullYear(), today.getMonth(), today.getDate()));
+                                        const t = new Date();
+                                        if (!maxDate || t <= maxDate) {
+                                            setPickYear(t.getFullYear());
+                                            setPickMonth(t.getMonth());
+                                            setStep("day");
+                                            onChange(toYMD(t.getFullYear(), t.getMonth(), t.getDate()));
                                             setOpen(false);
                                         }
                                     }}
@@ -334,9 +435,9 @@ export default function DatePicker({
                                     </button>
                                 )}
                             </div>
-
                         </div>
-                    </div>
+                    )}
+
                 </div>
             )}
         </div>
