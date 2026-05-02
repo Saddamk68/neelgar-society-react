@@ -85,6 +85,7 @@ export async function createAndLinkParent(
       contactNumber: "",
       education: "",
       occupation: "",
+      maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
         tahsil: "",
@@ -130,6 +131,7 @@ export async function createAndLinkSpouse(
       contactNumber: "",
       education: "",
       occupation: "",
+      maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
         tahsil: "",
@@ -176,6 +178,7 @@ export async function createAndLinkChild(
       contactNumber: "",
       education: "",
       occupation: "",
+      maritalStatus: "SINGLE",
       currentAddress: {
         village: newPersonData.village,
         tahsil: "",

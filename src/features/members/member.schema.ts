@@ -38,7 +38,6 @@ export const memberSchema = z.object({
   maritalStatus: z
     .enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"])
     .optional(),
-
   currentAddress: addressSchema,
   parentalAddress: addressSchema.optional(),
 
