@@ -1,6 +1,6 @@
 import type { Role } from "@/constants/roles";
 
-export type UserStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type UserStatus = "PENDING" | "APPROVED" | "REJECTED" | "INACTIVE";
 
 export type UserRecord = {
   id: number;

@@ -1202,6 +1202,66 @@ export default function EditMember() {
         className="space-y-6"
       >
 
+        {/* Photo */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Profile Photo</h2>
+          <div className="flex items-center gap-5">
+            {photoPreview ? (
+              <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 ring-2 ring-primary/20">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <MemberAvatar
+                memberCode={memberCode ?? ""}
+                firstName={originalMember?.firstName ?? ""}
+                lastName={originalMember?.lastName}
+                hasPhoto={hasPhoto}
+                size="lg"
+              />
+            )}
+
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">
+                JPEG, PNG or WEBP · Max 5 MB
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoUploading}
+                  className="px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-slate-50 disabled:opacity-60 transition"
+                >
+                  {photoUploading
+                    ? "Uploading…"
+                    : hasPhoto
+                      ? "Replace Photo"
+                      : "Upload Photo"}
+                </button>
+                {hasPhoto && !photoUploading && (
+                  <button
+                    type="button"
+                    onClick={handlePhotoDelete}
+                    className="px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-sm hover:bg-red-50 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Personal Info */}
         <section className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
@@ -1320,66 +1380,6 @@ export default function EditMember() {
               Optional — check the box above to edit the parental address.
             </p>
           )}
-        </section>
-
-        {/* Photo */}
-        <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Profile Photo</h2>
-          <div className="flex items-center gap-5">
-            {photoPreview ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 ring-2 ring-primary/20">
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <MemberAvatar
-                memberCode={memberCode ?? ""}
-                firstName={originalMember?.firstName ?? ""}
-                lastName={originalMember?.lastName}
-                hasPhoto={hasPhoto}
-                size="lg"
-              />
-            )}
-
-            <div className="space-y-2">
-              <p className="text-sm text-slate-500">
-                JPEG, PNG or WEBP · Max 5 MB
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={photoUploading}
-                  className="px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-slate-50 disabled:opacity-60 transition"
-                >
-                  {photoUploading
-                    ? "Uploading…"
-                    : hasPhoto
-                      ? "Replace Photo"
-                      : "Upload Photo"}
-                </button>
-                {hasPhoto && !photoUploading && (
-                  <button
-                    type="button"
-                    onClick={handlePhotoDelete}
-                    className="px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-sm hover:bg-red-50 transition"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-            </div>
-          </div>
         </section>
 
         {/* Actions */}
