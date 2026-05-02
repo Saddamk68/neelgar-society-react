@@ -16,6 +16,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
+import DatePicker from "../../../components/form/DatePicker";
+
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 
@@ -306,10 +308,10 @@ export default function AddMember() {
               </div>
               <div>
                 <FieldLabel>Date of Birth</FieldLabel>
-                <input
-                  type="date"
-                  {...dupForm.register("dob")}
-                  className={inputClass()}
+                <DatePicker
+                  value={dupForm.watch("dob") ?? ""}
+                  onChange={(val) => dupForm.setValue("dob", val)}
+                  maxDate={new Date()}
                 />
               </div>
             </div>
@@ -534,7 +536,12 @@ export default function AddMember() {
               </div>
               <div>
                 <FieldLabel>Date of Birth</FieldLabel>
-                <input type="date" {...register("dob")} className={inputClass()} />
+                <DatePicker
+                  value={watch("dob") ?? ""}
+                  onChange={(val) => setValue("dob", val, { shouldDirty: true })}
+                  hasError={!!errors.dob}
+                  maxDate={new Date()}
+                />
               </div>
               <div>
                 <FieldLabel>Contact Number</FieldLabel>

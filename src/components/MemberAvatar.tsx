@@ -114,12 +114,13 @@ export default function MemberAvatar({
         return (
             <div
                 ref={containerRef}
-                className={`${container} rounded-full overflow-hidden shrink-0 ${className}`}
+                className={`${container} rounded-full overflow-hidden shrink-0 ring-1 ring-slate-200 ${className}`}
             >
                 <img
                     src={photoUrl}
                     alt={`${firstName} ${lastName ?? ""}`}
                     className="w-full h-full object-cover"
+                    style={{ imageRendering: "auto" }}
                     onError={() => setImgError(true)}
                 />
             </div>
@@ -130,7 +131,7 @@ export default function MemberAvatar({
     return (
         <div
             ref={containerRef}
-            className={`${container} rounded-full flex items-center justify-center shrink-0 ${bgColor} ${className}`}
+            className={`${container} rounded-full flex items-center justify-center shrink-0 ring-1 ring-slate-200 ${bgColor} ${className}`}
         >
             <span className={`${text} font-semibold text-white select-none`}>
                 {initials}
