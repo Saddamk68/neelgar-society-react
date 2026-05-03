@@ -14,6 +14,7 @@ import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/Resp
 import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
 import { REACTIVATE_ROLES } from "@/constants/roles";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type LocalSortConfig = {
   key: keyof Member | null;
@@ -40,6 +41,8 @@ export default function Members() {
   const [search, setSearch] = useState("");
   const [size] = useState(30);
   const [deactivating, setDeactivating] = useState<string | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<Member | null>(null);
+  const [reactivateTarget, setReactivateTarget] = useState<Member | null>(null);
   const [sortConfig, setSortConfig] = useState<LocalSortConfig>({
     key: null,
     direction: "asc",
@@ -104,31 +107,14 @@ export default function Members() {
 
   // ── Deactivate ──────────────────────────────────────────────────────────────
 
-  const handleDeactivate = async (memberCode: string) => {
-    if (!confirm(`Deactivate member ${memberCode}? This cannot be undone easily.`)) return;
-    setDeactivating(memberCode);
-    try {
-      await deactivateMember(memberCode, user?.username ?? "system");
-      notify.success(`Member ${memberCode} deactivated.`);
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-    } catch (err: any) {
-      notify.error(err.message || "Failed to deactivate member.");
-    } finally {
-      setDeactivating(null);
-    }
+  const handleDeactivate = (member: Member) => {
+    setDeactivateTarget(member);
   };
 
   // ── Reactivate ──────────────────────────────────────────────────────────────
 
-  const handleReactivate = async (memberCode: string) => {
-    if (!confirm(`Reactivate member ${memberCode}?`)) return;
-    try {
-      await reactivateMember(memberCode, user?.username ?? "system");
-      notify.success(`Member ${memberCode} reactivated.`);
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-    } catch (err: any) {
-      notify.error(err.message || "Failed to reactivate member.");
-    }
+  const handleReactivate = (member: Member) => {
+    setReactivateTarget(member);
   };
 
   // ── Table columns ───────────────────────────────────────────────────────────
@@ -197,7 +183,7 @@ export default function Members() {
               </Tooltip>
               <Tooltip content="Deactivate" offset={20}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleDeactivate(row.memberCode); }}
+                  onClick={(e) => { e.stopPropagation(); handleDeactivate(row); }}
                   disabled={deactivating === row.memberCode}
                   className="p-1 rounded hover:bg-red-50 disabled:opacity-40"
                 >
@@ -211,7 +197,7 @@ export default function Members() {
           {!activeTab && canReactivate && (
             <Tooltip content="Reactivate" offset={20}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleReactivate(row.memberCode); }}
+                onClick={(e) => { e.stopPropagation(); handleReactivate(row); }}
                 className="p-1 rounded hover:bg-green-50 transition"
               >
                 <UserCheck className="w-4 h-4 text-green-600" />
@@ -362,6 +348,51 @@ export default function Members() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={async () => {
+          if (!deactivateTarget) return;
+          setDeactivateTarget(null);
+          setDeactivating(deactivateTarget.memberCode);
+          try {
+            await deactivateMember(deactivateTarget.memberCode, user?.username ?? "system");
+            notify.success(`Member ${deactivateTarget?.firstName} ${deactivateTarget?.lastName ?? ""} (${deactivateTarget.memberCode}) deactivated.`);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+          } catch (err: any) {
+            notify.error(err.message || "Failed to deactivate member.");
+          } finally {
+            setDeactivating(null);
+          }
+        }}
+        title="Deactivate member"
+        message={`Deactivate ${deactivateTarget?.firstName} ${deactivateTarget?.lastName ?? ""} (${deactivateTarget?.memberCode})? This cannot be undone easily.`}
+        confirmLabel="Deactivate"
+        variant="danger"
+        loading={!!deactivating}
+      />
+
+      <ConfirmDialog
+        isOpen={!!reactivateTarget}
+        onClose={() => setReactivateTarget(null)}
+        onConfirm={async () => {
+          if (!reactivateTarget) return;
+          setReactivateTarget(null);
+          try {
+            await reactivateMember(reactivateTarget.memberCode, user?.username ?? "system");
+            notify.success(`Member ${reactivateTarget?.firstName} ${reactivateTarget?.lastName ?? ""} (${reactivateTarget.memberCode}) reactivated.`);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+          } catch (err: any) {
+            notify.error(err.message || "Failed to reactivate member.");
+          }
+        }}
+        title="Reactivate member"
+        message={`Reactivate ${reactivateTarget?.firstName} ${reactivateTarget?.lastName ?? ""} (${reactivateTarget?.memberCode})? They will appear as active again.`}
+        confirmLabel="Reactivate"
+        variant="success"
+        loading={false}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useNotify } from "../../services/notifications";
 import { Gotra } from "@/features/gotras/gotra-types";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function Gotras() {
   const { user } = useAuth();
@@ -26,6 +27,8 @@ export default function Gotras() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editError, setEditError] = useState("");
+
+  const [deleteTarget, setDeleteTarget] = useState<Gotra | null>(null);
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const { data: gotras = [], isLoading, isError } = useQuery<Gotra[]>({
@@ -96,8 +99,7 @@ export default function Gotras() {
   }
 
   function confirmDelete(g: Gotra) {
-    if (!confirm(`Deactivate gotra "${g.name}"? Members with this gotra will retain it but it won't appear in dropdowns.`)) return;
-    deleteMutation.mutate(g.id);
+    setDeleteTarget(g);
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -107,9 +109,9 @@ export default function Gotras() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Gotras</h1>
+          <h1 className="text-2xl font-semibold">Gotra's</h1>
           <p className="text-slate-500 text-sm">
-            Manage gotras available for members in this society.
+            Manage gotra's available for members in this society.
           </p>
         </div>
         {!showAdd && (
@@ -270,6 +272,19 @@ export default function Gotras() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        title="Deactivate gotra"
+        message={`Deactivate "${deleteTarget?.name}"? Members with this gotra will retain it but it won't appear in dropdowns.`}
+        confirmLabel="Deactivate"
+        variant="danger"
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }
