@@ -60,3 +60,18 @@ export async function getFamilyMembers(familyCode: string): Promise<Member[]> {
   const res = await api.get(ENDPOINTS.families.members(familyCode));
   return unwrap<Member[]>(res);
 }
+
+// ── Reassign family head ──────────────────────────────────────────────────────
+
+export async function reassignFamilyHead(
+    familyCode: string,
+    newHeadMemberCode: string,
+    updatedBy: string
+): Promise<Family> {
+    const res = await api.patch(
+        ENDPOINTS.families.reassignHead(familyCode),
+        { newHeadMemberCode },
+        { headers: { "X-Created-By": updatedBy } }
+    );
+    return unwrap<Family>(res);
+}

@@ -28,6 +28,7 @@ export const ENDPOINTS = {
     create: () => `/families`,
     search: () => `/families/search`,
     members: (familyCode: string) => `/families/${familyCode}/members`,
+    reassignHead: (familyCode: string) => `/families/${familyCode}/head`,
   },
 
   users: {
