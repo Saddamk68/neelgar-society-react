@@ -208,22 +208,13 @@ export default function Members() {
           )}
 
           {/* Reactivate button — only on Inactive tab, only for authorized roles */}
-          {!activeTab && (
-            <Tooltip content={canReactivate ? "Reactivate" : "No permission"} offset={20}>
+          {!activeTab && canReactivate && (
+            <Tooltip content="Reactivate" offset={20}>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (canReactivate) handleReactivate(row.memberCode);
-                }}
-                disabled={!canReactivate}
-                className={[
-                  "p-1 rounded transition",
-                  canReactivate
-                    ? "hover:bg-green-50 cursor-pointer"
-                    : "opacity-30 cursor-not-allowed",
-                ].join(" ")}
+                onClick={(e) => { e.stopPropagation(); handleReactivate(row.memberCode); }}
+                className="p-1 rounded hover:bg-green-50 transition"
               >
-                <UserCheck className={`w-4 h-4 ${canReactivate ? "text-green-600" : "text-slate-400"}`} />
+                <UserCheck className="w-4 h-4 text-green-600" />
               </button>
             </Tooltip>
           )}
@@ -315,8 +306,8 @@ export default function Members() {
       {/* Inactive notice banner */}
       {!activeTab && (
         <div className={`border rounded-lg px-4 py-2 text-sm ${canReactivate
-            ? "bg-green-50 border-green-200 text-green-800"
-            : "bg-amber-50 border-amber-200 text-amber-800"
+          ? "bg-green-50 border-green-200 text-green-800"
+          : "bg-amber-50 border-amber-200 text-amber-800"
           }`}>
           {canReactivate
             ? "Showing inactive members — click the reactivate button to restore a member."
