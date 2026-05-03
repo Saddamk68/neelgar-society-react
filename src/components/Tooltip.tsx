@@ -173,7 +173,7 @@ export default function Tooltip({
         transition: "opacity 120ms ease",
         opacity: visible ? 1 : 0,
       }}
-      className="rounded bg-slate-800 text-white text-xs px-2 py-1 shadow-lg"
+      className="rounded-lg bg-slate-800 text-white text-xs px-2 py-1 shadow-lg"
     >
       {content}
     </div>
