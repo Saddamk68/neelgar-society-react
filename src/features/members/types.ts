@@ -19,6 +19,7 @@ export type Member = {
   parentalAddress?: AddressData;
   gotraId?: number;
   gotraName?: string;
+  isHead?: boolean;
   isActive: boolean;
   hasPhoto?: boolean;
   createdAt?: string;

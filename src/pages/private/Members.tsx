@@ -15,6 +15,7 @@ import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
 import { REACTIVATE_ROLES } from "@/constants/roles";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ReassignHeadDialog from "@/components/ReassignHeadDialog";
 
 type LocalSortConfig = {
   key: keyof Member | null;
@@ -36,6 +37,7 @@ export default function Members() {
   const canReactivate = !!user && REACTIVATE_ROLES.includes(user.role);
   const queryClient = useQueryClient();
 
+  const [reassignTarget, setReassignTarget] = useState<Member | null>(null);
   const [activeTab, setActiveTab] = useState<boolean>(true);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
@@ -108,7 +110,11 @@ export default function Members() {
   // ── Deactivate ──────────────────────────────────────────────────────────────
 
   const handleDeactivate = (member: Member) => {
-    setDeactivateTarget(member);
+    if (member.isHead) {
+      setReassignTarget(member);   // open reassign dialog first
+    } else {
+      setDeactivateTarget(member); // open normal confirm dialog
+    }
   };
 
   // ── Reactivate ──────────────────────────────────────────────────────────────
@@ -393,6 +399,22 @@ export default function Members() {
         variant="success"
         loading={false}
       />
+
+      {reassignTarget && (
+        <ReassignHeadDialog
+          member={reassignTarget}
+          onClose={() => setReassignTarget(null)}
+          onSuccess={() => {
+            setReassignTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+          }}
+          onDeactivate={(member) => {
+            setReassignTarget(null);
+            setDeactivateTarget(member); // hand off to normal deactivate confirm
+          }}
+        />
+      )}
+
     </div>
   );
 }
