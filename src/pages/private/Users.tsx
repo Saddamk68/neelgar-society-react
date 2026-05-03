@@ -25,6 +25,7 @@ import { useNotify } from "@/services/notifications";
 import type { Role } from "@/constants/roles";
 import { ALL_ROLES, REACTIVATE_ROLES } from "@/constants/roles";
 import Tooltip from "@/components/Tooltip";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -221,6 +222,7 @@ export default function Users() {
   const [page, setPage] = useState(0);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRecord | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<UserRecord | null>(null);
 
   // ── Fetch users ─────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -395,62 +397,68 @@ export default function Users() {
                           {/* Approve / Reject — only for PENDING users */}
                           {u.status === "PENDING" && (
                             <>
-                              <button
-                                title="Approve"
-                                onClick={() => approveMutation.mutate(u.id)}
-                                disabled={approveMutation.isPending}
-                                className="text-green-600 hover:text-green-700 transition"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </button>
-                              <button
-                                title="Reject"
-                                onClick={() => rejectMutation.mutate(u.id)}
-                                disabled={rejectMutation.isPending}
-                                className="text-red-500 hover:text-red-600 transition"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </button>
+                              <Tooltip content="Approve">
+                                <button
+                                  onClick={() => approveMutation.mutate(u.id)}
+                                  disabled={approveMutation.isPending}
+                                  className="text-green-600 hover:text-green-700 transition"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              </Tooltip>
+                              <Tooltip content="Reject">
+                                <button
+                                  onClick={() => rejectMutation.mutate(u.id)}
+                                  disabled={rejectMutation.isPending}
+                                  className="text-red-500 hover:text-red-600 transition"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </Tooltip>
                             </>
                           )}
 
-                          {/* Edit role */}
-                          {editingRoleId !== u.id && (
-                            <button
-                              title="Edit role"
-                              onClick={() => setEditingRoleId(u.id)}
-                              className="text-primary hover:text-primary/80 transition"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
+                          {/* Edit role — only for active users */}
+                          {u.isActive && editingRoleId !== u.id && (
+                            <Tooltip content="Edit role">
+                              <button
+                                onClick={() => setEditingRoleId(u.id)}
+                                className="text-primary hover:text-primary/80 transition"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
                           )}
 
-                          {/* Reset password */}
-                          <button
-                            title="Reset password"
-                            onClick={() => setResetTarget(u)}
-                            className="text-amber-600 hover:text-amber-700 transition"
-                          >
-                            <KeyRound className="w-4 h-4" />
-                          </button>
+                          {/* Reset password — only for active users */}
+                          {u.isActive && (
+                            <Tooltip content="Reset password">
+                              <button
+                                onClick={() => setResetTarget(u)}
+                                className="text-amber-600 hover:text-amber-700 transition"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
+                          )}
 
                           {/* Deactivate — hide for own account to prevent self-lockout */}
                           {u.isActive && u.username !== authUser?.username && (
-                            <button
-                              title="Deactivate"
-                              onClick={() => deactivateMutation.mutate(u.id)}
-                              disabled={deactivateMutation.isPending}
-                              className="text-slate-400 hover:text-red-500 transition"
-                            >
-                              <UserX className="w-4 h-4" />
-                            </button>
+                            <Tooltip content="Deactivate">
+                              <button
+                                onClick={() => setDeactivateTarget(u)}
+                                disabled={deactivateMutation.isPending}
+                                className="text-slate-400 hover:text-red-500 transition"
+                              >
+                                <UserX className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
                           )}
 
                           {/* Reactivate — only for inactive users, only for authorized roles */}
                           {!u.isActive && (
                             <Tooltip content={canReactivate ? "Reactivate" : "No permission"}>
                               <button
-                                title={canReactivate ? "Reactivate" : "No permission to reactivate"}
                                 onClick={() => canReactivate && reactivateMutation.mutate(u.id)}
                                 disabled={!canReactivate || reactivateMutation.isPending}
                                 className={[
@@ -510,6 +518,21 @@ export default function Users() {
           loading={resetMutation.isPending}
         />
       )}
+
+      {/* Deactivate confirmation dialog */}
+      <ConfirmDialog
+        isOpen={!!deactivateTarget}
+        onClose={() => setDeactivateTarget(null)}
+        onConfirm={() => {
+          if (deactivateTarget) deactivateMutation.mutate(deactivateTarget.id);
+          setDeactivateTarget(null);
+        }}
+        title="Deactivate user"
+        message={`Are you sure you want to deactivate "${deactivateTarget?.personName || deactivateTarget?.username}"? They will lose access immediately.`}
+        confirmLabel="Deactivate"
+        variant="danger"
+        loading={deactivateMutation.isPending}
+      />
 
     </div>
   );

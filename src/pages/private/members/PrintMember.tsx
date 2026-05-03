@@ -105,9 +105,9 @@ function MemberBlock({
                 </div>
                 {address?.village && (
                     <div className="flex gap-2">
-                        <span className="text-slate-400 w-24 shrink-0">Village</span>
+                        <span className="text-slate-400 w-24 shrink-0">Town/Village</span>
                         <span>
-                            {[address.village, address.tahsil, address.district]
+                            {[address.village]
                                 .filter(Boolean)
                                 .join(", ")}
                         </span>
