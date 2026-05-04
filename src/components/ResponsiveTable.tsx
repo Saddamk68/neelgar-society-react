@@ -28,6 +28,8 @@ export type ResponsiveTableProps<T> = {
   onSort?: (key: string) => void;
   renderCell?: (row: T, col: ColumnConfig<T>) => React.ReactNode;
   rowKey?: (row: T) => string | number;
+  expandedRowKey?: string | number | null;
+  renderExpandedRow?: (row: T) => React.ReactNode;
 };
 
 function parsePx(w?: string) {
@@ -112,6 +114,8 @@ export default function ResponsiveTable<T>({
   onSort,
   renderCell,
   rowKey,
+  expandedRowKey,
+  renderExpandedRow,
 }: ResponsiveTableProps<T>) {
   // Prefer 'weight' if present; otherwise fallback to px widths or equal distribution
   const hasWeights = columns.some((c) => typeof c.weight === "number" && c.weight > 0);
@@ -213,60 +217,66 @@ export default function ResponsiveTable<T>({
 
           <tbody>
             {data.length > 0 ? (
-              data.map((row, rIdx) => (
-                <tr
-                  key={rowKey ? String(rowKey(row)) : (row as any).id ?? rIdx}
-                  className={`${rIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-primary/5 transition-colors`}
-                >
-                  {columns.map((col) => {
-                    const respClass = getResponsiveClass(col);
-                    const alignStyle = { textAlign: col.align === "center" ? "center" : "left" } as React.CSSProperties;
+              data.map((row, rIdx) => {
+                const key = rowKey ? String(rowKey(row)) : String((row as any).id ?? rIdx);
+                const isExpanded = expandedRowKey != null && String(expandedRowKey) === key;
 
-                    if (renderCell) {
-                      const rendered = renderCell(row, col);
-                      if (rendered !== undefined && rendered !== null) {
+                return (
+                  <React.Fragment key={key}>
+                    <tr
+                      className={`${rIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-primary/5 transition-colors`}
+                    >
+                      {columns.map((col) => {
+                        const respClass = getResponsiveClass(col);
+                        const alignStyle = { textAlign: col.align === "center" ? "center" : "left" } as React.CSSProperties;
+
+                        if (renderCell) {
+                          const rendered = renderCell(row, col);
+                          if (rendered !== undefined && rendered !== null) {
+                            return (
+                              <td
+                                key={String(col.key)}
+                                className={`py-2 px-4 border-b ${respClass}`}
+                                style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
+                              >
+                                <div style={{ minWidth: 0 }}>{rendered}</div>
+                              </td>
+                            );
+                          }
+                        }
+
+                        const raw = (row as any)[col.key];
+
+                        if (col.truncate || col.tooltip) {
+                          return (
+                            <td
+                              key={String(col.key)}
+                              className={`py-2 px-4 border-b ${respClass}`}
+                              style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
+                            >
+                              <div style={{ minWidth: 0 }}>
+                                <Truncatable text={raw ?? "-"} tooltipOnOverflow={Boolean(col.tooltip)} offset={18} />
+                              </div>
+                            </td>
+                          );
+                        }
+
                         return (
                           <td
                             key={String(col.key)}
                             className={`py-2 px-4 border-b ${respClass}`}
                             style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
                           >
-                            <div style={{ minWidth: 0 }}>{rendered}</div>
+                            <div style={{ minWidth: 0 }}>{raw ?? "-"}</div>
                           </td>
                         );
-                      }
-                    }
+                      })}
+                    </tr>
 
-                    const raw = (row as any)[col.key];
-
-                    // Use Truncatable if column requests truncation or tooltip-on-overflow
-                    if (col.truncate || col.tooltip) {
-                      return (
-                        <td
-                          key={String(col.key)}
-                          className={`py-2 px-4 border-b ${respClass}`}
-                          style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
-                        >
-                          <div style={{ minWidth: 0 }}>
-                            <Truncatable text={raw ?? "-"} tooltipOnOverflow={Boolean(col.tooltip)} offset={18} />
-                          </div>
-                        </td>
-                      );
-                    }
-
-                    // default
-                    return (
-                      <td
-                        key={String(col.key)}
-                        className={`py-2 px-4 border-b ${respClass}`}
-                        style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
-                      >
-                        <div style={{ minWidth: 0 }}>{raw ?? "-"}</div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+                    {isExpanded && renderExpandedRow && renderExpandedRow(row)}
+                  </React.Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={columns.length} className="py-6 text-center text-text-muted">

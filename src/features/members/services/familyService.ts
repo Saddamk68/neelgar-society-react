@@ -8,9 +8,15 @@ function unwrap<T>(res: any): T {
 
 // ── Get all families under a society ─────────────────────────────────────────
 
-export async function getFamiliesBySociety(societyId: number): Promise<Family[]> {
+export async function getFamiliesBySociety(
+    societyId: number,
+    clanCode?: string
+): Promise<Family[]> {
     const res = await api.get(ENDPOINTS.families.list(), {
-        params: { societyId },
+        params: {
+            societyId,
+            ...(clanCode ? { clanCode } : {}),
+        },
     });
     return unwrap<Family[]>(res);
 }
@@ -37,11 +43,13 @@ export async function searchFamilies(
 export async function createFamily(
     societyId: number,
     village: string,
-    createdBy: string
+    createdBy: string,
+    clanCode?: string,
+    clanName?: string,
 ): Promise<Family> {
     const res = await api.post(
         ENDPOINTS.families.create(),
-        { societyId, village },
+        { societyId, village, clanCode, clanName },
         { headers: { "X-Created-By": createdBy } }
     );
     return unwrap<Family>(res);
@@ -57,8 +65,8 @@ export async function getFamily(familyCode: string): Promise<Family> {
 // ── Get all active members of a family ────────────────────────────────────────
 
 export async function getFamilyMembers(familyCode: string): Promise<Member[]> {
-  const res = await api.get(ENDPOINTS.families.members(familyCode));
-  return unwrap<Member[]>(res);
+    const res = await api.get(ENDPOINTS.families.members(familyCode));
+    return unwrap<Member[]>(res);
 }
 
 // ── Reassign family head ──────────────────────────────────────────────────────
@@ -74,4 +82,11 @@ export async function reassignFamilyHead(
         { headers: { "X-Created-By": updatedBy } }
     );
     return unwrap<Family>(res);
+}
+
+export async function getDistinctClans(societyId: number): Promise<string[]> {
+    const res = await api.get(ENDPOINTS.families.clans(), {
+        params: { societyId },
+    });
+    return unwrap<string[]>(res);
 }
