@@ -10,7 +10,7 @@ import {
   DuplicateCheckValues,
 } from "../../../features/members/member.schema";
 import { checkDuplicates, createMember } from "../../../features/members/services/memberService";
-import { searchFamilies, createFamily } from "../../../features/members/services/familyService";
+import { searchFamilies, createFamily, getDistinctClans } from "../../../features/members/services/familyService";
 import { DuplicateCandidate, Family } from "../../../features/members/types";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
@@ -136,6 +136,11 @@ export default function AddMember() {
   const [newVillage, setNewVillage] = useState("");
   const [familyLoading, setFamilyLoading] = useState(false);
 
+  // Clan suggestions for new family creation
+  const [newClanCode, setNewClanCode] = useState("");
+  const [newClanName, setNewClanName] = useState("");
+  const [clanSuggestions, setClanSuggestions] = useState<string[]>([]);
+
   // Parental address toggle
   const [showParentalAddress, setShowParentalAddress] = useState(false);
 
@@ -177,6 +182,14 @@ export default function AddMember() {
       setValue("dob", v.dob ?? "");
     }
   }, [step]);
+
+  useEffect(() => {
+    if (familyMode === "new" && user?.societyId) {
+      getDistinctClans(user.societyId)
+        .then(setClanSuggestions)
+        .catch(() => { }); // non-critical
+    }
+  }, [familyMode]);
 
   // ── Step 1 handlers ─────────────────────────────────────────────────────────
 
@@ -236,7 +249,13 @@ export default function AddMember() {
     }
     setFamilyLoading(true);
     try {
-      const created = await createFamily(user.societyId, newVillage.trim(), user.username);
+      const created = await createFamily(
+        user.societyId,
+        newVillage.trim(),
+        user.username,
+        newClanCode.trim() || undefined,
+        newClanName.trim() || undefined,
+      );
       setSelectedFamily(created);
       setValue("familyId", created.id);
       setValue("societyId", created.societyId);
@@ -454,24 +473,56 @@ export default function AddMember() {
             <div className="space-y-3">
               <div>
                 <FieldLabel required>Village</FieldLabel>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter village name…"
-                    value={newVillage}
-                    onChange={(e) => setNewVillage(e.target.value)}
-                    className={inputClass()}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateFamily}
-                    disabled={familyLoading || !!selectedFamily}
-                    className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition whitespace-nowrap"
-                  >
-                    {familyLoading ? "Creating…" : "Create Family"}
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  placeholder="Enter village name…"
+                  value={newVillage}
+                  onChange={(e) => setNewVillage(e.target.value)}
+                  className={inputClass()}
+                />
               </div>
+
+              <div>
+                <FieldLabel>Clan Code <span className="text-slate-400 font-normal">(optional)</span></FieldLabel>
+                <input
+                  type="text"
+                  placeholder="e.g. SHARMA-NLG"
+                  value={newClanCode}
+                  onChange={(e) => setNewClanCode(e.target.value)}
+                  list="clan-code-suggestions"
+                  className={inputClass()}
+                />
+                {clanSuggestions.length > 0 && (
+                  <datalist id="clan-code-suggestions">
+                    {clanSuggestions.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                )}
+                <p className="text-xs text-slate-400 mt-1">
+                  Type a new code or pick an existing one to group families into a clan.
+                </p>
+              </div>
+
+              <div>
+                <FieldLabel>Clan Name <span className="text-slate-400 font-normal">(optional)</span></FieldLabel>
+                <input
+                  type="text"
+                  placeholder="e.g. Sharma Vansh"
+                  value={newClanName}
+                  onChange={(e) => setNewClanName(e.target.value)}
+                  className={inputClass()}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCreateFamily}
+                disabled={familyLoading || !!selectedFamily}
+                className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
+              >
+                {familyLoading ? "Creating…" : "Create Family"}
+              </button>
             </div>
           )}
 

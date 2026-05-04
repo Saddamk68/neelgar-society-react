@@ -18,6 +18,9 @@ import ViewProfile from "@/pages/private/profile/ViewProfile";
 import ImportMembers from "@/pages/private/members/ImportMembers";
 import PrintMember from "@/pages/private/members/PrintMember";
 import Gotras from "@/pages/private/Gotras";
+import Families from "@/pages/private/Families";
+import ViewFamily from "@/pages/private/ViewFamily";
+import PrintFamily from "@/pages/private/PrintFamily";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -65,6 +68,9 @@ export default function AppRoutes() {
           <Route path="members/:memberCode/view" element={<ViewMember />} />
           <Route path="members/:memberCode/print" element={<PrintMember />} />
           <Route path="members/import" element={<ImportMembers />} />
+          <Route path="families" element={<Families />} />
+          <Route path="families/:familyCode/view" element={<ViewFamily />} />
+          <Route path="families/:familyCode/print" element={<PrintFamily />} />
           <Route
             path={ROUTES.PRIVATE.LOGS.replace("/app/", "")}
             element={<Logs />}

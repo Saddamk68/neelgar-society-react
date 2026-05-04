@@ -17,7 +17,7 @@ export default function PrivateLayout() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  
+
   const { logout, role, isInitializing } = useAuth();
   if (isInitializing) {
     return (
@@ -49,6 +49,57 @@ export default function PrivateLayout() {
     <nav aria-label="Primary" className="mt-4 flex flex-col">
       {visibleMenu.map((item) => {
         const Icon = item.icon;
+
+        // ── Group item with children (e.g. Members > All Members / Family Directory)
+        if (item.children && item.children.length > 0) {
+          const visibleChildren = item.children.filter((child) =>
+            (child.required ?? []).every((perm) => roleHasPermission(role, perm))
+          );
+          if (visibleChildren.length === 0) return null;
+
+          const isGroupActive = visibleChildren.some(
+            (child) => child.path && location.pathname.startsWith(child.path)
+          );
+
+          return (
+            <div key={item.key}>
+              {/* Group label — not clickable, just a visual parent */}
+              <div
+                className={[
+                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm",
+                  isGroupActive ? "text-white" : "text-gray-400",
+                ].join(" ")}
+              >
+                {Icon && <Icon size={16} className="text-gray-300" />}
+                {item.label}
+              </div>
+              {/* Children */}
+              <div className="flex flex-col ml-4 border-l border-white/10 pl-2 mb-1">
+                {visibleChildren.map((child) => (
+                  <NavLink
+                    key={child.key}
+                    to={child.path!}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      [
+                        "relative flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all",
+                        "hover:bg-sidebar-hover/90",
+                        "focus:outline-none",
+                        isActive
+                          ? "bg-sidebar-hover/90 before:absolute before:left-0 before:top-0 before:h-full before:w-1.5 before:bg-primary before:rounded-r"
+                          : "before:w-0",
+                      ].join(" ")
+                    }
+                  >
+                    {child.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        // ── Flat item (all other menu items)
         return (
           <NavLink
             key={item.key}

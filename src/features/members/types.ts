@@ -42,10 +42,15 @@ export type Family = {
   societyCode: string;
   societyName: string;
   headPersonId?: number;
+  headPersonCode?: string;
   headPersonName?: string;
   village?: string;
+  clanCode?: string;
+  clanName?: string;
+  memberCount?: number;
   isActive: boolean;
   createdAt?: string;
+  createdBy?: string;
 };
 
 // What the duplicate check endpoint returns

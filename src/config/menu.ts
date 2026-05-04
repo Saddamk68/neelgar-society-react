@@ -20,11 +20,24 @@ export const MENU: MenuItem[] = [
     icon: Home,
   },
   {
-    key: "members",
+    key: "members-group",
     label: PRIVATE.MEMBERS_TITLE,
-    path: "/app/members",
     required: ["VIEW_MEMBERS"],
     icon: Users,
+    children: [
+      {
+        key: "members",
+        label: "All Members",
+        path: "/app/members",
+        required: ["VIEW_MEMBERS"],
+      },
+      {
+        key: "families",
+        label: "Family Directory",
+        path: "/app/families",
+        required: ["VIEW_FAMILIES"],
+      },
+    ],
   },
   {
     key: "logs",
@@ -47,5 +60,5 @@ export const MENU: MenuItem[] = [
     required: ["MANAGE_GOTRAS"],
     icon: BookOpen,
   },
-  
+
 ];
