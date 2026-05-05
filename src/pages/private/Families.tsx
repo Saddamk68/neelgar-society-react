@@ -32,10 +32,10 @@ const TABS = [
 
 // ── Expanded row — lazy loads family members ──────────────────────────────────
 
-function FamilyMembersRow({ familyCode }: { familyCode: string }) {
+function FamilyMembersRow({ familyCode, includeInactive }: { familyCode: string; includeInactive: boolean }) {
     const { data: members = [], isLoading } = useQuery<Member[]>({
-        queryKey: ["family-members", familyCode],
-        queryFn: () => getFamilyMembers(familyCode),
+        queryKey: ["family-members", familyCode, includeInactive],
+        queryFn: () => getFamilyMembers(familyCode, includeInactive),
     });
 
     if (isLoading) {
@@ -103,8 +103,8 @@ export default function Families() {
     // ── Data ──────────────────────────────────────────────────────────────────
 
     const { data: allFamilies = [], isLoading, isError } = useQuery<Family[]>({
-        queryKey: ["families", user?.societyId],
-        queryFn: () => getFamiliesBySociety(user!.societyId!),
+        queryKey: ["families", user?.societyId, activeTab],
+        queryFn: () => getFamiliesBySociety(user!.societyId!, undefined, activeTab),
         enabled: !!user?.societyId,
         meta: {
             onError: () => notify.error("Failed to load families."),
@@ -116,7 +116,6 @@ export default function Families() {
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
         return allFamilies.filter((f) => {
-            if (f.isActive !== activeTab) return false;
             if (!term) return true;
             return (
                 f.familyCode.toLowerCase().includes(term) ||
@@ -159,7 +158,12 @@ export default function Families() {
                         <div className="text-sm font-medium text-slate-800 truncate">
                             {row.headPersonName ?? "—"}
                         </div>
-                        <div className="text-xs text-slate-400 font-mono">{row.familyCode}</div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-400 font-mono">{row.familyCode}</span>
+                            {!row.isActive && row.headPersonName && (
+                                <span className="text-xs text-slate-400 italic">· Last head</span>
+                            )}
+                        </div>
                     </div>
                     <span className="ml-1 text-slate-400">
                         {expandedCode === row.familyCode
@@ -280,6 +284,13 @@ export default function Families() {
                 ))}
             </div>
 
+            {/* Inactive notice */}
+            {!activeTab && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-800">
+                    Showing inactive families — reactivate a member from the Members page to restore a family.
+                </div>
+            )}
+
             {/* States */}
             {isLoading && <FamiliesSkeleton />}
 
@@ -299,7 +310,10 @@ export default function Families() {
                         rowKey={(r) => r.familyCode}
                         expandedRowKey={expandedCode}
                         renderExpandedRow={(row) => (
-                            <FamilyMembersRow familyCode={row.familyCode} />
+                            <FamilyMembersRow
+                                familyCode={row.familyCode}
+                                includeInactive={!row.isActive}
+                            />
                         )}
                     />
 
@@ -332,6 +346,7 @@ export default function Families() {
                         setReassignFamily(null);
                         queryClient.invalidateQueries({ queryKey: ["families"] });
                     }}
+                    mode="reassign"
                 />
             )}
 

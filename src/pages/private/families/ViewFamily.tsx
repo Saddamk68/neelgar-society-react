@@ -258,6 +258,7 @@ export default function ViewFamily() {
                         setShowReassign(false);
                         queryClient.invalidateQueries({ queryKey: ["family", familyCode] });
                     }}
+                    mode="reassign" 
                 />
             )}
 
