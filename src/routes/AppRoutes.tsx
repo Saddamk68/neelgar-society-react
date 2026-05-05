@@ -19,8 +19,9 @@ import ImportMembers from "@/pages/private/members/ImportMembers";
 import PrintMember from "@/pages/private/members/PrintMember";
 import Gotras from "@/pages/private/Gotras";
 import Families from "@/pages/private/Families";
-import ViewFamily from "@/pages/private/ViewFamily";
-import PrintFamily from "@/pages/private/PrintFamily";
+import ViewFamily from "@/pages/private/families/ViewFamily";
+import PrintFamily from "@/pages/private/families/PrintFamily";
+import EditFamily from "@/pages/private/families/EditFamily";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -69,6 +70,7 @@ export default function AppRoutes() {
           <Route path="members/:memberCode/print" element={<PrintMember />} />
           <Route path="members/import" element={<ImportMembers />} />
           <Route path="families" element={<Families />} />
+          <Route path="families/:familyCode/edit" element={<EditFamily />} />
           <Route path="families/:familyCode/view" element={<ViewFamily />} />
           <Route path="families/:familyCode/print" element={<PrintFamily />} />
           <Route

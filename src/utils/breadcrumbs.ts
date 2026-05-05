@@ -87,8 +87,10 @@ export function buildBreadcrumbs(pathname: string): BreadcrumbItem[] {
     // ── Families sub-pages ─────────────────────────────────────────────────
     if (matched.path.includes("/families")) {
       if (pathname.endsWith("/view")) crumbs.push({ label: "View Family" });
+      else if (pathname.endsWith("/edit")) crumbs.push({ label: "Edit Family" });
       else if (pathname.endsWith("/print")) crumbs.push({ label: "Print Family" });
     }
+
   } else {
     // Fallback → Dashboard
     const dashboard = MENU.find((m) => m.key === "dashboard");
