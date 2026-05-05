@@ -389,6 +389,7 @@ export default function Members() {
             await reactivateMember(reactivateTarget.memberCode, user?.username ?? "system");
             notify.success(`Member ${reactivateTarget?.firstName} ${reactivateTarget?.lastName ?? ""} (${reactivateTarget.memberCode}) reactivated.`);
             queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["families"] });
           } catch (err: any) {
             notify.error(err.message || "Failed to reactivate member.");
           }
@@ -407,11 +408,13 @@ export default function Members() {
           onSuccess={() => {
             setReassignTarget(null);
             queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["families"] });
           }}
           onDeactivate={(member) => {
             setReassignTarget(null);
             setDeactivateTarget(member); // hand off to normal deactivate confirm
           }}
+          mode="deactivate" 
         />
       )}
 

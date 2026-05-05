@@ -109,10 +109,12 @@ export async function createMember(
 
 export async function deactivateMember(
   memberCode: string,
-  updatedBy: string
+  updatedBy: string,
+  force: boolean = false
 ): Promise<void> {
   await api.patch(ENDPOINTS.members.deactivate(memberCode), null, {
     headers: { "X-Created-By": updatedBy },
+    params: force ? { force: true } : undefined,
   });
 }
 

@@ -10,11 +10,13 @@ function unwrap<T>(res: any): T {
 
 export async function getFamiliesBySociety(
     societyId: number,
-    clanCode?: string
+    clanCode?: string,
+    isActive: boolean = true
 ): Promise<Family[]> {
     const res = await api.get(ENDPOINTS.families.list(), {
         params: {
             societyId,
+            isActive,
             ...(clanCode ? { clanCode } : {}),
         },
     });
@@ -62,11 +64,39 @@ export async function getFamily(familyCode: string): Promise<Family> {
     return unwrap<Family>(res);
 }
 
-// ── Get all active members of a family ────────────────────────────────────────
+// ── Get members of a family ───────────────────────────────────────────────────
 
-export async function getFamilyMembers(familyCode: string): Promise<Member[]> {
-    const res = await api.get(ENDPOINTS.families.members(familyCode));
+export async function getFamilyMembers(
+    familyCode: string,
+    includeInactive: boolean = false
+): Promise<Member[]> {
+    const res = await api.get(ENDPOINTS.families.members(familyCode), {
+        params: includeInactive ? { includeInactive: true } : undefined,
+    });
     return unwrap<Member[]>(res);
+}
+
+// ── Update family details ─────────────────────────────────────────────────────
+
+export async function updateFamily(
+    familyCode: string,
+    societyId: number,
+    village: string,
+    updatedBy: string,
+    clanCode?: string,
+    clanName?: string,
+): Promise<Family> {
+    const res = await api.patch(
+        ENDPOINTS.families.get(familyCode),
+        {
+            societyId,
+            village,
+            clanCode: clanCode?.trim().toUpperCase() || undefined,
+            clanName: clanName?.trim() || undefined,
+        },
+        { headers: { "X-Updated-By": updatedBy } }
+    );
+    return unwrap<Family>(res);
 }
 
 // ── Reassign family head ──────────────────────────────────────────────────────
@@ -84,30 +114,11 @@ export async function reassignFamilyHead(
     return unwrap<Family>(res);
 }
 
+// ── Get distinct clan codes for a society ────────────────────────────────────
+
 export async function getDistinctClans(societyId: number): Promise<string[]> {
     const res = await api.get(ENDPOINTS.families.clans(), {
         params: { societyId },
     });
     return unwrap<string[]>(res);
-}
-
-export async function updateFamily(
-    familyCode: string,
-    societyId: number,
-    village: string,
-    updatedBy: string,
-    clanCode?: string,
-    clanName?: string,
-): Promise<Family> {
-    const res = await api.patch(
-        `${ENDPOINTS.families.get(familyCode)}`,
-        {
-            societyId,
-            village,
-            clanCode: clanCode?.trim().toUpperCase() || undefined,
-            clanName: clanName?.trim() || undefined,
-        },
-        { headers: { "X-Updated-By": updatedBy } }
-    );
-    return unwrap<Family>(res);
 }
