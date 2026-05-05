@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Printer, UserCog } from "lucide-react";
+import { ArrowLeft, Pencil, Printer, UserCog } from "lucide-react";
 import MemberAvatar from "@/components/MemberAvatar";
 import { useNotify } from "@/services/notifications";
 import { Family, Member } from "@/features/members/types";
@@ -92,13 +92,23 @@ export default function ViewFamily() {
 
                     {family && (
                         <>
-                            <button
-                                onClick={() => setShowReassign(true)}
+                            {family.isActive && (
+                                <button
+                                    onClick={() => setShowReassign(true)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                                >
+                                    <UserCog className="w-4 h-4" />
+                                    Reassign Head
+                                </button>
+                            )}
+
+                            <Link
+                                to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/edit`}
                                 className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
                             >
-                                <UserCog className="w-4 h-4" />
-                                Reassign Head
-                            </button>
+                                <Pencil className="w-4 h-4" />
+                                Edit
+                            </Link>
                             <Link
                                 to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/print`}
                                 className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"

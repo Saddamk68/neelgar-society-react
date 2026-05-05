@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Printer, UserCog, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, Printer, UserCog, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { getFamiliesBySociety, getFamilyMembers } from "../../features/members/services/familyService";
 import { Family, Member } from "../../features/members/types";
 import { ROUTES } from "../../constants/routes";
@@ -198,6 +198,16 @@ export default function Families() {
                             className="p-1 rounded hover:bg-sky-50"
                         >
                             <Eye className="w-4 h-4 text-primary" />
+                        </Link>
+
+                    </Tooltip>
+                    <Tooltip content="Edit" offset={20}>
+                        <Link
+                            to={`${ROUTES.PRIVATE.FAMILIES}/${row.familyCode}/edit`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded hover:bg-sky-50"
+                        >
+                            <Pencil className="w-4 h-4 text-primary" />
                         </Link>
                     </Tooltip>
 

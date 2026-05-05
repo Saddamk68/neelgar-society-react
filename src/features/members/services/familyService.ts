@@ -90,3 +90,24 @@ export async function getDistinctClans(societyId: number): Promise<string[]> {
     });
     return unwrap<string[]>(res);
 }
+
+export async function updateFamily(
+    familyCode: string,
+    societyId: number,
+    village: string,
+    updatedBy: string,
+    clanCode?: string,
+    clanName?: string,
+): Promise<Family> {
+    const res = await api.patch(
+        `${ENDPOINTS.families.get(familyCode)}`,
+        {
+            societyId,
+            village,
+            clanCode: clanCode?.trim().toUpperCase() || undefined,
+            clanName: clanName?.trim() || undefined,
+        },
+        { headers: { "X-Updated-By": updatedBy } }
+    );
+    return unwrap<Family>(res);
+}

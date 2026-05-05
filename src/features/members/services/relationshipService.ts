@@ -85,6 +85,7 @@ export async function createAndLinkParent(
       contactNumber: "",
       education: "",
       occupation: "",
+      gotraId: 0,
       maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
@@ -131,6 +132,7 @@ export async function createAndLinkSpouse(
       contactNumber: "",
       education: "",
       occupation: "",
+      gotraId: 0,
       maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
@@ -178,6 +180,7 @@ export async function createAndLinkChild(
       contactNumber: "",
       education: "",
       occupation: "",
+      gotraId: 0,
       maritalStatus: "SINGLE",
       currentAddress: {
         village: newPersonData.village,

@@ -41,9 +41,10 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 const STATUS_STYLES: Record<UserStatus, string> = {
-    PENDING: "bg-amber-100 text-amber-800",
+    PENDING:  "bg-amber-100 text-amber-800",
     APPROVED: "bg-green-100 text-green-800",
     REJECTED: "bg-red-100   text-red-700",
+    INACTIVE: "bg-slate-100 text-slate-600",
 };
 
 // ── Change password section ───────────────────────────────────────────────────
