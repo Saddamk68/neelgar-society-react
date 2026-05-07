@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Role } from "../constants/roles";
 import {
@@ -9,6 +9,7 @@ import {
   setAuthToken,
   getAuthToken,
   clearAuthToken,
+  setRefreshToken,
   onUnauthorized,
 } from "../services/apiClient";
 import { FEATURES } from "../config/features";
@@ -92,6 +93,16 @@ function toAuthUser(accessToken: string, extraData?: any): AuthUser {
   };
 }
 
+// Decodes JWT exp claim and returns ms until expiry
+function msUntilExpiry(token: string): number {
+  try {
+    const { exp } = jwtDecode<{ exp: number }>(token);
+    return exp * 1000 - Date.now();
+  } catch {
+    return 0;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider
 // ─────────────────────────────────────────────────────────────────────────────
@@ -102,19 +113,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("MEMBER");
   const [user, setUser] = useState<AuthUser | null>(null);
 
+  // ── Web Worker ref ─────────────────────────────────────────────────────────
+  // WHY useRef here instead of a plain variable:
+  // In React, plain variables inside the component function are recreated on
+  // every render. useRef gives us a stable box that persists for the full
+  // lifetime of the component — just like an instance field in a Java class.
+  // The worker lives here and is shared across all renders.
+  const workerRef = useRef<Worker | null>(null);
+
+  // ── scheduleRefresh ────────────────────────────────────────────────────────
+  // Tells the Web Worker to fire after (tokenExpiry - 2 min).
+  // The worker runs in a background OS thread — unlike setTimeout in the main
+  // thread, it is NOT frozen when the browser tab is idle or the laptop sleeps.
+  //
+  // Java analogy: like calling schedule() on a ScheduledExecutorService that
+  // runs in a daemon thread, completely independent of the UI thread.
+  const scheduleRefresh = useCallback((token: string) => {
+    // Refresh 2 minutes before expiry.
+    // We use 2 min (not 5) to keep the window small — the less time between
+    // "timer set" and "timer fires", the less chance the browser has to freeze it.
+    const delay = Math.max(msUntilExpiry(token) - 2 * 60 * 1000, 5_000);
+
+    // Token is already expired or expiring in < 5 s — don't schedule,
+    // let the 401 interceptor in apiClient.ts handle it reactively instead.
+    if (delay <= 5_000 && msUntilExpiry(token) <= 0) return;
+
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "start", delay });
+    }
+  }, []);
+
   // Save user to both React state and localStorage
-  const commitUser = (u: AuthUser, token: string) => {
+  const commitUser = useCallback((u: AuthUser, token: string) => {
     setAuthToken(token);
     saveUser(u);
     setIsAuthenticated(true);
     setUser(u);
     setRole(u.role);
-  };
+    scheduleRefresh(token); // arm the Web Worker countdown for proactive refresh
+  }, [scheduleRefresh]);
 
-  // Clear everything — called on logout or when refresh fails
-  const logout = async (): Promise<void> => {
+  // Clear everything — called on logout or when refresh fails unrecoverably
+  const logout = useCallback(async (): Promise<void> => {
+    // Tell the worker to cancel its countdown so it doesn't fire after logout
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "stop" });
+    }
     try {
-      await oauth2Revoke(); // best-effort — tells backend to invalidate the token
+      await oauth2Revoke();
     } catch {
       // ignore
     } finally {
@@ -124,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAuthToken();
       saveUser(null);
     }
-  };
+  }, []);
 
   // ── On page load: try to restore session ──────────────────────────────────
   useEffect(() => {
@@ -137,9 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Happy path: we already have a token and user info stored
       if (storedToken && storedUser) {
         if (!cancelled) {
-          setIsAuthenticated(true);
-          setUser(storedUser);
-          setRole(storedUser.role);
+          commitUser(storedUser, storedToken); // scheduleRefresh is called inside commitUser
           setIsInitializing(false);
         }
         return;
@@ -201,6 +245,125 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!FEATURES.SHOW_DEMO_LOGIN) return;
     commitUser({ username: "demo", role: newRole }, "demo-token");
   };
+
+  // ── Boot the Web Worker once on mount, tear it down on unmount ───────────
+  // This useEffect runs exactly once when the AuthProvider first appears on
+  // screen (the empty [] dependency array guarantees that — same as @PostConstruct
+  // in Spring).  It creates the worker, wires up the 'fire' message handler,
+  // and terminates it cleanly when the app is closed.
+  useEffect(() => {
+    // Create the worker from the file we placed in /public.
+    // new URL(..., import.meta.url) is the Vite-safe way to reference a
+    // public-folder file — think of it like getClass().getResource() in Java.
+    const worker = new Worker(
+      new URL("/tokenRefreshWorker.js", import.meta.url),
+      { type: "classic" }
+    );
+    workerRef.current = worker;
+
+    // This runs when the worker sends { type: 'fire' } back —
+    // meaning the countdown completed and it's time to silently refresh.
+    worker.onmessage = async (event: MessageEvent) => {
+      if (event.data?.type !== "fire") return;
+      try {
+        const newToken = await oauth2Refresh();
+        // Reschedule for the next token — keeps the cycle going indefinitely
+        scheduleRefresh(newToken);
+      } catch (e) {
+        console.error("[AuthContext] Proactive token refresh failed:", e);
+        // Do NOT logout here — the 401 interceptor in apiClient.ts will handle
+        // it reactively if the next API call fails.  Calling logout() here on a
+        // network hiccup would be too aggressive.
+      }
+    };
+
+    worker.onerror = (e) => {
+      console.error("[AuthContext] Refresh worker error:", e);
+    };
+
+    // Cleanup: terminate the worker when the component unmounts (app closes)
+    return () => {
+      worker.postMessage({ type: "stop" });
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Visibility / focus handler — safety net for idle / sleep ─────────────
+  // The Web Worker handles the normal case (fires before expiry).
+  // This handler is the safety net: it runs when the user comes BACK after
+  // the laptop was asleep or the tab was hidden for a long time.
+  //
+  // KEY FIX vs the old code:
+  //   1. We cancel the worker's pending countdown BEFORE calling refresh.
+  //      This prevents the worker timer and this handler from both calling
+  //      oauth2Refresh() at the same time (race condition).
+  //   2. The concurrent-call guard in apiClient.ts (activeRefreshPromise) is
+  //      a second line of defence — even if both do fire simultaneously, only
+  //      one HTTP call goes out.
+  //   3. When there's still plenty of time left, we simply RESET the worker
+  //      timer (it may have been frozen and is now stale).
+  useEffect(() => {
+    let isChecking = false;
+
+    const handleUserBack = async () => {
+      // Guard: don't run if a check is already in progress
+      if (isChecking) return;
+      isChecking = true;
+
+      try {
+        const token = getAuthToken();
+        // No token means the user is already logged out — nothing to do
+        if (!token) return;
+
+        const timeLeft = msUntilExpiry(token);
+
+        // Cancel any pending worker countdown before we decide what to do.
+        // This is the critical step that prevents the race condition.
+        if (workerRef.current) {
+          workerRef.current.postMessage({ type: "stop" });
+        }
+
+        if (timeLeft <= 0) {
+          // Token is already expired — try to refresh immediately.
+          // The 401 interceptor would also catch this on the next API call,
+          // but proactively refreshing here gives a smoother UX (no flicker).
+          const newToken = await oauth2Refresh();
+          scheduleRefresh(newToken);
+        } else if (timeLeft < 3 * 60 * 1000) {
+          // Token expires in less than 3 minutes — refresh now proactively
+          const newToken = await oauth2Refresh();
+          scheduleRefresh(newToken);
+        } else {
+          // Plenty of time left — just reset the worker timer with correct
+          // fresh timing.  The old timer may have been frozen while the
+          // browser was sleeping, so its remaining time is unreliable.
+          scheduleRefresh(token);
+        }
+      } catch (e) {
+        console.error("[AuthContext] Refresh failed after idle/focus:", e);
+        // Refresh token itself has expired (e.g. user was away for 14+ days)
+        // — force logout so they see the login page cleanly.
+        logout();
+      } finally {
+        isChecking = false;
+      }
+    };
+
+    // Fires when the user switches back to this browser tab
+    const visibilityHandler = () => {
+      if (document.visibilityState === "visible") handleUserBack();
+    };
+
+    // Fires when the browser window regains focus (e.g. Alt+Tab back)
+    window.addEventListener("focus", handleUserBack);
+    document.addEventListener("visibilitychange", visibilityHandler);
+
+    return () => {
+      window.removeEventListener("focus", handleUserBack);
+      document.removeEventListener("visibilitychange", visibilityHandler);
+    };
+  }, [scheduleRefresh, logout]);
 
   return (
     <AuthContext.Provider
