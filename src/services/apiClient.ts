@@ -6,23 +6,35 @@ import axios, {
 } from "axios";
 import { ENV } from "../config/env";
 import { buildAppError } from "@/utils/errorUtils";
-import { ErrorType } from "@/constants/errorTypes";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Token storage helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ACCESS_TOKEN_KEY = "accessToken";
+const REFRESH_TOKEN_KEY = "refreshToken";
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
+
 export function setAuthToken(token: string | null): void {
   if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token);
   else localStorage.removeItem(ACCESS_TOKEN_KEY);
 }
+
 export function clearAuthToken(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setRefreshToken(token: string | null): void {
+  if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  else localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,7 +67,7 @@ const oauth2Client = axios.create({
 
 /**
  * LOGIN — calls POST /oauth2/token with username + password.
- * Returns the full token response from Spring Authorization Server.
+ * Stores both access token and refresh token.
  */
 export async function oauth2Token(
   username: string,
@@ -74,34 +86,71 @@ export async function oauth2Token(
     { headers: { Authorization: oauth2BasicAuth() } }
   );
 
+  // Store refresh token immediately on login
+  if (resp.data?.refresh_token) {
+    setRefreshToken(resp.data.refresh_token);
+  }
+
   return resp.data;
 }
 
 /**
- * SILENT REFRESH — calls POST /oauth2/token with grant_type=refresh_token.
- * The refresh token is sent automatically via the httpOnly cookie — we never
- * store or touch it in JavaScript.
+ * SILENT REFRESH — sends the stored refresh token to get a new access token.
+ * Also stores the new refresh token (reuseRefreshTokens=false means a new one
+ * is issued every time).
  * Returns the new access token string.
+ *
+ * CONCURRENT-CALL GUARD:
+ * If two callers invoke oauth2Refresh() at the same time (e.g. the Web Worker
+ * timer and the visibilitychange handler both firing together), only ONE actual
+ * HTTP request is sent. The second caller waits and receives the same result.
+ * This is critical because reuseRefreshTokens=false means a refresh token can
+ * only be used once — a second simultaneous call would fail and cause a logout.
+ *
+ * Java analogy: think of activeRefreshPromise like a synchronized singleton
+ * — once one thread is inside, others wait at the door and share the result.
  */
+let activeRefreshPromise: Promise<string> | null = null;
+
 export async function oauth2Refresh(): Promise<string> {
-  const body = new URLSearchParams({ grant_type: "refresh_token" });
+  // If a refresh is already in flight, return the same promise — do not make a second HTTP call
+  if (activeRefreshPromise) return activeRefreshPromise;
 
-  const resp: AxiosResponse<any> = await oauth2Client.post(
-    "/oauth2/token",
-    body,
-    { headers: { Authorization: oauth2BasicAuth() } }
-  );
+  activeRefreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) throw new Error("no_refresh_token_stored");
 
-  const newToken: string = resp.data?.access_token;
-  if (!newToken) throw new Error("no_access_token_in_refresh_response");
+    const body = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    });
 
-  setAuthToken(newToken);
-  return newToken;
+    const resp: AxiosResponse<any> = await oauth2Client.post(
+      "/oauth2/token",
+      body,
+      { headers: { Authorization: oauth2BasicAuth() } }
+    );
+
+    const newAccessToken: string = resp.data?.access_token;
+    if (!newAccessToken) throw new Error("no_access_token_in_refresh_response");
+
+    // Store new tokens
+    setAuthToken(newAccessToken);
+    if (resp.data?.refresh_token) {
+      setRefreshToken(resp.data.refresh_token);
+    }
+
+    return newAccessToken;
+  })().finally(() => {
+    // Always clear the gate when done (success or failure) so next call goes through fresh
+    activeRefreshPromise = null;
+  });
+
+  return activeRefreshPromise;
 }
 
 /**
- * LOGOUT — revokes the current access token.
- * The backend will also clear the refresh cookie on its side.
+ * LOGOUT — revokes the current access token and clears all stored tokens.
  */
 export async function oauth2Revoke(): Promise<void> {
   const token = getAuthToken();
@@ -117,7 +166,7 @@ export async function oauth2Revoke(): Promise<void> {
       headers: { Authorization: oauth2BasicAuth() },
     });
   } catch {
-    // Best-effort — we always clear locally even if the server call fails
+    // Best-effort — always clear locally even if server call fails
   }
 }
 
@@ -194,13 +243,16 @@ api.interceptors.response.use(
         const newToken = await oauth2Refresh();
         isRefreshing = false;
         notifySubscribers(newToken);
-        (originalReq.headers as any) = { ...originalReq.headers, Authorization: `Bearer ${newToken}` };
+        (originalReq.headers as any) = {
+          ...originalReq.headers,
+          Authorization: `Bearer ${newToken}`,
+        };
         return api(originalReq);
       } catch {
         isRefreshing = false;
         notifySubscribers(null);
         clearAuthToken();
-        unauthorizedHandler?.();
+        if (unauthorizedHandler) unauthorizedHandler();
         return Promise.reject(buildAppError(error));
       }
     }
