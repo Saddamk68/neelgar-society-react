@@ -180,10 +180,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = getAuthToken();
       const storedUser = loadUser();
 
-      // Happy path: we already have a token and user info stored
-      if (storedToken && storedUser) {
+      // Happy path: we already have a valid (non-expired) token and user info stored
+      if (storedToken && storedUser && msUntilExpiry(storedToken) > 0) {
         if (!cancelled) {
-          commitUser(storedUser, storedToken); // scheduleRefresh is called inside commitUser
+          commitUser(storedUser, storedToken);
           setIsInitializing(false);
         }
         return;
@@ -267,6 +267,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event.data?.type !== "fire") return;
       try {
         const newToken = await oauth2Refresh();
+        // Update React user state from the new token's claims
+        const refreshedUser = toAuthUser(newToken);
+        saveUser(refreshedUser);
+        setUser(refreshedUser);
+        setRole(refreshedUser.role);
         // Reschedule for the next token — keeps the cycle going indefinitely
         scheduleRefresh(newToken);
       } catch (e) {
