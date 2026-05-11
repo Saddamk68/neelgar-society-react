@@ -37,11 +37,14 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  ArrowLeft,
   UserPlus,
   X,
   Search,
 } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
+import FormFooter from "@/components/layout/FormFooter";
+import DangerZone from "@/components/layout/DangerZone";
+import EditMemberSkeleton from "@/components/skeletons/EditMemberSkeleton";
 
 import {
   memberSchema,
@@ -51,6 +54,7 @@ import {
   getMember,
   updateMember,
   searchMembers,
+  deactivateMember,
 } from "../../../features/members/services/memberService";
 import {
   getPersonRelationships,
@@ -74,6 +78,8 @@ import MemberAvatar from "@/components/MemberAvatar";
 import { useQueryClient } from "@tanstack/react-query";
 import DatePicker from "../../../components/form/DatePicker";
 import GotraSelect from "@/features/gotras/components/GotraSelect";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import DeactivateHeadDialog from "@/components/DeactivateHeadDialog";
 
 
 function inputClass(hasError?: boolean) {
@@ -780,6 +786,9 @@ export default function EditMember() {
   const dobValue = watch("dob") ?? "";
   const gotraId = watch("gotraId");
   const societyId = watch("societyId");
+  const [deactivating, setDeactivating] = useState(false);
+  const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
+  const [showReassign, setShowReassign] = useState(false);
 
   // ── Load member on mount ──────────────────────────────────────────────────
 
@@ -900,7 +909,10 @@ export default function EditMember() {
   };
 
   const handlePhotoDelete = async () => {
-    if (!confirm("Remove this member's photo?")) return;
+    setShowDeletePhotoConfirm(true);
+  };
+
+  const confirmPhotoDelete = async () => {
     try {
       await deleteMemberPhoto(memberCode!);
       setHasPhoto(false);
@@ -908,46 +920,30 @@ export default function EditMember() {
       notify.success("Photo removed.");
     } catch (err: any) {
       notify.error(err.message || "Failed to remove photo");
+    } finally {
+      setShowDeletePhotoConfirm(false);
     }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow p-6 text-sm text-slate-500">
-        Loading member…
-      </div>
-    );
+    return <EditMemberSkeleton />;
   }
 
   return (
     <div className="max-w-3xl mx-auto">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Edit Member</h1>
-          <p className="text-slate-500 text-sm">
-            {originalMember
-              ? `${originalMember.firstName} ${originalMember.lastName ?? ""}`.trim()
-              : ""}
-            {originalMember && (
-              <span className="ml-2 text-slate-400">
-                · {originalMember.memberCode}
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-      </div>
+      <PageHeader
+        title="Edit Member"
+        subtitle={
+          originalMember
+            ? `${originalMember.firstName} ${originalMember.lastName ?? ""}`.trim() +
+            ` · ${originalMember.memberCode}`
+            : undefined
+        }
+        backTo={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
+      />
 
       {/* Family info — read-only banner */}
       {originalMember && (
@@ -1164,22 +1160,11 @@ export default function EditMember() {
           )}
         </section>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
-          >
-            {isSubmitting ? "Saving…" : "Save Changes"}
-          </button>
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
-            className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
-          >
-            Cancel
-          </Link>
-        </div>
+        <FormFooter
+          onCancel={() => navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`)}
+          saving={isSubmitting}
+          saveLabel="Save Changes"
+        />
       </form>
 
       {/* Family Relationships — outside the main form so their own buttons
@@ -1195,6 +1180,74 @@ export default function EditMember() {
           />
         </div>
       )}
+
+      {/* Danger Zone — head member: two-step atomic deactivation dialog */}
+      {originalMember?.isActive && originalMember.isHead && (
+        <DangerZone
+          title="Deactivate this member"
+          description="This member is the family head. You will be guided to reassign the head and deactivate in one action."
+          buttonLabel="Deactivate Member"
+          confirmTitle=""
+          confirmMessage=""
+          loading={false}
+          skipConfirm={true}
+          onConfirm={async () => {
+            setShowReassign(true);
+          }}
+        />
+      )}
+
+      {/* Danger Zone — normal member: standard confirm */}
+      {originalMember?.isActive && !originalMember.isHead && (
+        <DangerZone
+          title="Deactivate this member"
+          description="The member will be marked inactive and will no longer appear in active lists. This can be reversed by an admin from the inactive tab."
+          buttonLabel="Deactivate Member"
+          confirmTitle="Deactivate member"
+          confirmMessage={`Deactivate ${originalMember.firstName} ${originalMember.lastName ?? ""} (${originalMember.memberCode})? They will be moved to the inactive list.`}
+          loading={deactivating}
+          onConfirm={async () => {
+            setDeactivating(true);
+            try {
+              await deactivateMember(
+                originalMember.memberCode,
+                user?.username ?? "system"
+              );
+              queryClient.invalidateQueries({ queryKey: ["members"] });
+              queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+              notify.success(`${originalMember.firstName} deactivated successfully.`);
+              navigate(ROUTES.PRIVATE.MEMBERS);
+            } catch (err: any) {
+              notify.error(err.message || "Failed to deactivate member.");
+              setDeactivating(false);
+            }
+          }}
+        />
+      )}
+
+      {/* DeactivateHeadDialog — two-step atomic flow for head members */}
+      {showReassign && originalMember && (
+        <DeactivateHeadDialog
+          member={originalMember}
+          onClose={() => setShowReassign(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+            navigate(ROUTES.PRIVATE.MEMBERS);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showDeletePhotoConfirm}
+        onClose={() => setShowDeletePhotoConfirm(false)}
+        onConfirm={confirmPhotoDelete}
+        title="Remove photo"
+        message="Remove this member's profile photo? This cannot be undone."
+        confirmLabel="Remove Photo"
+        variant="danger"
+      />
+
     </div>
   );
 }
