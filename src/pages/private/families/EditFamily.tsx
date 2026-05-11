@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import PageHeader from "@/components/layout/PageHeader";
+import FormFooter from "@/components/layout/FormFooter";
+import EditFamilySkeleton from "@/components/skeletons/EditFamilySkeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getFamily, updateFamily, getDistinctClans } from "../../../features/members/services/familyService";
 import { Family } from "../../../features/members/types";
@@ -104,18 +106,20 @@ export default function EditFamily() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     if (isLoading) {
-        return (
-            <div className="bg-white rounded-xl shadow p-6 text-sm text-slate-500">
-                Loading family…
-            </div>
-        );
+        return <EditFamilySkeleton />;
     }
 
     if (isError || !family) {
         return (
             <div className="bg-white rounded-xl shadow p-6 text-sm text-red-500">
                 Failed to load family.{" "}
-                <Link to={ROUTES.PRIVATE.FAMILIES} className="underline">Go back</Link>
+                <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.PRIVATE.FAMILIES)}
+                    className="underline"
+                >
+                    Go back
+                </button>
             </div>
         );
     }
@@ -123,26 +127,14 @@ export default function EditFamily() {
     return (
         <div className="max-w-2xl mx-auto">
 
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-semibold">Edit Family</h1>
-                    <p className="text-slate-500 text-sm">
-                        {family.familyCode}
-                        {family.headPersonName && (
-                            <span className="ml-2 text-slate-400">· {family.headPersonName}</span>
-                        )}
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                </button>
-            </div>
+            <PageHeader
+                title="Edit Family"
+                subtitle={
+                    family.familyCode +
+                    (family.headPersonName ? ` · ${family.headPersonName}` : "")
+                }
+                backTo={`${ROUTES.PRIVATE.FAMILIES}/${familyCode}/view`}
+            />
 
             {/* Read-only info banner */}
             <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-600 flex gap-6">
@@ -160,7 +152,10 @@ export default function EditFamily() {
             </div>
 
             {/* Form */}
-            <div className="bg-white rounded-xl shadow p-6 space-y-5">
+            <form
+                onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+                className="bg-white rounded-xl shadow p-6 space-y-5"
+            >
                 <h2 className="text-lg font-semibold">Family Details</h2>
 
                 {/* Village */}
@@ -226,24 +221,13 @@ export default function EditFamily() {
                     </p>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                    <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
-                    >
-                        {saving ? "Saving…" : "Save Changes"}
-                    </button>
-                    <Link
-                        to={`${ROUTES.PRIVATE.FAMILIES}/${familyCode}/view`}
-                        className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
-                    >
-                        Cancel
-                    </Link>
-                </div>
-            </div>
+                <FormFooter
+                    onCancel={() => navigate(`${ROUTES.PRIVATE.FAMILIES}/${familyCode}/view`)}
+                    saving={saving}
+                    saveLabel="Save Changes"
+                    disabled={saving}
+                />
+            </form>
         </div>
     );
 }
