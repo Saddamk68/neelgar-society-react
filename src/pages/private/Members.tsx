@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Pencil, Download, FileSpreadsheet, UserX, UserCheck } from "lucide-react";
-import { listMembers, deactivateMember, searchMembers, reactivateMember } from "../../features/members/services/memberService";
+import { Eye, Pencil, Download, FileSpreadsheet, UserCheck } from "lucide-react";
+import { listMembers, searchMembers, reactivateMember } from "../../features/members/services/memberService";
 import { Member } from "../../features/members/types";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
@@ -15,7 +15,6 @@ import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
 import { REACTIVATE_ROLES } from "@/constants/roles";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import ReassignHeadDialog from "@/components/ReassignHeadDialog";
 
 type LocalSortConfig = {
   key: keyof Member | null;
@@ -37,13 +36,10 @@ export default function Members() {
   const canReactivate = !!user && REACTIVATE_ROLES.includes(user.role);
   const queryClient = useQueryClient();
 
-  const [reassignTarget, setReassignTarget] = useState<Member | null>(null);
   const [activeTab, setActiveTab] = useState<boolean>(true);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [size] = useState(30);
-  const [deactivating, setDeactivating] = useState<string | null>(null);
-  const [deactivateTarget, setDeactivateTarget] = useState<Member | null>(null);
   const [reactivateTarget, setReactivateTarget] = useState<Member | null>(null);
   const [sortConfig, setSortConfig] = useState<LocalSortConfig>({
     key: null,
@@ -66,7 +62,6 @@ export default function Members() {
     queryFn: async () => {
       if (isSearching) {
         const results = await searchMembers(search.trim());
-        // Filter search results by active/inactive tab
         const filtered = results.filter((m) => m.isActive === activeTab);
         return {
           content: filtered,
@@ -105,16 +100,6 @@ export default function Members() {
         ? { key, direction: prev.direction === "asc" ? "desc" : "asc" }
         : { key, direction: "asc" }
     );
-  };
-
-  // ── Deactivate ──────────────────────────────────────────────────────────────
-
-  const handleDeactivate = (member: Member) => {
-    if (member.isHead) {
-      setReassignTarget(member);   // open reassign dialog first
-    } else {
-      setDeactivateTarget(member); // open normal confirm dialog
-    }
   };
 
   // ── Reactivate ──────────────────────────────────────────────────────────────
@@ -176,30 +161,20 @@ export default function Members() {
             </Link>
           </Tooltip>
 
+          {/* Active tab: View + Edit only — deactivation moved to EditMember */}
           {activeTab && (
-            <>
-              <Tooltip content="Edit" offset={20}>
-                <Link
-                  to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/edit`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1 rounded hover:bg-sky-50"
-                >
-                  <Pencil className="w-4 h-4 text-primary" />
-                </Link>
-              </Tooltip>
-              <Tooltip content="Deactivate" offset={20}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeactivate(row); }}
-                  disabled={deactivating === row.memberCode}
-                  className="p-1 rounded hover:bg-red-50 disabled:opacity-40"
-                >
-                  <UserX className="w-4 h-4 text-red-500" />
-                </button>
-              </Tooltip>
-            </>
+            <Tooltip content="Edit" offset={20}>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/edit`}
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded hover:bg-sky-50"
+              >
+                <Pencil className="w-4 h-4 text-primary" />
+              </Link>
+            </Tooltip>
           )}
 
-          {/* Reactivate button — only on Inactive tab, only for authorized roles */}
+          {/* Inactive tab: Reactivate — only for authorized roles */}
           {!activeTab && canReactivate && (
             <Tooltip content="Reactivate" offset={20}>
               <button
@@ -355,30 +330,7 @@ export default function Members() {
         </div>
       )}
 
-      <ConfirmDialog
-        isOpen={!!deactivateTarget}
-        onClose={() => setDeactivateTarget(null)}
-        onConfirm={async () => {
-          if (!deactivateTarget) return;
-          setDeactivateTarget(null);
-          setDeactivating(deactivateTarget.memberCode);
-          try {
-            await deactivateMember(deactivateTarget.memberCode, user?.username ?? "system");
-            notify.success(`Member ${deactivateTarget?.firstName} ${deactivateTarget?.lastName ?? ""} (${deactivateTarget.memberCode}) deactivated.`);
-            queryClient.invalidateQueries({ queryKey: ["members"] });
-          } catch (err: any) {
-            notify.error(err.message || "Failed to deactivate member.");
-          } finally {
-            setDeactivating(null);
-          }
-        }}
-        title="Deactivate member"
-        message={`Deactivate ${deactivateTarget?.firstName} ${deactivateTarget?.lastName ?? ""} (${deactivateTarget?.memberCode})? This cannot be undone easily.`}
-        confirmLabel="Deactivate"
-        variant="danger"
-        loading={!!deactivating}
-      />
-
+      {/* Reactivate confirmation dialog */}
       <ConfirmDialog
         isOpen={!!reactivateTarget}
         onClose={() => setReactivateTarget(null)}
@@ -400,23 +352,6 @@ export default function Members() {
         variant="success"
         loading={false}
       />
-
-      {reassignTarget && (
-        <ReassignHeadDialog
-          member={reassignTarget}
-          onClose={() => setReassignTarget(null)}
-          onSuccess={() => {
-            setReassignTarget(null);
-            queryClient.invalidateQueries({ queryKey: ["members"] });
-            queryClient.invalidateQueries({ queryKey: ["families"] });
-          }}
-          onDeactivate={(member) => {
-            setReassignTarget(null);
-            setDeactivateTarget(member); // hand off to normal deactivate confirm
-          }}
-          mode="deactivate" 
-        />
-      )}
 
     </div>
   );
