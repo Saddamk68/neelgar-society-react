@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Pencil, Printer, UserCog } from "lucide-react";
+import { Pencil, Printer, UserCog } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
+import ViewFamilySkeleton from "@/components/skeletons/ViewFamilySkeleton";
 import MemberAvatar from "@/components/MemberAvatar";
 import { useNotify } from "@/services/notifications";
 import { Family, Member } from "@/features/members/types";
@@ -37,7 +39,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ViewFamily() {
     const { familyCode } = useParams<{ familyCode: string }>();
-    const navigate = useNavigate();
     const notify = useNotify();
 
     const queryClient = useQueryClient();
@@ -72,25 +73,16 @@ export default function ViewFamily() {
     return (
         <div className="space-y-4 max-w-3xl mx-auto">
 
-            {/* Page header */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 className="text-2xl font-semibold">Family Details</h1>
-                    <p className="text-slate-500 text-sm">
-                        {family ? `${family.familyCode} · ${family.headPersonName ?? "No head assigned"}` : "Loading…"}
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                    </button>
-
-                    {family && (
+            <PageHeader
+                title="Family Details"
+                subtitle={
+                    family
+                        ? `${family.familyCode} · ${family.headPersonName ?? "No head assigned"}`
+                        : undefined
+                }
+                backTo={ROUTES.PRIVATE.FAMILIES}
+                actions={
+                    family ? (
                         <>
                             {family.isActive && (
                                 <button
@@ -101,32 +93,27 @@ export default function ViewFamily() {
                                     Reassign Head
                                 </button>
                             )}
-
-                            <Link
-                                to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/edit`}
-                                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                            >
-                                <Pencil className="w-4 h-4" />
-                                Edit
-                            </Link>
                             <Link
                                 to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/print`}
-                                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+                                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
                             >
                                 <Printer className="w-4 h-4" />
                                 Print
                             </Link>
+                            <Link
+                                to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/edit`}
+                                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Edit
+                            </Link>
                         </>
-                    )}
-                </div>
-            </div>
+                    ) : undefined
+                }
+            />
 
             {/* Loading */}
-            {isLoading && (
-                <div className="bg-white rounded-xl shadow p-6 text-sm text-slate-500">
-                    Loading family…
-                </div>
-            )}
+            {isLoading && <ViewFamilySkeleton />}
 
             {/* Error */}
             {familyError && (
@@ -258,7 +245,7 @@ export default function ViewFamily() {
                         setShowReassign(false);
                         queryClient.invalidateQueries({ queryKey: ["family", familyCode] });
                     }}
-                    mode="reassign" 
+                    mode="reassign"
                 />
             )}
 

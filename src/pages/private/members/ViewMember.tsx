@@ -1,7 +1,9 @@
 import { useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, ArrowLeft, Printer } from "lucide-react";
+import { Pencil, Printer } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
+import ViewMemberSkeleton from "@/components/skeletons/ViewMemberSkeleton";
 import { getMember } from "../../../features/members/services/memberService";
 import { Member } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
@@ -36,7 +38,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ViewMember() {
   const { memberCode } = useParams<{ memberCode: string }>();
-  const navigate = useNavigate();
   const notify = useNotify();
 
   const { data: member, isLoading, isError, refetch } = useQuery<Member>({
@@ -56,27 +57,22 @@ export default function ViewMember() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+  <div className="space-y-4 max-w-3xl mx-auto">
 
-      {/* Page header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold">Member Details</h1>
-          <p className="text-slate-500 text-sm">
-            {member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : "Loading…"}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-
-          {member && (
+    <PageHeader
+      title="Member Details"
+      subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
+      backTo={ROUTES.PRIVATE.MEMBERS}
+      actions={
+        member ? (
+          <>
+            <Link
+              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
+              className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </Link>
             <Link
               to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
               className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
@@ -84,16 +80,13 @@ export default function ViewMember() {
               <Pencil className="w-4 h-4" />
               Edit
             </Link>
-          )}
-        </div>
-      </div>
+          </>
+        ) : undefined
+      }
+    />
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="bg-white rounded-xl shadow p-6 text-sm text-slate-500">
-          Loading member…
-        </div>
-      )}
+    {/* Loading */}
+    {isLoading && <ViewMemberSkeleton />}
 
       {/* Error */}
       {isError && (
@@ -208,18 +201,6 @@ export default function ViewMember() {
             </div>
           </Section>
 
-          {/* Footer actions */}
-          <div className="mt-8 flex items-center justify-end gap-2 pt-4 border-t">
-            {member && (
-              <Link
-                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
-                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </Link>
-            )}
-          </div>
         </div>
       )}
     </div>
