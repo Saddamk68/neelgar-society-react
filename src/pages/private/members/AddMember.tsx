@@ -2,6 +2,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PageHeader from "@/components/layout/PageHeader";
 
 import {
   memberSchema,
@@ -291,10 +292,11 @@ export default function AddMember() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-1">Add Member</h1>
-      <p className="text-slate-500 text-sm mb-6">
-        Follow the steps to register a new member.
-      </p>
+      <PageHeader
+        title="Add Member"
+        subtitle="Follow the steps to register a new member."
+        backTo={ROUTES.PRIVATE.MEMBERS}
+      />
 
       <StepBar current={step} />
 
@@ -682,29 +684,32 @@ export default function AddMember() {
             )}
           </section>
 
-          {/* Actions */}
-          <div className="flex gap-3">
+          {/* Actions — Back goes to Step 2, Cancel exits the wizard */}
+          <div className="flex items-center justify-between pt-2">
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
             >
-              Back
+              ← Back
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
-            >
-              {isSubmitting ? "Saving…" : "Save Member"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
-              className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
-            >
-              Cancel
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
+                disabled={isSubmitting}
+                className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition"
+              >
+                {isSubmitting ? "Saving…" : "Save Member"}
+              </button>
+            </div>
           </div>
         </form>
       )}
