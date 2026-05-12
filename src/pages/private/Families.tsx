@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Printer, UserCog, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { Eye, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { getFamiliesBySociety, getFamilyMembers } from "../../features/members/services/familyService";
 import { Family, Member } from "../../features/members/types";
 import { ROUTES } from "../../constants/routes";
@@ -11,7 +11,6 @@ import FamiliesSkeleton from "../../components/skeletons/FamiliesSkeleton";
 import ResponsiveTable, { ColumnConfig } from "../../components/ResponsiveTable";
 import MemberAvatar from "@/components/MemberAvatar";
 import Tooltip from "@/components/Tooltip";
-import ReassignHeadDialog from "@/components/ReassignHeadDialog";
 
 // ── Column definitions ────────────────────────────────────────────────────────
 
@@ -97,8 +96,6 @@ export default function Families() {
     const [activeTab, setActiveTab] = useState<boolean>(true);
     const [search, setSearch] = useState("");
     const [expandedCode, setExpandedCode] = useState<string | null>(null);
-
-    const [reassignFamily, setReassignFamily] = useState<Family | null>(null);
 
     // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -215,26 +212,6 @@ export default function Families() {
                         </Link>
                     </Tooltip>
 
-                    <Tooltip content="Print" offset={20}>
-                        <Link
-                            to={`${ROUTES.PRIVATE.FAMILIES}/${row.familyCode}/print`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 rounded hover:bg-sky-50"
-                        >
-                            <Printer className="w-4 h-4 text-primary" />
-                        </Link>
-                    </Tooltip>
-
-                    {activeTab && (
-                        <Tooltip content="Reassign Head" offset={20}>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setReassignFamily(row); }}
-                                className="p-1 rounded hover:bg-amber-50"
-                            >
-                                <UserCog className="w-4 h-4 text-amber-500" />
-                            </button>
-                        </Tooltip>
-                    )}
                 </div>
             );
         }
@@ -323,31 +300,6 @@ export default function Families() {
                         </div>
                     )}
                 </div>
-            )}
-
-            {reassignFamily && reassignFamily.headPersonCode && (
-                <ReassignHeadDialog
-                    member={{
-                        id: reassignFamily.headPersonId!,
-                        memberCode: reassignFamily.headPersonCode,
-                        familyCode: reassignFamily.familyCode,
-                        familyId: reassignFamily.id,
-                        societyId: reassignFamily.societyId,
-                        societyCode: reassignFamily.societyCode,
-                        firstName: reassignFamily.headPersonName ?? "Head",
-                        isActive: true,
-                    } as Member}
-                    onClose={() => setReassignFamily(null)}
-                    onSuccess={() => {
-                        setReassignFamily(null);
-                        queryClient.invalidateQueries({ queryKey: ["families"] });
-                    }}
-                    onDeactivate={() => {
-                        setReassignFamily(null);
-                        queryClient.invalidateQueries({ queryKey: ["families"] });
-                    }}
-                    mode="reassign"
-                />
             )}
 
         </div>
