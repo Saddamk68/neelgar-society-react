@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Printer, ArrowLeft } from "lucide-react";
 import MemberAvatar from "@/components/MemberAvatar";
@@ -98,6 +98,7 @@ function MemberBlock({ member, isHead }: { member: Member; isHead: boolean }) {
 
 export default function PrintFamily() {
     const { familyCode } = useParams<{ familyCode: string }>();
+    const navigate = useNavigate();
 
     const {
         data: family,
@@ -132,9 +133,13 @@ export default function PrintFamily() {
         return (
             <div className="p-6 text-red-500 text-sm">
                 Failed to load family details.{" "}
-                <Link to={ROUTES.PRIVATE.FAMILIES} className="underline">
+                <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.PRIVATE.FAMILIES)}
+                    className="underline"
+                >
                     Go back
-                </Link>
+                </button>
             </div>
         );
     }
@@ -145,20 +150,27 @@ export default function PrintFamily() {
         <>
             {/* Screen-only controls */}
             <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                    <Link
-                        to={family
-                            ? `${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/view`
-                            : ROUTES.PRIVATE.FAMILIES}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                    </Link>
-                    <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
-                </div>
 
+                {/* Left — back button */}
                 <button
+                    type="button"
+                    onClick={() => navigate(
+                        family
+                            ? `${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/view`
+                            : ROUTES.PRIVATE.FAMILIES
+                    )}
+                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                </button>
+
+                {/* Centre — title */}
+                <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
+
+                {/* Right — print button */}
+                <button
+                    type="button"
                     onClick={() => window.print()}
                     disabled={isLoading}
                     className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
