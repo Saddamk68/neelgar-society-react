@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Printer, ArrowLeft } from "lucide-react";
 import { getMember } from "../../../features/members/services/memberService";
@@ -122,6 +122,7 @@ function MemberBlock({
 
 export default function PrintMember() {
     const { memberCode } = useParams<{ memberCode: string }>();
+    const navigate = useNavigate();
     const [includeFamily, setIncludeFamily] = useState(false);
 
     // Fetch the main member
@@ -177,9 +178,13 @@ export default function PrintMember() {
         return (
             <div className="p-6 text-red-500 text-sm">
                 Failed to load member details.{" "}
-                <Link to={ROUTES.PRIVATE.MEMBERS} className="underline">
+                <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
+                    className="underline"
+                >
                     Go back
-                </Link>
+                </button>
             </div>
         );
     }
@@ -188,21 +193,26 @@ export default function PrintMember() {
         <>
             {/* ── Screen-only controls (hidden on print) ───────────────────────── */}
             <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                    <Link
-                        to={member
-                            ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`
-                            : ROUTES.PRIVATE.MEMBERS}
-                        className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                    </Link>
-                    <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
-                </div>
 
+                {/* Left — back button */}
+                <button
+                    type="button"
+                    onClick={() => navigate(
+                        member
+                            ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`
+                            : ROUTES.PRIVATE.MEMBERS
+                    )}
+                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                </button>
+
+                {/* Centre — title */}
+                <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
+
+                {/* Right — toggle + print */}
                 <div className="flex items-center gap-4">
-                    {/* Family toggle */}
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
                         <div
                             onClick={() => setIncludeFamily((v) => !v)}
@@ -222,6 +232,7 @@ export default function PrintMember() {
                     </label>
 
                     <button
+                        type="button"
                         onClick={() => window.print()}
                         disabled={isLoading}
                         className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
