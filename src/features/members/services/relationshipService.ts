@@ -67,6 +67,7 @@ export async function createAndLinkParent(
     gender?: "MALE" | "FEMALE" | "OTHER";
     dob?: string;
     societyId: number;
+    gotraId: number;
     familyId: number;
     village: string;
   },
@@ -77,6 +78,7 @@ export async function createAndLinkParent(
   const created = await createMember(
     {
       societyId: newPersonData.societyId,
+      gotraId: newPersonData.gotraId,
       familyId: newPersonData.familyId,
       firstName: newPersonData.firstName,
       lastName: newPersonData.lastName ?? "",
@@ -85,7 +87,6 @@ export async function createAndLinkParent(
       contactNumber: "",
       education: "",
       occupation: "",
-      gotraId: 0,
       maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
@@ -114,6 +115,7 @@ export async function createAndLinkSpouse(
     gender?: "MALE" | "FEMALE" | "OTHER";
     dob?: string;
     societyId: number;
+    gotraId: number;
     familyId: number;
     village: string;
   },
@@ -124,6 +126,7 @@ export async function createAndLinkSpouse(
   const created = await createMember(
     {
       societyId: newPersonData.societyId,
+      gotraId: newPersonData.gotraId,
       familyId: newPersonData.familyId,
       firstName: newPersonData.firstName,
       lastName: newPersonData.lastName ?? "",
@@ -132,7 +135,6 @@ export async function createAndLinkSpouse(
       contactNumber: "",
       education: "",
       occupation: "",
-      gotraId: 0,
       maritalStatus: "MARRIED",
       currentAddress: {
         village: newPersonData.village,
@@ -162,6 +164,7 @@ export async function createAndLinkChild(
     gender?: "MALE" | "FEMALE" | "OTHER";
     dob?: string;
     societyId: number;
+    gotraId: number;
     familyId: number;
     village: string;
   },
@@ -172,6 +175,7 @@ export async function createAndLinkChild(
   const created = await createMember(
     {
       societyId: newPersonData.societyId,
+      gotraId: newPersonData.gotraId,
       familyId: newPersonData.familyId,
       firstName: newPersonData.firstName,
       lastName: newPersonData.lastName ?? "",
@@ -180,7 +184,6 @@ export async function createAndLinkChild(
       contactNumber: "",
       education: "",
       occupation: "",
-      gotraId: 0,
       maritalStatus: "SINGLE",
       currentAddress: {
         village: newPersonData.village,

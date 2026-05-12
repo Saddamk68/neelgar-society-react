@@ -221,17 +221,20 @@ function MemberSearchDialog({
 function CreatePersonForm({
   title,
   defaultVillage,
+  societyId,
   onSubmit,
   onClose,
   loading,
 }: {
   title: string;
   defaultVillage: string;
+  societyId: number;
   onSubmit: (data: {
     firstName: string;
     lastName: string;
     gender: "MALE" | "FEMALE" | "OTHER" | "";
     dob: string;
+    gotraId: number;
     village: string;
   }) => void;
   onClose: () => void;
@@ -241,8 +244,10 @@ function CreatePersonForm({
   const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
   const [dob, setDob] = useState("");
+  const [gotra, setGotra] = useState("");
   const [village, setVillage] = useState(defaultVillage);
   const [firstNameError, setFirstNameError] = useState("");
+  const [gotraError, setGotraError] = useState("");
   const [villageError, setVillageError] = useState("");
 
   function handleSubmit() {
@@ -253,6 +258,12 @@ function CreatePersonForm({
     } else {
       setFirstNameError("");
     }
+    if (!gotra.trim()) {
+      setGotraError("Gotra is required");
+      valid = false;
+    } else {
+      setGotraError("");
+    }
     if (!village.trim()) {
       setVillageError("Village is required");
       valid = false;
@@ -260,7 +271,7 @@ function CreatePersonForm({
       setVillageError("");
     }
     if (!valid) return;
-    onSubmit({ firstName, lastName, gender, dob, village });
+    onSubmit({ firstName, lastName, gender, dob, gotraId: Number(gotra), village });
   }
 
   const fieldCls = (err?: string) =>
@@ -321,6 +332,26 @@ function CreatePersonForm({
               onChange={(val) => setDob(val)}
               maxDate={new Date()}
             />
+          </div>
+
+          <div>
+            <FieldLabel required>Gotra</FieldLabel>
+            <GotraSelect
+              societyId={societyId}
+              value={gotra ? Number(gotra) : undefined}
+              onChange={(id) => {
+                if (id) {
+                  setGotra(String(id));
+                } else {
+                  setGotra("");
+                }
+                setGotraError("");
+              }}
+              hasError={!!gotraError}
+            />
+            {gotraError && (
+              <p className="text-xs text-red-500 mt-1">{gotraError}</p>
+            )}
           </div>
 
           <div>
@@ -440,6 +471,7 @@ function FamilyRelationshipsSection({
     lastName: string;
     gender: "MALE" | "FEMALE" | "OTHER" | "";
     dob: string;
+    gotraId: number;
     village: string;
   }) {
     if (!dialog || !currentMember) return;
@@ -451,6 +483,7 @@ function FamilyRelationshipsSection({
       gender: data.gender || undefined,
       dob: data.dob || undefined,
       societyId: currentMember.societyId,
+      gotraId: data.gotraId,
       familyId: currentMember.familyId,
       village: data.village,
     };
@@ -740,6 +773,7 @@ function FamilyRelationshipsSection({
                 dialog.role === "mother" ? "Create & Link Mother" :
                   "Create & Link Child"
           }
+          societyId={currentMember?.societyId ?? 0}
           defaultVillage={defaultVillage}
           onSubmit={handleCreateAndLink}
           onClose={() => setDialog(null)}
