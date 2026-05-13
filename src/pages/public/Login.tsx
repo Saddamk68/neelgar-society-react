@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ROUTES } from "../../constants/routes";
@@ -6,13 +6,23 @@ import { FEATURES } from "../../config/features";
 import type { Role } from "../../constants/roles";
 
 export default function Login() {
-  const { login, demoLogin } = useAuth();
+  const { login, demoLogin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error,    setError]    = useState<string | null>(null);
-  const [loading,  setLoading]  = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // ── Navigate to dashboard AFTER React commits isAuthenticated = true ──────
+  // This useEffect fires after render, guaranteeing the auth state is fully
+  // committed before we navigate. Calling navigate() directly inside the
+  // login() try-block can race against React's state batching.
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(ROUTES.PRIVATE.DASHBOARD, { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,9 +30,9 @@ export default function Login() {
     setLoading(true);
     try {
       await login(username, password);
-      navigate(ROUTES.PRIVATE.DASHBOARD);
+      // Do NOT call navigate() here — the useEffect above handles it
+      // once React commits isAuthenticated = true
     } catch (err: any) {
-      // err.message is already mapped to a readable string by errorUtils
       setError(err?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
@@ -31,7 +41,7 @@ export default function Login() {
 
   const handleDemoLogin = (role: Role) => {
     demoLogin(role);
-    navigate(ROUTES.PRIVATE.DASHBOARD);
+    // No navigate() here either — useEffect handles it
   };
 
   return (
@@ -112,7 +122,7 @@ export default function Login() {
           New accounts require admin approval before first login.
         </p>
 
-        {/* Dev-only demo login — hidden in production automatically */}
+        {/* Dev-only demo login */}
         {FEATURES.SHOW_DEMO_LOGIN && (
           <div className="mt-6 pt-4 border-t">
             <p className="text-xs text-text-muted mb-2 text-center">
