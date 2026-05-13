@@ -207,11 +207,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         // Refresh failed — user needs to log in manually
+        // Also clear any stale tokens from localStorage so the next
+        // login starts completely fresh
         if (!cancelled) {
           setIsAuthenticated(false);
           setUser(null);
           setRole("MEMBER");
           saveUser(null);
+          clearAuthToken();
         }
       } finally {
         if (!cancelled) setIsInitializing(false);
