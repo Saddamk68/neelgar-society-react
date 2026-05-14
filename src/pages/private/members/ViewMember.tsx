@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Pencil, Printer } from "lucide-react";
+import { ArrowRightLeft, Pencil, Printer, GitFork } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ViewMemberSkeleton from "@/components/skeletons/ViewMemberSkeleton";
 import { getMember } from "../../../features/members/services/memberService";
@@ -87,6 +87,13 @@ export default function ViewMember() {
               >
                 <Printer className="w-4 h-4" />
                 Print
+              </Link>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/lineage`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+              >
+                <GitFork className="w-4 h-4" />
+                Lineage
               </Link>
               <Link
                 to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
