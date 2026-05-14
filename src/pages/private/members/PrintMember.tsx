@@ -352,7 +352,7 @@ export default function PrintMember() {
                                         member={member}
                                         isHead={false}
                                     />
-                                    <FamilyConnections memberCode={member.memberCode} />
+                                    <FamilyConnections memberCode={member.memberCode} societyId={member.societyId} />
                                 </>
                             )}
 
