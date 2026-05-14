@@ -71,13 +71,6 @@ export default function ViewMember() {
         actions={
           member ? (
             <>
-              <Link
-                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
-                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </Link>
               {canReassign && member && (
                 <button
                   type="button"
@@ -88,6 +81,13 @@ export default function ViewMember() {
                   Reassign family
                 </button>
               )}
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Link>
               <Link
                 to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
                 className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"

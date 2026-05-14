@@ -123,7 +123,7 @@ export async function getDistinctClans(societyId: number): Promise<string[]> {
     return unwrap<string[]>(res);
 }
 
-// ── Reassign a person to a different family ───────────────────────────────────
+// ── Family reassignment ───────────────────────────────────────────────────────
 
 export type ReassignmentReason = "MARRIAGE" | "ADMINISTRATIVE";
 
@@ -133,6 +133,7 @@ export type FamilyReassignmentPayload = {
   reason: ReassignmentReason;
   spouseMemberCode?: string;       // only for MARRIAGE
   effectiveDate?: string;          // ISO date string e.g. "2025-04-01"
+  additionalMemberCodes?: string[];
 };
 
 export type FamilyReassignmentResult = {
