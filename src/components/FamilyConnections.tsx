@@ -9,13 +9,16 @@ import { ROUTES } from "../constants/routes";
 function RelationRow({
     label,
     member,
+    currentSocietyId,
 }: {
     label: string;
     member: Member;
+    currentSocietyId: number;
 }) {
     const navigate = useNavigate();
     const fullName = [member.firstName, member.lastName].filter(Boolean).join(" ");
     const isInSystem = !!member.familyCode;
+    const isOutsideSociety = !member.familyCode || member.societyId !== currentSocietyId;
 
     return (
         <div className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
@@ -26,7 +29,7 @@ function RelationRow({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-                {isInSystem ? (
+                {isInSystem && !isOutsideSociety ? (
                     <button
                         type="button"
                         onClick={() =>
@@ -36,6 +39,15 @@ function RelationRow({
                     >
                         {member.familyCode}
                     </button>
+                ) : isInSystem && isOutsideSociety ? (
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                            {member.familyCode}
+                        </span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200">
+                            Other society
+                        </span>
+                    </div>
                 ) : (
                     <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-400">
                         Not in system
@@ -69,8 +81,10 @@ function Section({
 
 export default function FamilyConnections({
     memberCode,
+    societyId,
 }: {
     memberCode: string;
+    societyId: number;
 }) {
     const { data, isLoading, isError } = useQuery<PersonRelationshipsResponse>({
         queryKey: ["relationships", memberCode],
@@ -105,15 +119,15 @@ export default function FamilyConnections({
             {/* Parents */}
             {(father || mother) && (
                 <Section title="Parents">
-                    {father && <RelationRow label="Father" member={father} />}
-                    {mother && <RelationRow label="Mother" member={mother} />}
+                    {father && <RelationRow label="Father" member={father} currentSocietyId={societyId} />}
+                    {mother && <RelationRow label="Mother" member={mother} currentSocietyId={societyId} />}
                 </Section>
             )}
 
             {/* Spouse */}
             {spouse && (
                 <Section title="Spouse">
-                    <RelationRow label="Spouse" member={spouse} />
+                    <RelationRow label="Spouse" member={spouse} currentSocietyId={societyId} />
                 </Section>
             )}
 
@@ -121,7 +135,7 @@ export default function FamilyConnections({
             {children && children.length > 0 && (
                 <Section title={`Children (${children.length})`}>
                     {children.map((child) => (
-                        <RelationRow key={child.memberCode} label="Child" member={child} />
+                        <RelationRow key={child.memberCode} label="Child" member={child} currentSocietyId={societyId} />
                     ))}
                 </Section>
             )}
@@ -130,7 +144,7 @@ export default function FamilyConnections({
             {siblings && siblings.length > 0 && (
                 <Section title={`Siblings (${siblings.length})`}>
                     {siblings.map((sib) => (
-                        <RelationRow key={sib.memberCode} label="Sibling" member={sib} />
+                        <RelationRow key={sib.memberCode} label="Sibling" member={sib} currentSocietyId={societyId} />
                     ))}
                 </Section>
             )}
