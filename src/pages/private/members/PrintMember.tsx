@@ -7,6 +7,7 @@ import { getFamilyMembers, getFamily } from "../../../features/members/services/
 import { Member } from "../../../features/members/types";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "../../../components/MemberAvatar";
+import FamilyConnections from "@/components/FamilyConnections";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -351,6 +352,7 @@ export default function PrintMember() {
                                         member={member}
                                         isHead={false}
                                     />
+                                    <FamilyConnections memberCode={member.memberCode} societyId={member.societyId} />
                                 </>
                             )}
 

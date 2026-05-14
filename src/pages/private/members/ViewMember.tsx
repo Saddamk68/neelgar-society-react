@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Printer } from "lucide-react";
+import { ArrowRightLeft, Pencil, Printer } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ViewMemberSkeleton from "@/components/skeletons/ViewMemberSkeleton";
 import { getMember } from "../../../features/members/services/memberService";
@@ -9,6 +9,8 @@ import { Member } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "@/components/MemberAvatar";
+import { useAuth } from "@/context/AuthContext";
+import ReassignFamilyDialog from "@/components/ReassignFamilyDialog";
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -39,6 +41,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ViewMember() {
   const { memberCode } = useParams<{ memberCode: string }>();
   const notify = useNotify();
+  const { role } = useAuth();
+  const [showReassign, setShowReassign] = useState(false);
+  const canReassign = ["SUPER_ADMIN", "ADMIN", "PRESIDENT"].includes(role);
 
   const { data: member, isLoading, isError, refetch } = useQuery<Member>({
     queryKey: ["member", memberCode],
@@ -57,36 +62,46 @@ export default function ViewMember() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-  <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4 max-w-3xl mx-auto">
 
-    <PageHeader
-      title="Member Details"
-      subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
-      backTo={ROUTES.PRIVATE.MEMBERS}
-      actions={
-        member ? (
-          <>
-            <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
-              className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-            >
-              <Printer className="w-4 h-4" />
-              Print
-            </Link>
-            <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
-              className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
-            >
-              <Pencil className="w-4 h-4" />
-              Edit
-            </Link>
-          </>
-        ) : undefined
-      }
-    />
+      <PageHeader
+        title="Member Details"
+        subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
+        backTo={ROUTES.PRIVATE.MEMBERS}
+        actions={
+          member ? (
+            <>
+              {canReassign && member && (
+                <button
+                  type="button"
+                  onClick={() => setShowReassign(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                >
+                  <ArrowRightLeft className="w-4 h-4" />
+                  Reassign family
+                </button>
+              )}
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Link>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
+                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </Link>
+            </>
+          ) : undefined
+        }
+      />
 
-    {/* Loading */}
-    {isLoading && <ViewMemberSkeleton />}
+      {/* Loading */}
+      {isLoading && <ViewMemberSkeleton />}
 
       {/* Error */}
       {isError && (
@@ -203,6 +218,14 @@ export default function ViewMember() {
 
         </div>
       )}
+
+      {showReassign && member && (
+        <ReassignFamilyDialog
+          member={member}
+          onClose={() => setShowReassign(false)}
+        />
+      )}
+
     </div>
   );
 }
