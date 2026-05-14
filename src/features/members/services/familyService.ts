@@ -122,3 +122,34 @@ export async function getDistinctClans(societyId: number): Promise<string[]> {
     });
     return unwrap<string[]>(res);
 }
+
+// ── Family reassignment ───────────────────────────────────────────────────────
+
+export type ReassignmentReason = "MARRIAGE" | "ADMINISTRATIVE";
+
+export type FamilyReassignmentPayload = {
+  personMemberCode: string;
+  targetFamilyCode?: string;       // omit to create a new family
+  reason: ReassignmentReason;
+  spouseMemberCode?: string;       // only for MARRIAGE
+  effectiveDate?: string;          // ISO date string e.g. "2025-04-01"
+  additionalMemberCodes?: string[];
+};
+
+export type FamilyReassignmentResult = {
+  person: import("../types").Member;
+  sourceFamily: import("../types").Family | null;
+  targetFamily: import("../types").Family;
+};
+
+export async function reassignFamily(
+  payload: FamilyReassignmentPayload,
+  updatedBy: string
+): Promise<FamilyReassignmentResult> {
+  const res = await api.post(
+    ENDPOINTS.families.reassign(),
+    payload,
+    { headers: { "X-Created-By": updatedBy } }
+  );
+  return unwrap<FamilyReassignmentResult>(res);
+}
