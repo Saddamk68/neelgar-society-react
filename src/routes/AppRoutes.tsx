@@ -22,6 +22,7 @@ import Families from "@/pages/private/Families";
 import ViewFamily from "@/pages/private/families/ViewFamily";
 import PrintFamily from "@/pages/private/families/PrintFamily";
 import EditFamily from "@/pages/private/families/EditFamily";
+import LineageView from "@/pages/private/members/LineageView";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -68,6 +69,7 @@ export default function AppRoutes() {
           <Route path="members/:memberCode/edit" element={<EditMember />} />
           <Route path="members/:memberCode/view" element={<ViewMember />} />
           <Route path="members/:memberCode/print" element={<PrintMember />} />
+          <Route path="members/:memberCode/lineage" element={<LineageView />} />
           <Route path="members/import" element={<ImportMembers />} />
           <Route path="families" element={<Families />} />
           <Route path="families/:familyCode/edit" element={<EditFamily />} />
