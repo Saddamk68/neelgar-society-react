@@ -8,6 +8,8 @@ import {
     MiniMap,
     Panel,
     useReactFlow,
+    Handle,
+    Position,
     type Node,
     type Edge,
     type NodeProps,
@@ -23,13 +25,16 @@ import { ROUTES } from "../../../constants/routes";
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
-const NODE_W = 160;
-const NODE_H = 152;
-const SPOUSE_W = 160;
-const SPOUSE_GAP = 44;
-const H_SEP = 40;
-const V_SEP = 80;
-const PAD = 60;
+const NODE_W = 190;
+const NODE_H = 210;
+const SPOUSE_W = 190;
+const SPOUSE_GAP = 60;
+
+// IMPORTANT:
+// Large spacing prevents collisions.
+const H_SEP = 140;
+const V_SEP = 180;
+const PAD = 120;
 
 function slotW(hasSpouse: boolean) {
     return hasSpouse ? NODE_W + SPOUSE_GAP + SPOUSE_W : NODE_W;
@@ -41,6 +46,7 @@ type MemberNodeData = {
     member: Member;
     spouse: Member | null;
     isFocal: boolean;
+    generationLevel: number;
     focalFamilyCode: string;
     onNavigate: (memberCode: string) => void;
 } & Record<string, unknown>;
@@ -52,12 +58,14 @@ function MemberCard({
     isFocal,
     isSpouse,
     focalFamilyCode,
+    generationLevel,
     onClick,
 }: {
     member: Member;
     isFocal?: boolean;
     isSpouse?: boolean;
     focalFamilyCode: string;
+    generationLevel: number;
     onClick: () => void;
 }) {
     const fullName = [member.firstName, member.lastName].filter(Boolean).join(" ");
@@ -90,11 +98,18 @@ function MemberCard({
                 hasPhoto={member.hasPhoto ?? false}
                 size="sm"
             />
-            <div className="mt-1.5 text-xs font-semibold text-slate-800 leading-tight line-clamp-2 w-full">
+            <div className="mt-1.5 text-sm font-semibold text-slate-800 leading-tight line-clamp-3 w-full">
                 {fullName}
             </div>
             <div className="text-xs font-mono text-slate-400 mt-0.5 truncate w-full">
                 {member.memberCode}
+            </div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mt-1">
+                {generationLevel === 0
+                    ? "Focal Generation"
+                    : generationLevel > 0
+                        ? `Generation +${generationLevel}`
+                        : `Generation ${generationLevel}`}
             </div>
             {member.familyCode && (
                 <div className={[
@@ -115,15 +130,66 @@ function MemberCard({
 // ── @xyflow custom node ───────────────────────────────────────────────────────
 
 function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
-    const { member, spouse, isFocal, focalFamilyCode, onNavigate } = data;
+
+    const {
+        member,
+        spouse,
+        isFocal,
+        focalFamilyCode,
+        onNavigate,
+    } = data;
+
+    // total width of couple block
+    const totalWidth = spouse
+        ? NODE_W + SPOUSE_GAP + SPOUSE_W
+        : NODE_W;
+
+    // exact center of relationship
+    const relationshipCenterX = spouse
+        ? NODE_W + (SPOUSE_GAP / 2)
+        : NODE_W / 2;
+
     return (
-        <div className="flex items-center" style={{ gap: spouse ? SPOUSE_GAP : 0 }}>
+        <div
+            className="relative flex items-center"
+            style={{
+                gap: spouse ? SPOUSE_GAP : 0,
+                width: totalWidth,
+            }}
+        >
+
+            {/* ───────────────────────────────────── */}
+            {/* TOP RELATIONSHIP HANDLE */}
+            {/* ───────────────────────────────────── */}
+
+            <Handle
+                type="target"
+                position={Position.Top}
+                id="top"
+                style={{
+                    left: relationshipCenterX,
+                    top: -10,
+                    transform: "translateX(-50%)",
+                    opacity: 0,
+                }}
+            />
+
+            {/* ───────────────────────────────────── */}
+            {/* MAIN MEMBER */}
+            {/* ───────────────────────────────────── */}
+
             <MemberCard
                 member={member}
                 isFocal={isFocal}
+                generationLevel={data.generationLevel}
                 focalFamilyCode={focalFamilyCode}
                 onClick={() => onNavigate(member.memberCode)}
             />
+
+            {/* ───────────────────────────────────── */}
+            {/* SPOUSE */}
+            {/* ───────────────────────────────────── */}
+
             {spouse && (
                 <>
                     <svg
@@ -133,27 +199,51 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                         style={{ overflow: "visible" }}
                     >
                         <line
-                            x1={0} y1={NODE_H / 2}
-                            x2={SPOUSE_GAP} y2={NODE_H / 2}
+                            x1={0}
+                            y1={95}
+                            x2={SPOUSE_GAP}
+                            y2={95}
                             stroke="#f9a8d4"
                             strokeWidth={2}
                             strokeDasharray="4 3"
                         />
+
                         <text
-                            x={SPOUSE_GAP / 2} y={NODE_H / 2 + 5}
+                            x={SPOUSE_GAP / 2}
+                            y={NODE_H / 2 + 5}
                             textAnchor="middle"
                             fontSize={11}
                             fill="#f472b6"
-                        >♥</text>
+                        >
+                            ♥
+                        </text>
                     </svg>
+
                     <MemberCard
                         member={spouse}
                         isSpouse
+                        generationLevel={data.generationLevel}
                         focalFamilyCode={focalFamilyCode}
                         onClick={() => onNavigate(spouse.memberCode)}
                     />
                 </>
             )}
+
+            {/* ───────────────────────────────────── */}
+            {/* BOTTOM RELATIONSHIP HANDLE */}
+            {/* ───────────────────────────────────── */}
+
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                id="bottom"
+                style={{
+                    left: relationshipCenterX,
+                    bottom: -10,
+                    transform: "translateX(-50%)",
+                    opacity: 0,
+                }}
+            />
         </div>
     );
 }
@@ -162,7 +252,13 @@ const nodeTypes = { member: MemberNode };
 
 // ── Graph builder types ───────────────────────────────────────────────────────
 
-type GNode = { id: string; member: Member; spouse: Member | null; isFocal: boolean };
+type GNode = {
+    id: string;
+    member: Member;
+    spouse: Member | null;
+    isFocal: boolean;
+    generationLevel: number;
+};
 type GEdge = { from: string; to: string };
 
 const VIRTUAL_ID = "__vp__";
@@ -178,41 +274,91 @@ function buildGraph(
     const gedges: GEdge[] = [];
     const seen = new Set<string>();
 
-    function add(id: string, member: Member, spouse: Member | null, isFocal = false) {
+    function add(
+        id: string,
+        member: Member,
+        spouse: Member | null,
+        generationLevel: number,
+        isFocal = false,
+    ) {
         if (seen.has(id)) return;
+
         seen.add(id);
-        gnodes.push({ id, member, spouse, isFocal });
+
+        gnodes.push({
+            id,
+            member,
+            spouse,
+            isFocal,
+            generationLevel,
+        });
     }
 
-    add(focal.memberCode, focal, focalSpouse, true);
-    for (const sib of siblings) add(`sib-${sib.memberCode}`, sib, null);
+    add(focal.memberCode, focal, focalSpouse, 0, true);
+    for (const sib of siblings) {
+        add(`sibling-${sib.memberCode}`, sib, null, 0);
+    }
     for (const row of ancestorRows) {
-        for (const an of row.nodes) add(an.nodeId, an.member, an.spouse);
+        for (const an of row.nodes) {
+            add(an.nodeId, an.member, an.spouse, row.generation);
+        }
     }
 
     if (ancestorRows.length > 0) {
         for (const p of ancestorRows[0].nodes) {
             gedges.push({ from: p.nodeId, to: focal.memberCode });
-            for (const sib of siblings) gedges.push({ from: p.nodeId, to: `sib-${sib.memberCode}` });
+            for (const sib of siblings) gedges.push({ from: p.nodeId, to: `sibling-${sib.memberCode}` });
         }
         for (let ri = 1; ri < ancestorRows.length; ri++) {
-            for (const gp of ancestorRows[ri].nodes) {
-                for (const p of ancestorRows[ri - 1].nodes) {
-                    gedges.push({ from: gp.nodeId, to: p.nodeId });
+            const currentRow = ancestorRows[ri];
+            const previousRow = ancestorRows[ri - 1];
+
+            for (const parentNode of previousRow.nodes) {
+                const parentCode = parentNode.nodeId;
+
+                for (const ancestorNode of currentRow.nodes) {
+                    const parentRels = ancestorNode.parentNodeIds ?? [];
+
+                    if (parentRels.includes(parentCode)) {
+                        gedges.push({
+                            from: ancestorNode.nodeId,
+                            to: parentNode.nodeId,
+                        });
+                    }
                 }
             }
         }
     } else if (siblings.length > 0) {
-        gnodes.push({ id: VIRTUAL_ID, member: focal, spouse: null, isFocal: false });
+        gnodes.push({ id: VIRTUAL_ID, member: focal, spouse: null, isFocal: false, generationLevel: -999, });
         gedges.push({ from: VIRTUAL_ID, to: focal.memberCode });
-        for (const sib of siblings) gedges.push({ from: VIRTUAL_ID, to: `sib-${sib.memberCode}` });
+        for (const sib of siblings) gedges.push({ from: VIRTUAL_ID, to: `sibling-${sib.memberCode}` });
     }
 
-    function addDesc(parentId: string, nodes: DescendantNode[]) {
+    function addDesc(
+        parentId: string,
+        nodes: DescendantNode[],
+        generationLevel = 1,
+    ) {
         for (const d of nodes) {
-            add(d.nodeId, d.member, d.spouse);
-            gedges.push({ from: parentId, to: d.nodeId });
-            if (d.children.length) addDesc(d.nodeId, d.children);
+            add(
+                d.nodeId,
+                d.member,
+                d.spouse,
+                generationLevel,
+            );
+
+            gedges.push({
+                from: parentId,
+                to: d.nodeId,
+            });
+
+            if (d.children.length) {
+                addDesc(
+                    d.nodeId,
+                    d.children,
+                    generationLevel + 1,
+                );
+            }
         }
     }
     addDesc(focal.memberCode, descendants);
@@ -227,7 +373,7 @@ function buildFlow(
     onNavigate: (code: string) => void,
 ): { nodes: Node<MemberNodeData>[]; edges: Edge[] } {
     const g = new dagre.graphlib.Graph();
-    g.setGraph({ rankdir: "TB", ranksep: V_SEP, nodesep: H_SEP, marginx: PAD, marginy: PAD });
+    g.setGraph({ rankdir: "TB", ranksep: V_SEP, nodesep: H_SEP, edgesep: 80, marginx: PAD, marginy: PAD, ranker: "network-simplex", });
     g.setDefaultEdgeLabel(() => ({}));
 
     for (const n of gnodes) g.setNode(n.id, { width: slotW(!!n.spouse), height: NODE_H });
@@ -246,9 +392,14 @@ function buildFlow(
                     x: pos.x - slotW(!!n.spouse) / 2,
                     y: pos.y - NODE_H / 2,
                 },
-                data: { member: n.member, spouse: n.spouse, isFocal: n.isFocal, focalFamilyCode, onNavigate },
-                width: slotW(!!n.spouse),
-                height: NODE_H,
+                data: {
+                    member: n.member,
+                    spouse: n.spouse,
+                    isFocal: n.isFocal,
+                    generationLevel: n.generationLevel,
+                    focalFamilyCode,
+                    onNavigate,
+                },
                 draggable: false,
                 selectable: false,
                 focusable: false,
@@ -261,29 +412,19 @@ function buildFlow(
             id: `e-${i}`,
             source: e.from,
             target: e.to,
+
+            sourceHandle: "bottom",
+            targetHandle: "top",
             type: "smoothstep",
-            style: { stroke: "#cbd5e1", strokeWidth: 1.5 },
+            style: {
+                stroke: "#475569",
+                strokeWidth: 2.5,
+            },
+            zIndex: 1,
+            animated: false,
         }));
 
     return { nodes, edges };
-}
-
-// ── Depth selector ────────────────────────────────────────────────────────────
-
-function DepthSelector({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-    return (
-        <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs text-slate-400 mr-1">Gen</span>
-            {[1, 2, 3, 4].map((n) => (
-                <button key={n} type="button" onClick={() => onChange(n)}
-                    className={[
-                        "w-7 h-7 rounded-full text-xs font-semibold transition",
-                        value === n ? "bg-primary text-white shadow" : "bg-slate-100 text-slate-500 hover:bg-slate-200",
-                    ].join(" ")}
-                >{n}</button>
-            ))}
-        </div>
-    );
 }
 
 // ── Legend ────────────────────────────────────────────────────────────────────
@@ -316,8 +457,6 @@ function LineageFlowInner({
     descendants,
     siblings,
     isLoading,
-    depth,
-    setDepth,
 }: {
     memberCode: string | undefined;
     focal: Member | null;
@@ -326,8 +465,6 @@ function LineageFlowInner({
     descendants: DescendantNode[];
     siblings: Member[];
     isLoading: boolean;
-    depth: number;
-    setDepth: (n: number) => void;
 }) {
     const navigate = useNavigate();
     const { fitView } = useReactFlow();
@@ -353,14 +490,8 @@ function LineageFlowInner({
         ancestorRows,
         descendants,
         siblings,
-        depth,
         onNavigate,
     ]);
-
-    const handleDepthChange = useCallback((n: number) => {
-        setDepth(n);
-        setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 300);
-    }, [setDepth, fitView]);
 
     return (
         <div className="flex flex-col" style={{ height: "calc(100vh - 64px - 40px - 32px)" }}>
@@ -389,7 +520,6 @@ function LineageFlowInner({
 
                 <div className="flex items-center gap-3 flex-wrap justify-end">
                     <Legend />
-                    <DepthSelector value={depth} onChange={handleDepthChange} />
                 </div>
             </div>
 
@@ -419,12 +549,18 @@ function LineageFlowInner({
 
                 {!isLoading && hasContent && focal && (
                     <ReactFlow
+                        defaultEdgeOptions={{
+                            zIndex: 1,
+                        }}
                         nodes={nodes}
                         edges={edges}
                         nodeTypes={nodeTypes}
                         fitView
-                        fitViewOptions={{ padding: 0.15 }}
-                        minZoom={0.05}
+                        fitViewOptions={{
+                            padding: 0.3,
+                            includeHiddenNodes: true,
+                        }}
+                        minZoom={0.01}
                         maxZoom={2}
                         nodesDraggable={false}
                         nodesConnectable={false}
@@ -468,7 +604,7 @@ function LineageFlowInner({
 
 export default function LineageView() {
     const { memberCode } = useParams<{ memberCode: string }>();
-    const [depth, setDepth] = useState(3);
+    const depth = 10;
 
     const { focal, focalSpouse, ancestorRows, descendants, siblings, isLoading } =
         useLineageTree(memberCode ?? "", depth);
@@ -483,8 +619,6 @@ export default function LineageView() {
                 descendants={descendants}
                 siblings={siblings}
                 isLoading={isLoading}
-                depth={depth}
-                setDepth={setDepth}
             />
         </ReactFlowProvider>
     );
