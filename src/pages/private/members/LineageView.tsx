@@ -297,7 +297,7 @@ function NodeCard({
 function DepthSelector({ value, onChange }: { value: number; onChange: (n: number) => void }) {
     return (
         <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs text-slate-400 mr-1">Depth</span>
+            <span className="text-xs text-slate-400 mr-1">Gen</span>
             {[1, 2, 3, 4].map((n) => (
                 <button key={n} type="button" onClick={() => onChange(n)}
                     className={[
@@ -421,10 +421,9 @@ export default function LineageView() {
 
                 {!isLoading && hasContent && focal && (
                     /* Centering wrapper */
-                    <div className="flex justify-center min-w-full">
-                        {/* Dagre canvas — position:relative, nodes absolutely placed */}
+                    <div style={{ minWidth: canvasW, padding: "0 48px" }}>
                         <div
-                            className="relative shrink-0"
+                            className="relative mx-auto"
                             style={{ width: canvasW, height: canvasH }}
                         >
                             {/* SVG connector layer */}
