@@ -421,10 +421,15 @@ export default function LineageView() {
 
                 {!isLoading && hasContent && focal && (
                     /* Centering wrapper */
-                    <div style={{ minWidth: canvasW, padding: "0 48px" }}>
+                    <div style={{ minWidth: canvasW + 96, paddingBottom: 48 }}>
                         <div
-                            className="relative mx-auto"
-                            style={{ width: canvasW, height: canvasH }}
+                            className="relative"
+                            style={{
+                                width: canvasW,
+                                height: canvasH,
+                                marginLeft: "auto",
+                                marginRight: "auto",
+                            }}
                         >
                             {/* SVG connector layer */}
                             <svg
