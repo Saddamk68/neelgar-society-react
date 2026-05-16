@@ -26,7 +26,7 @@ import { ROUTES } from "../../../constants/routes";
 // ── Layout constants ──────────────────────────────────────────────────────────
 
 const NODE_W = 190;
-const NODE_H = 210;
+const NODE_H = 180;
 const SPOUSE_W = 190;
 const SPOUSE_GAP = 60;
 
@@ -91,38 +91,40 @@ function MemberCard({
                 border, bg,
             ].join(" ")}
         >
-            <MemberAvatar
-                memberCode={member.memberCode}
-                firstName={member.firstName}
-                lastName={member.lastName}
-                hasPhoto={member.hasPhoto ?? false}
-                size="sm"
-            />
-            <div className="mt-1.5 text-sm font-semibold text-slate-800 leading-tight line-clamp-3 w-full">
-                {fullName}
-            </div>
-            <div className="text-xs font-mono text-slate-400 mt-0.5 truncate w-full">
-                {member.memberCode}
-            </div>
-            <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mt-1">
-                {generationLevel === 0
-                    ? "Focal Generation"
-                    : generationLevel > 0
-                        ? `Generation +${generationLevel}`
-                        : `Generation ${generationLevel}`}
-            </div>
-            {member.familyCode && (
-                <div className={[
-                    "text-xs mt-1 px-1.5 py-0.5 rounded font-mono truncate w-full",
-                    isSameFamily ? "bg-slate-100 text-slate-500"
-                        : isSpouse ? "bg-pink-100 text-pink-700"
-                            : "bg-amber-100 text-amber-700",
-                ].join(" ")}>
-                    {member.familyCode}
+            <div className="flex flex-col items-center w-full pt-1">
+                <MemberAvatar
+                    memberCode={member.memberCode}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    hasPhoto={member.hasPhoto ?? false}
+                    size="sm"
+                />
+                <div className="mt-1.5 text-sm font-semibold text-slate-800 leading-tight line-clamp-3 w-full">
+                    {fullName}
                 </div>
-            )}
-            {isSpouse && <div className="text-xs mt-0.5 text-pink-500 font-medium">Spouse</div>}
-            {isFocal && <div className="text-xs mt-0.5 text-blue-600 font-medium">● You are here</div>}
+                <div className="text-xs font-mono text-slate-400 mt-0.5 truncate w-full">
+                    {member.memberCode}
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mt-1">
+                    {generationLevel === 0
+                        ? "Focal Generation"
+                        : generationLevel > 0
+                            ? `Generation +${generationLevel}`
+                            : `Generation ${generationLevel}`}
+                </div>
+                {member.familyCode && (
+                    <div className={[
+                        "text-xs mt-1 px-1.5 py-0.5 rounded font-mono truncate w-full",
+                        isSameFamily ? "bg-slate-100 text-slate-500"
+                            : isSpouse ? "bg-pink-100 text-pink-700"
+                                : "bg-amber-100 text-amber-700",
+                    ].join(" ")}>
+                        {member.familyCode}
+                    </div>
+                )}
+                {isSpouse && <div className="text-xs mt-0.5 text-pink-500 font-medium">Spouse</div>}
+                {isFocal && <div className="text-xs mt-0.5 text-blue-600 font-medium">● You are here</div>}
+            </div>
         </button>
     );
 }
@@ -299,7 +301,7 @@ function buildGraph(
     }
     for (const row of ancestorRows) {
         for (const an of row.nodes) {
-            add(an.nodeId, an.member, an.spouse, row.generation);
+            add(an.nodeId, an.member, an.spouse, -row.generation);
         }
     }
 
