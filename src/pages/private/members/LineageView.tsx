@@ -389,10 +389,17 @@ function buildFlow(
             return {
                 id: n.id,
                 type: "member",
+
                 position: {
                     x: pos.x - slotW(!!n.spouse) / 2,
                     y: pos.y - NODE_H / 2,
                 },
+
+                // IMPORTANT:
+                // MiniMap requires explicit dimensions
+                width: slotW(!!n.spouse),
+                height: NODE_H,
+
                 data: {
                     member: n.member,
                     spouse: n.spouse,
