@@ -85,7 +85,7 @@ function MemberCard({
             title={`View lineage — ${fullName}`}
             style={{ width: NODE_W, height: NODE_H }}
             className={[
-                "flex flex-col items-center p-2.5 rounded-xl border-2 transition shrink-0",
+                "flex flex-col items-center pt-3 pb-2 px-2.5 rounded-xl border-2 transition shrink-0",
                 "text-center hover:shadow-lg hover:scale-[1.02]",
                 "focus:outline-none focus:ring-2 focus:ring-blue-300",
                 border, bg,
@@ -144,10 +144,9 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
         ? NODE_W + SPOUSE_GAP + SPOUSE_W
         : NODE_W;
 
-    // exact center of relationship
-    const relationshipCenterX = spouse
-        ? NODE_W + (SPOUSE_GAP / 2)
-        : NODE_W / 2;
+    // source exits from couple midpoint; target always arrives at main member center
+    const sourceCenterX = spouse ? NODE_W + (SPOUSE_GAP / 2) : NODE_W / 2;
+    const targetCenterX = NODE_W / 2;
 
     return (
         <div
@@ -167,7 +166,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                 position={Position.Top}
                 id="top"
                 style={{
-                    left: relationshipCenterX,
+                    left: targetCenterX,
                     top: 0,
                     transform: "translateX(-50%)",
                     opacity: 0,
@@ -238,7 +237,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                 position={Position.Bottom}
                 id="bottom"
                 style={{
-                    left: relationshipCenterX,
+                    left: sourceCenterX,
                     bottom: 0,
                     transform: "translateX(-50%)",
                     opacity: 0,
