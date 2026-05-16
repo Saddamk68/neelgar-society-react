@@ -52,42 +52,102 @@ function buildAncestorRows(
     relMap: Map<string, PersonRelationshipsResponse>,
     depth: number
 ): AncestorRow[] {
+
     const rows: AncestorRow[] = [];
-    // Each generation is a list of member codes from the previous row
-    let currentGenCodes: string[] = [focalCode];
+
+    // generation tracking
+    let currentGeneration: {
+        memberCode: string;
+        nodeId: string;
+    }[] = [
+            {
+                memberCode: focalCode,
+                nodeId: focalCode,
+            },
+        ];
 
     for (let gen = 1; gen <= depth; gen++) {
+
         const nodes: AncestorNode[] = [];
 
-        for (const childCode of currentGenCodes) {
-            const rels = relMap.get(childCode);
+        const nextGeneration: {
+            memberCode: string;
+            nodeId: string;
+        }[] = [];
+
+        for (const childRef of currentGeneration) {
+
+            const rels = relMap.get(childRef.memberCode);
+
             if (!rels) continue;
 
+            // ─────────────────────────────────────────────
+            // Father
+            // ─────────────────────────────────────────────
+
             if (rels.father) {
-                const m = rels.father;
-                const spouseRels = relMap.get(m.memberCode);
+
+                const father = rels.father;
+
+                const spouseRels = relMap.get(father.memberCode);
+
+                const fatherNodeId = `${father.memberCode}-anc-${gen}`;
+
                 nodes.push({
-                    member: m,
+                    member: father,
                     spouse: spouseRels?.spouse ?? rels.mother ?? null,
-                    parentNodeIds: [],
-                    nodeId: `${m.memberCode}-anc-${gen}`,
+
+                    // IMPORTANT:
+                    // connect to EXACT nodeId below
+                    parentNodeIds: [childRef.nodeId],
+
+                    nodeId: fatherNodeId,
+                });
+
+                nextGeneration.push({
+                    memberCode: father.memberCode,
+                    nodeId: fatherNodeId,
                 });
             }
+
+            // ─────────────────────────────────────────────
+            // Mother standalone
+            // ─────────────────────────────────────────────
+
             if (rels.mother && !rels.father) {
-                // Only add mother as standalone if no father (father already paired above)
-                const m = rels.mother;
+
+                const mother = rels.mother;
+
+                const motherNodeId = `${mother.memberCode}-anc-${gen}`;
+
                 nodes.push({
-                    member: m,
+                    member: mother,
                     spouse: null,
-                    parentNodeIds: [],
-                    nodeId: `${m.memberCode}-anc-${gen}`,
+
+                    // IMPORTANT:
+                    // connect to EXACT nodeId below
+                    parentNodeIds: [childRef.nodeId],
+
+                    nodeId: motherNodeId,
+                });
+
+                nextGeneration.push({
+                    memberCode: mother.memberCode,
+                    nodeId: motherNodeId,
                 });
             }
         }
 
-        if (nodes.length === 0) break;
-        rows.push({ generation: gen, nodes });
-        currentGenCodes = nodes.map((n) => n.member.memberCode);
+        if (nodes.length === 0) {
+            break;
+        }
+
+        rows.push({
+            generation: gen,
+            nodes,
+        });
+
+        currentGeneration = nextGeneration;
     }
 
     return rows;
