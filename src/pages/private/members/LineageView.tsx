@@ -153,7 +153,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
         <div
             className="relative flex items-center"
             style={{
-                gap: spouse ? SPOUSE_GAP : 0,
+                gap: 0,
                 width: totalWidth,
             }}
         >
@@ -168,7 +168,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                 id="top"
                 style={{
                     left: relationshipCenterX,
-                    top: -10,
+                    top: 0,
                     transform: "translateX(-50%)",
                     opacity: 0,
                 }}
@@ -205,7 +205,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                             y2={95}
                             stroke="#f9a8d4"
                             strokeWidth={2}
-                            strokeDasharray="4 3"
+                            strokeDasharray="5 3"
                         />
 
                         <text
@@ -239,7 +239,7 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                 id="bottom"
                 style={{
                     left: relationshipCenterX,
-                    bottom: -10,
+                    bottom: 0,
                     transform: "translateX(-50%)",
                     opacity: 0,
                 }}
@@ -417,8 +417,8 @@ function buildFlow(
             targetHandle: "top",
             type: "smoothstep",
             style: {
-                stroke: "#475569",
-                strokeWidth: 2.5,
+                stroke: "#3b82f6",
+                strokeWidth: 2,
             },
             zIndex: 1,
             animated: false,
@@ -573,7 +573,7 @@ function LineageFlowInner({
                     >
                         <Background
                             variant={BackgroundVariant.Dots}
-                            gap={20}
+                            gap={24}
                             size={1}
                             color="#e2e8f0"
                         />
