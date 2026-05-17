@@ -64,6 +64,7 @@ import {
   createAndLinkParent,
   createAndLinkSpouse,
   createAndLinkChild,
+  endRelationship,
 } from "@/features/members/services/relationshipService";
 import { Member, PersonRelationshipsResponse } from "../../../features/members/types";
 import { useAuth } from "../../../context/AuthContext";
@@ -417,6 +418,14 @@ function FamilyRelationshipsSection({
     mode: "search" | "create";
   } | null>(null);
 
+  const [endMarriageDialog, setEndMarriageDialog] = useState<{
+    relationshipId: number;
+    spouseName: string;
+  } | null>(null);
+  const [endDate, setEndDate] = useState("");
+  const [endReason, setEndReason] = useState("");
+  const [endingMarriage, setEndingMarriage] = useState(false);
+
   async function reload() {
     const updated = await getPersonRelationships(memberCode);
     setRelationships(updated);
@@ -513,6 +522,23 @@ function FamilyRelationshipsSection({
     }
   }
 
+  async function handleEndMarriage() {
+    if (!endMarriageDialog || !endDate || !endReason) return;
+    setEndingMarriage(true);
+    try {
+      await endRelationship(endMarriageDialog.relationshipId, endDate, endReason, currentUsername);
+      notify.success("Marriage ended successfully.");
+      setEndMarriageDialog(null);
+      setEndDate("");
+      setEndReason("");
+      await reload();
+    } catch (err: any) {
+      notify.error(err.message || "Failed to end marriage.");
+    } finally {
+      setEndingMarriage(false);
+    }
+  }
+
   // ── Relation card ─────────────────────────────────────────────────────────
 
   function RelationCard({
@@ -590,40 +616,61 @@ function FamilyRelationshipsSection({
 
         <div className="space-y-2">
           {/* Spouse */}
-          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-            <div>
-              <p className="text-xs text-slate-400 mb-0.5">Spouse</p>
-              {relationships?.spouse ? (
-                <p className="text-sm font-medium text-slate-700">
-                  {relationships.spouse.firstName} {relationships.spouse.lastName ?? ""}
-                  <span className="ml-2 text-xs text-slate-400">{relationships.spouse.memberCode}</span>
-                </p>
-              ) : (
-                <p className="text-sm text-slate-400 italic">Not linked</p>
-              )}
-            </div>
-            {!relationships?.spouse && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDialog({ role: "spouse", mode: "search" })}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
-                >
-                  <Search className="w-3 h-3" />
-                  Link existing
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDialog({ role: "spouse", mode: "create" })}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
-                >
-                  <UserPlus className="w-3 h-3" />
-                  Create new
-                </button>
+          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <p className="text-xs text-slate-400 mb-1">Spouse(s)</p>
+            {relationships?.spouses && relationships.spouses.length > 0 ? (
+              <div className="space-y-2">
+                {relationships.spouses.map((s) => (
+                  <div key={s.person.memberCode} className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium text-slate-700">
+                        {s.person.firstName} {s.person.lastName ?? ""}
+                      </span>
+                      <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                      {s.startDate && (
+                        <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
+                      )}
+                      {!s.isCurrent && s.endReason && (
+                        <span className="ml-2 text-xs text-slate-400 italic">
+                          ({s.endReason.replace(/_/g, " ").toLowerCase()})
+                        </span>
+                      )}
+                      {!s.isCurrent && (
+                        <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
+                      )}
+                    </div>
+                    {s.isCurrent && (
+                      <button
+                        type="button"
+                        onClick={() => setEndMarriageDialog({
+                          relationshipId: s.relationshipId ?? 0,
+                          spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
+                        })}
+                        disabled={actionLoading}
+                        className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
+                      >
+                        End marriage
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Not linked</p>
             )}
+            {/* Always allow adding a new wife */}
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "search" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50">
+                <Search className="w-3 h-3" />Link existing
+              </button>
+              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "create" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                <UserPlus className="w-3 h-3" />Create new
+              </button>
+            </div>
           </div>
 
           {/* Father */}
@@ -779,6 +826,54 @@ function FamilyRelationshipsSection({
           onClose={() => setDialog(null)}
           loading={actionLoading}
         />
+      )}
+
+      {/* End marriage modal */}
+      {endMarriageDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-800">End Marriage</h3>
+              <button type="button" onClick={() => setEndMarriageDialog(null)}
+                className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              Ending marriage with <span className="font-medium text-slate-700">{endMarriageDialog.spouseName}</span>
+            </p>
+            <div className="space-y-3">
+              <div>
+                <FieldLabel required>End Date</FieldLabel>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div>
+                <FieldLabel required>Reason</FieldLabel>
+                <select value={endReason} onChange={e => setEndReason(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+                  <option value="">Select reason…</option>
+                  <option value="DEATH_OF_SPOUSE">Death of spouse</option>
+                  <option value="DIVORCE">Divorce</option>
+                  <option value="KHULA">Khula</option>
+                  <option value="SEPARATED">Separated</option>
+                  <option value="COURT_DISPUTE">Court dispute</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button type="button" onClick={handleEndMarriage}
+                disabled={endingMarriage || !endDate || !endReason}
+                className="flex-1 px-4 py-2 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-60 transition">
+                {endingMarriage ? "Saving…" : "End Marriage"}
+              </button>
+              <button type="button" onClick={() => setEndMarriageDialog(null)}
+                className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -1120,6 +1215,21 @@ export default function EditMember() {
               {errors.dob && (
                 <p className="text-xs text-red-500 mt-1">
                   {errors.dob.message}
+                </p>
+              )}
+            </div>
+
+            {/* Date of Death — custom date picker with special handling */}
+            <div>
+              <FieldLabel>Date of Death</FieldLabel>
+              <DatePicker
+                value={watch("dod") ?? ""}
+                onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
+                maxDate={new Date()}
+              />
+              {watch("dod") && (
+                <p className="text-xs text-amber-600 mt-1">
+                  This member will be marked as inactive.
                 </p>
               )}
             </div>

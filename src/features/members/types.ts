@@ -11,6 +11,7 @@ export type Member = {
   lastName?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
   dob?: string;
+  dod?: string;
   contactNumber?: string;
   education?: string;
   occupation?: string;
@@ -82,13 +83,30 @@ export type RelationshipResponse = {
   warning?: string;
 };
 
+export type MarriageEndReason =
+  | "DEATH_OF_SPOUSE"
+  | "DIVORCE"
+  | "KHULA"
+  | "SEPARATED"
+  | "COURT_DISPUTE"
+  | "OTHER";
+
+export type SpouseDetail = {
+  person: Member;
+  startDate?: string;
+  endDate?: string;
+  endReason?: MarriageEndReason;
+  isCurrent: boolean;
+  relationshipId?: number;
+};
+
 // GET /relationships/person/{memberCode} response
 export type PersonRelationshipsResponse = {
   memberCode: string;
   personName: string;
   father?: Member;
   mother?: Member;
-  spouse?: Member;
+  spouses?: SpouseDetail[];
   children?: Member[];
   siblings?: Member[];
 };

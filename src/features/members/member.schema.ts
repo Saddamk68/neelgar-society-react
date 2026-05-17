@@ -32,6 +32,7 @@ export const memberSchema = z.object({
   lastName: z.string().max(100).optional().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   dob: z.string().optional().or(z.literal("")),
+  dod: z.string().optional().or(z.literal("")),
   contactNumber: z.string().max(20).optional().or(z.literal("")),
   education: z.string().max(120).optional().or(z.literal("")),
   occupation: z.string().max(120).optional().or(z.literal("")),

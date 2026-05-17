@@ -215,3 +215,18 @@ export async function deactivateRelationship(
   );
 
 }
+// ── End a relationship (with end date and reason) ─────────────────────────────
+
+export async function endRelationship(
+  relationshipId: number,
+  endDate: string,
+  endReason: string,
+  updatedBy: string
+): Promise<RelationshipResponse> {
+  const res = await api.patch(
+    ENDPOINTS.relationships.end(relationshipId),
+    { endDate, endReason },
+    { headers: { "X-Created-By": updatedBy } }
+  );
+  return unwrap<RelationshipResponse>(res);
+}
