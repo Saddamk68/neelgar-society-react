@@ -5,12 +5,13 @@ import { ArrowRightLeft, Pencil, Printer, GitFork } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ViewMemberSkeleton from "@/components/skeletons/ViewMemberSkeleton";
 import { getMember } from "../../../features/members/services/memberService";
-import { Member } from "../../../features/members/types";
+import { Member, PersonRelationshipsResponse } from "../../../features/members/types";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "@/components/MemberAvatar";
 import { useAuth } from "@/context/AuthContext";
 import ReassignFamilyDialog from "@/components/ReassignFamilyDialog";
+import { getPersonRelationships } from "@/features/members/services/relationshipService";
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -54,6 +55,13 @@ export default function ViewMember() {
     enabled: !!memberCode,
     staleTime: 1000 * 60 * 2,
   });
+
+  const [relationships, setRelationships] = useState<PersonRelationshipsResponse | null>(null);
+
+  useEffect(() => {
+    if (!memberCode) return;
+    getPersonRelationships(memberCode).then(setRelationships).catch(() => { });
+  }, [memberCode]);
 
   useEffect(() => {
     if (isError) notify.error("Failed to load member details.");
@@ -171,6 +179,9 @@ export default function ViewMember() {
                 }
               />
               <Row label="Date of Birth" value={member.dob} />
+              {member.dod && (
+                <Row label="Date of Death" value={member.dod} />
+              )}
               <Row label="Gotra" value={member.gotraName} />
               <Row label="Contact" value={member.contactNumber} />
               <Row label="Education" value={member.education} />
@@ -220,6 +231,90 @@ export default function ViewMember() {
               <Row label="Member Code" value={member.memberCode} />
               <Row label="Created By" value={member.createdBy} />
               <Row label="Created At" value={member.createdAt} />
+            </div>
+          </Section>
+
+          <Section title="Relationships">
+            <div className="space-y-3">
+
+              {/* Spouses */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Wife / Wives</p>
+                {relationships?.spouses && relationships.spouses.length > 0 ? (
+                  <div className="space-y-2">
+                    {/* Current wives */}
+                    {relationships.spouses.filter(s => s.isCurrent).map(s => (
+                      <div key={s.person.memberCode} className="flex items-start gap-2 text-sm">
+                        <span className="text-pink-400 mt-0.5">♥</span>
+                        <div>
+                          <span className="font-medium text-slate-700">{s.person.firstName} {s.person.lastName ?? ""}</span>
+                          <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                          {s.startDate && <span className="ml-2 text-xs text-slate-400">married {s.startDate}</span>}
+                          {s.person.dod && <span className="ml-2 text-xs text-slate-400">† {s.person.dod.substring(0, 4)}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {/* Former wives */}
+                    {relationships.spouses.filter(s => !s.isCurrent).map(s => (
+                      <div key={s.person.memberCode} className="flex items-start gap-2 text-sm opacity-60">
+                        <span className="text-slate-400 mt-0.5">○</span>
+                        <div>
+                          <span className="font-medium text-slate-600">{s.person.firstName} {s.person.lastName ?? ""}</span>
+                          <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                          {s.startDate && s.endDate && (
+                            <span className="ml-2 text-xs text-slate-400">{s.startDate} – {s.endDate}</span>
+                          )}
+                          {s.endReason && (
+                            <span className="ml-2 text-xs bg-slate-100 text-slate-500 rounded px-1">
+                              {s.endReason.replace(/_/g, " ").toLowerCase()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">—</p>
+                )}
+              </div>
+
+              {/* Father */}
+              {relationships?.father && (
+                <div className="flex gap-2 text-sm">
+                  <div className="w-36 text-slate-500 shrink-0">Father</div>
+                  <div className="font-medium text-slate-800">
+                    {relationships.father.firstName} {relationships.father.lastName ?? ""}
+                    <span className="ml-2 text-xs text-slate-400">{relationships.father.memberCode}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Mother */}
+              {relationships?.mother && (
+                <div className="flex gap-2 text-sm">
+                  <div className="w-36 text-slate-500 shrink-0">Mother</div>
+                  <div className="font-medium text-slate-800">
+                    {relationships.mother.firstName} {relationships.mother.lastName ?? ""}
+                    <span className="ml-2 text-xs text-slate-400">{relationships.mother.memberCode}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Children */}
+              {relationships?.children && relationships.children.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Children</p>
+                  <div className="space-y-1">
+                    {relationships.children.map(c => (
+                      <div key={c.memberCode} className="text-sm text-slate-700">
+                        {c.firstName} {c.lastName ?? ""}
+                        <span className="ml-2 text-xs text-slate-400">{c.memberCode}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </Section>
 
