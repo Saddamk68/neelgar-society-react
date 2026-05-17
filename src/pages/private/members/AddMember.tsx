@@ -339,6 +339,21 @@ export default function AddMember() {
                   maxDate={new Date()}
                 />
               </div>
+              <div>
+                <FieldLabel>Date of Death</FieldLabel>
+                <DatePicker
+                  value={watch("dod") ?? ""}
+                  onChange={(val) =>
+                    setValue("dod", val, { shouldDirty: true })
+                  }
+                  maxDate={new Date()}
+                />
+                {watch("dod") && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    This member will be marked as inactive.
+                  </p>
+                )}
+              </div>
             </div>
 
             <button
@@ -599,6 +614,19 @@ export default function AddMember() {
                   hasError={!!errors.dob}
                   maxDate={new Date()}
                 />
+              </div>
+              <div>
+                <FieldLabel>Date of Death</FieldLabel>
+                <DatePicker
+                  value={watch("dod") ?? ""}
+                  onChange={(val) => setValue("dod", val, { shouldDirty: true })}
+                  maxDate={new Date()}
+                />
+                {watch("dod") && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    This member will be marked as inactive.
+                  </p>
+                )}
               </div>
               <div>
                 <FieldLabel>Contact Number</FieldLabel>
