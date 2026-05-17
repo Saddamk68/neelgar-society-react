@@ -438,7 +438,7 @@ function LineageFlowInner({
     const navigate = useNavigate();
 
     // Toggle OFF by default — Family view per plan
-    const [showSpouses, setShowSpouses] = useState(false);
+    const [showSpouses, setShowSpouses] = useState(true);
 
     useReactFlow();
 
