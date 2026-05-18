@@ -51,8 +51,7 @@ const PAD = 120;
 
 function slotW(spouseCount: number, showSpouses: boolean): number {
     if (!showSpouses || spouseCount === 0) return NODE_W;
-    if (spouseCount === 1) return NODE_W + SPOUSE_GAP + SPOUSE_W;
-    return NODE_W + SPOUSE_GAP + SPOUSE_W + SPOUSE_GAP + MORE_PILL_W;
+    return NODE_W + (SPOUSE_GAP + SPOUSE_W) * spouseCount;
 }
 
 // ── Node data type ────────────────────────────────────────────────────────────
@@ -169,7 +168,9 @@ function MemberCard({
                 )}
 
                 {isSpouse && spouseStyle && (
-                    <div className={`text-xs mt-0.5 font-medium ${spouseStyle.label}`}>Wife</div>
+                    <div className={`text-xs mt-0.5 font-medium ${spouseStyle.label}`}>
+                        {member.dod ? "Wife (deceased)" : !member.isActive ? "Wife (inactive)" : "Wife"}
+                    </div>
                 )}
 
                 {isFocal && (
@@ -192,10 +193,8 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
     const { member, currentSpouses, motherName, isFocal, focalFamilyCode, showSpouses, onNavigate } = data;
 
     const visibleSpouses = showSpouses ? currentSpouses : [];
-    const primarySpouse = visibleSpouses[0] ?? null;
-    const extraCount = Math.max(0, visibleSpouses.length - 1);
     const totalWidth = slotW(visibleSpouses.length, showSpouses);
-    const sourceCenterX = primarySpouse ? NODE_W + SPOUSE_GAP / 2 : NODE_W / 2;
+    const sourceCenterX = visibleSpouses.length > 0 ? NODE_W + SPOUSE_GAP / 2 : NODE_W / 2;
     const targetCenterX = NODE_W / 2;
 
     return (
@@ -212,42 +211,24 @@ function MemberNode({ data }: NodeProps<Node<MemberNodeData>>) {
                 onClick={() => onNavigate(member.memberCode)}
             />
 
-            {primarySpouse && (
-                <>
-                    <svg width={SPOUSE_GAP} height={NODE_H} className="shrink-0" style={{ overflow: "visible" }}>
+            {visibleSpouses.map((spouse, idx) => (
+                <div key={spouse.person.memberCode} className="flex items-center shrink-0">
+                    <svg width={SPOUSE_GAP} height={NODE_H} style={{ overflow: "visible" }}>
                         <line x1={0} y1={NODE_H / 2} x2={SPOUSE_GAP} y2={NODE_H / 2}
-                            stroke={spouseStyles[0].line} strokeWidth={2} strokeDasharray="5 3" />
-                        <text x={SPOUSE_GAP / 2} y={NODE_H / 2 + 5} textAnchor="middle" fontSize={11} fill={spouseStyles[0].line}>♥</text>
+                            stroke={spouseStyles[idx % spouseStyles.length].line} strokeWidth={2} strokeDasharray="5 3" />
+                        <text x={SPOUSE_GAP / 2} y={NODE_H / 2 + 5} textAnchor="middle" fontSize={11}
+                            fill={spouseStyles[idx % spouseStyles.length].line}>♥</text>
                     </svg>
-
                     <MemberCard
-                        member={primarySpouse.person}
-                        isSpouse spouseIndex={0}
+                        member={spouse.person}
+                        isSpouse
+                        spouseIndex={idx}
                         generationLevel={data.generationLevel}
                         focalFamilyCode={focalFamilyCode}
-                        onClick={() => onNavigate(primarySpouse.person.memberCode)}
+                        onClick={() => onNavigate(spouse.person.memberCode)}
                     />
-
-                    {extraCount > 0 && (
-                        <>
-                            <svg width={SPOUSE_GAP} height={NODE_H} className="shrink-0" style={{ overflow: "visible" }}>
-                                <line x1={0} y1={NODE_H / 2} x2={SPOUSE_GAP} y2={NODE_H / 2}
-                                    stroke={spouseStyles[1 % spouseStyles.length].line} strokeWidth={2} strokeDasharray="5 3" />
-                            </svg>
-                            <button type="button" onClick={() => onNavigate(member.memberCode)}
-                                title="View profile to see all wives"
-                                style={{ width: MORE_PILL_W, height: NODE_H }}
-                                className="flex flex-col items-center justify-center shrink-0">
-                                <div className="px-2 py-3 rounded-xl border-2 border-dashed border-violet-300 bg-violet-50 text-center w-full">
-                                    <div className="text-lg font-bold text-violet-500">+{extraCount}</div>
-                                    <div className="text-[10px] text-violet-400 leading-tight">more<br />wife{extraCount > 1 ? "s" : ""}</div>
-                                    <div className="text-[9px] text-primary mt-1 underline">see profile</div>
-                                </div>
-                            </button>
-                        </>
-                    )}
-                </>
-            )}
+                </div>
+            ))}
 
             <Handle type="source" position={Position.Bottom} id="bottom"
                 style={{ left: sourceCenterX, bottom: 0, transform: "translateX(-50%)", opacity: 0 }} />
