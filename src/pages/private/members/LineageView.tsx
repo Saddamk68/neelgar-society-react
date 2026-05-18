@@ -377,21 +377,24 @@ function buildFlow(
 // ── Legend ────────────────────────────────────────────────────────────────────
 
 function Legend({ showSpouses }: { showSpouses: boolean }) {
+    const items = [
+        ...(showSpouses ? [{ bg: "bg-pink-50", border: "border-pink-300", label: "Wife" }] : []),
+        { bg: "bg-blue-50", border: "border-blue-500", label: "Focal" },
+        { bg: "bg-white", border: "border-slate-300", label: "Same family" },
+        { bg: "bg-amber-50", border: "border-amber-400", label: "Other family" },
+    ];
     return (
-        <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500">
-            {[
-                ...(showSpouses ? [{ bg: "bg-pink-50", border: "border-pink-300", label: "Wife" }] : []),
-                { bg: "bg-blue-50", border: "border-blue-500", label: "Focal" },
-                { bg: "bg-white", border: "border-slate-300", label: "Same family" },
-                { bg: "bg-amber-50", border: "border-amber-400", label: "Other family" },
-            ].map(({ bg, border, label }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                    <div className={`w-4 h-4 rounded ${bg} border-2 ${border}`} />
-                    {label}
-                </div>
-            ))}
-            <div className="flex items-center gap-1.5">
-                <span className="text-slate-400 font-medium text-xs">(yyyy)</span>
+        <div className="flex flex-col items-end gap-1 text-xs text-slate-500">
+            <div className="flex items-center gap-3">
+                {items.map(({ bg, border, label }) => (
+                    <div key={label} className="flex items-center gap-1.5">
+                        <div className={`w-3.5 h-3.5 rounded ${bg} border-2 ${border}`} />
+                        {label}
+                    </div>
+                ))}
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+                <span className="text-xs font-medium">(yyyy)</span>
                 <span>Deceased</span>
             </div>
         </div>
@@ -465,9 +468,9 @@ function LineageFlowInner({
                 subtitle={focal ? `${focal.memberCode} · ${focal.familyCode}${focal.dod ? ` (${focal.dod.substring(0, 4)})` : ""}` : undefined}
                 backTo={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
                 actions={
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <Legend showSpouses={showSpouses} />
+                    <div className="flex flex-col items-end gap-1.5">
                         <SpouseToggle enabled={showSpouses} onToggle={() => setShowSpouses(v => !v)} />
+                        <Legend showSpouses={showSpouses} />
                     </div>
                 }
             />
