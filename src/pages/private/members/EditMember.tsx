@@ -941,9 +941,13 @@ export default function EditMember() {
           lastName: m.lastName ?? "",
           gender: m.gender ?? undefined,
           dob: m.dob
-            ? // Normalise to YYYY-MM-DD if backend returns LocalDate as array or string
-            typeof m.dob === "string"
+            ? typeof m.dob === "string"
               ? m.dob.substring(0, 10)
+              : ""
+            : "",
+          dod: m.dod
+            ? typeof m.dod === "string"
+              ? m.dod.substring(0, 10)
               : ""
             : "",
           contactNumber: m.contactNumber ?? "",
