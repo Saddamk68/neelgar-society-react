@@ -166,12 +166,9 @@ export default function ReassignFamilyDialog({
     // Candidates to move — spouse + children from current family only
     const moveCandidates: { member: Member; label: string }[] = [];
     if (relationships) {
-        if (
-            relationships.spouse &&
-            relationships.spouse.familyCode === member.familyCode
-        ) {
-            moveCandidates.push({ member: relationships.spouse, label: "Spouse" });
-        }
+        (relationships.spouses ?? [])
+            .filter(s => s.person.familyCode === member.familyCode)
+            .forEach(s => moveCandidates.push({ member: s.person, label: "Spouse" }));
         (relationships.children ?? [])
             .filter((c) => c.familyCode === member.familyCode)
             .forEach((c) => moveCandidates.push({ member: c, label: "Child" }));
