@@ -66,7 +66,7 @@ import {
   createAndLinkChild,
   endRelationship,
 } from "@/features/members/services/relationshipService";
-import { Member, PersonRelationshipsResponse } from "../../../features/members/types";
+import { Family, Member, PersonRelationshipsResponse } from "../../../features/members/types";
 import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
@@ -223,6 +223,7 @@ function CreatePersonForm({
   title,
   defaultVillage,
   societyId,
+  showFamilyOption,
   onSubmit,
   onClose,
   loading,
@@ -230,6 +231,7 @@ function CreatePersonForm({
   title: string;
   defaultVillage: string;
   societyId: number;
+  showFamilyOption?: boolean;
   onSubmit: (data: {
     firstName: string;
     lastName: string;
@@ -237,6 +239,8 @@ function CreatePersonForm({
     dob: string;
     gotraId: number;
     village: string;
+    familyMode: "current" | "new" | "existing";
+    existingFamilyId?: number;
   }) => void;
   onClose: () => void;
   loading: boolean;
@@ -250,6 +254,12 @@ function CreatePersonForm({
   const [firstNameError, setFirstNameError] = useState("");
   const [gotraError, setGotraError] = useState("");
   const [villageError, setVillageError] = useState("");
+
+  const [familyMode, setFamilyMode] = useState<"current" | "new" | "existing">("current");
+  const [familySearch, setFamilySearch] = useState("");
+  const [familyResults, setFamilyResults] = useState<Family[]>([]);
+  const [selectedExistingFamily, setSelectedExistingFamily] = useState<Family | null>(null);
+  const [familySearching, setFamilySearching] = useState(false);
 
   function handleSubmit() {
     let valid = true;
@@ -272,7 +282,11 @@ function CreatePersonForm({
       setVillageError("");
     }
     if (!valid) return;
-    onSubmit({ firstName, lastName, gender, dob, gotraId: Number(gotra), village });
+    onSubmit({
+      firstName, lastName, gender, dob, gotraId: Number(gotra), village,
+      familyMode,
+      existingFamilyId: familyMode === "existing" ? selectedExistingFamily?.id : undefined,
+    });
   }
 
   const fieldCls = (err?: string) =>
@@ -368,6 +382,81 @@ function CreatePersonForm({
             </p>
           </div>
         </div>
+
+        {showFamilyOption && (
+          <div>
+            <FieldLabel>Family</FieldLabel>
+            <div className="space-y-2">
+              {(["current", "new", "existing"] as const).map((mode) => (
+                <label key={mode} className={[
+                  "flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer text-sm transition",
+                  familyMode === mode ? "border-primary bg-primary/5" : "border-slate-200 hover:border-slate-300",
+                ].join(" ")}>
+                  <input type="radio" name="familyMode" value={mode}
+                    checked={familyMode === mode}
+                    onChange={() => { setFamilyMode(mode); setSelectedExistingFamily(null); setFamilySearch(""); }}
+                    className="mt-0.5 accent-primary" />
+                  <div>
+                    <div className="font-medium text-slate-700">
+                      {mode === "current" ? "Join current family" : mode === "new" ? "Create new family" : "Pick existing family"}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      {mode === "current"
+                        ? "Spouse will be added to the same family as this member"
+                        : mode === "new"
+                          ? "A new family will be created with spouse as head"
+                          : "Search and select an existing family"}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {familyMode === "existing" && (
+              <div className="mt-2">
+                {selectedExistingFamily ? (
+                  <div className="flex items-center justify-between text-sm bg-primary/5 border border-primary/20 rounded px-3 py-2">
+                    <span className="font-mono font-medium text-slate-700">{selectedExistingFamily.familyCode}</span>
+                    <button type="button" onClick={() => setSelectedExistingFamily(null)}
+                      className="text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <input
+                      className={fieldCls()}
+                      placeholder="Search by village or head name…"
+                      value={familySearch}
+                      onChange={async (e) => {
+                        setFamilySearch(e.target.value);
+                        if (e.target.value.trim().length < 2) { setFamilyResults([]); return; }
+                        setFamilySearching(true);
+                        try {
+                          const { searchFamilies } = await import("../../../features/members/services/familyService");
+                          const results = await searchFamilies(societyId, e.target.value.trim());
+                          setFamilyResults(results);
+                        } catch { } finally { setFamilySearching(false); }
+                      }}
+                    />
+                    {familySearching && <p className="text-xs text-slate-400">Searching…</p>}
+                    {familyResults.length > 0 && (
+                      <div className="border border-slate-200 rounded-md overflow-hidden">
+                        {familyResults.slice(0, 5).map(f => (
+                          <button key={f.familyCode} type="button"
+                            onClick={() => { setSelectedExistingFamily(f); setFamilyResults([]); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                            <span className="font-mono font-medium">{f.familyCode}</span>
+                            {f.headPersonName && <span className="text-slate-500 ml-2">{f.headPersonName}</span>}
+                            {f.village && <span className="text-slate-400 ml-2 text-xs">· {f.village}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 mt-5">
           <button
@@ -482,9 +571,24 @@ function FamilyRelationshipsSection({
     dob: string;
     gotraId: number;
     village: string;
+    familyMode?: "current" | "new" | "existing";
+    existingFamilyId?: number;
   }) {
     if (!dialog || !currentMember) return;
     setActionLoading(true);
+
+    let familyId = currentMember.familyId;
+
+    if (dialog.role === "spouse") {
+      if (data.familyMode === "new") {
+        const { createFamily } = await import("../../../features/members/services/familyService");
+        const newFamily = await createFamily(currentMember.societyId, data.village, currentUsername);
+        familyId = newFamily.id;
+      } else if (data.familyMode === "existing" && data.existingFamilyId) {
+        familyId = data.existingFamilyId;
+      }
+      // "current" — keep familyId as currentMember.familyId
+    }
 
     const personData = {
       firstName: data.firstName,
@@ -493,7 +597,7 @@ function FamilyRelationshipsSection({
       dob: data.dob || undefined,
       societyId: currentMember.societyId,
       gotraId: data.gotraId,
-      familyId: currentMember.familyId,
+      familyId,
       village: data.village,
     };
 
@@ -616,50 +720,51 @@ function FamilyRelationshipsSection({
 
         <div className="space-y-2">
           {/* Spouse */}
-          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-            <p className="text-xs text-slate-400 mb-1">Spouse(s)</p>
-            {relationships?.spouses && relationships.spouses.length > 0 ? (
-              <div className="space-y-2">
-                {relationships.spouses.map((s) => (
-                  <div key={s.person.memberCode} className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-medium text-slate-700">
-                        {s.person.firstName} {s.person.lastName ?? ""}
-                      </span>
-                      <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
-                      {s.startDate && (
-                        <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
-                      )}
-                      {!s.isCurrent && s.endReason && (
-                        <span className="ml-2 text-xs text-slate-400 italic">
-                          ({s.endReason.replace(/_/g, " ").toLowerCase()})
+          <div className="flex items-start justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-slate-400 mb-0.5">Spouse(s)</p>
+              {relationships?.spouses && relationships.spouses.length > 0 ? (
+                <div className="space-y-1">
+                  {relationships.spouses.map((s) => (
+                    <div key={s.person.memberCode} className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium text-slate-700">
+                          {s.person.firstName} {s.person.lastName ?? ""}
                         </span>
-                      )}
-                      {!s.isCurrent && (
-                        <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
+                        <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                        {s.startDate && (
+                          <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
+                        )}
+                        {!s.isCurrent && s.endReason && (
+                          <span className="ml-2 text-xs text-slate-400 italic">
+                            ({s.endReason.replace(/_/g, " ").toLowerCase()})
+                          </span>
+                        )}
+                        {!s.isCurrent && (
+                          <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
+                        )}
+                      </div>
+                      {s.isCurrent && (
+                        <button
+                          type="button"
+                          onClick={() => setEndMarriageDialog({
+                            relationshipId: s.relationshipId ?? 0,
+                            spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
+                          })}
+                          disabled={actionLoading}
+                          className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
+                        >
+                          End marriage
+                        </button>
                       )}
                     </div>
-                    {s.isCurrent && (
-                      <button
-                        type="button"
-                        onClick={() => setEndMarriageDialog({
-                          relationshipId: s.relationshipId ?? 0,
-                          spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
-                        })}
-                        disabled={actionLoading}
-                        className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
-                      >
-                        End marriage
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-400 italic">Not linked</p>
-            )}
-            {/* Always allow adding a new wife */}
-            <div className="flex gap-2 mt-2">
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            <div className="flex gap-2 ml-3 shrink-0">
               <button type="button" onClick={() => setDialog({ role: "spouse", mode: "search" })}
                 disabled={actionLoading}
                 className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50">
@@ -822,6 +927,7 @@ function FamilyRelationshipsSection({
           }
           societyId={currentMember?.societyId ?? 0}
           defaultVillage={defaultVillage}
+          showFamilyOption={dialog.role === "spouse"}
           onSubmit={handleCreateAndLink}
           onClose={() => setDialog(null)}
           loading={actionLoading}
@@ -941,9 +1047,13 @@ export default function EditMember() {
           lastName: m.lastName ?? "",
           gender: m.gender ?? undefined,
           dob: m.dob
-            ? // Normalise to YYYY-MM-DD if backend returns LocalDate as array or string
-            typeof m.dob === "string"
+            ? typeof m.dob === "string"
               ? m.dob.substring(0, 10)
+              : ""
+            : "",
+          dod: m.dod
+            ? typeof m.dod === "string"
+              ? m.dod.substring(0, 10)
               : ""
             : "",
           contactNumber: m.contactNumber ?? "",
