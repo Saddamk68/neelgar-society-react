@@ -7,10 +7,57 @@ import { MENU } from "../config/menu";
 import { roleHasPermission } from "../constants/permissions";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
+import { ChevronDown } from "lucide-react";
 
 const SIDEBAR_W = 240; // px
 const HEADER_H = 64;   // h-16
 const FOOTER_H = 40;   // h-10
+
+// ── Collapsible group helper ─────────────────────────────────────
+function GroupItem({
+  label,
+  icon: Icon,
+  isGroupActive,
+  children,
+  onClose,
+}: {
+  label: string;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  isGroupActive: boolean;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((p) => !p)}
+        className={[
+          "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all group",
+          "hover:bg-white/10",
+          isGroupActive ? "text-white" : "text-white/55 hover:text-white",
+        ].join(" ")}
+      >
+        {Icon && (
+          <Icon
+            size={16}
+            className={isGroupActive ? "text-primary" : "text-white/40 group-hover:text-white/80"}
+          />
+        )}
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronDown
+          size={13}
+          className={["transition-transform duration-200 text-white/30", open ? "" : "-rotate-90"].join(" ")}
+        />
+      </button>
+      {open && (
+        <div className="ml-5 border-l border-white/10 pl-2 flex flex-col gap-0.5 mb-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PrivateLayout() {
   const navigate = useNavigate();
@@ -45,83 +92,151 @@ export default function PrivateLayout() {
     [role]
   );
 
-  const SidebarNav = (
-    <nav aria-label="Primary" className="mt-4 flex flex-col">
-      {visibleMenu.map((item) => {
-        const Icon = item.icon;
+  // ── Group items by section for rendering section labels ──────────
+  const sections = useMemo(() => {
+    const map: { label: string; items: typeof visibleMenu }[] = [];
+    let current: { label: string; items: typeof visibleMenu } | null = null;
 
-        // ── Group item with children (e.g. Members > All Members / Family Directory)
-        if (item.children && item.children.length > 0) {
-          const visibleChildren = item.children.filter((child) =>
-            (child.required ?? []).every((perm) => roleHasPermission(role, perm))
-          );
-          if (visibleChildren.length === 0) return null;
+    visibleMenu.forEach((item) => {
+      const sectionLabel = item.section ?? "";
+      if (!current || current.label !== sectionLabel) {
+        current = { label: sectionLabel, items: [] };
+        map.push(current);
+      }
+      current.items.push(item);
+    });
 
-          const isGroupActive = visibleChildren.some(
-            (child) => child.path && location.pathname.startsWith(child.path)
-          );
+    return map;
+  }, [visibleMenu]);
 
-          return (
-            <div key={item.key}>
-              {/* Group label — not clickable, just a visual parent */}
-              <div
-                className={[
-                  "flex items-center gap-2 px-3 py-2 rounded-md text-sm",
-                  isGroupActive ? "text-white" : "text-gray-400",
-                ].join(" ")}
-              >
-                {Icon && <Icon size={16} className="text-gray-300" />}
-                {item.label}
+  const SidebarContent = (
+    <>
+      {/* ── Brand header ── */}
+      <div className="px-2 py-3 mb-2 border-b border-white/10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            N
+          </div>
+          <div>
+            <p className="text-sm font-bold text-white leading-tight">{APP.NAME}</p>
+            <p className="text-[10px] text-white/40">Management Portal</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Nav ── */}
+      <nav aria-label="Primary" className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
+        {sections.map((section) => (
+          <div key={section.label}>
+            {/* Section label */}
+            {section.label ? (
+              <div className="flex items-center gap-2 px-2 pt-3 pb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-white/35">
+                  {section.label}
+                </span>
+                <div className="flex-1 h-px bg-white/10" />
               </div>
-              {/* Children */}
-              <div className="flex flex-col ml-4 border-l border-white/10 pl-2 mb-1">
-                {visibleChildren.map((child) => (
-                  <NavLink
-                    key={child.key}
-                    to={child.path!}
-                    onClick={() => setMobileOpen(false)}
-                    className={({ isActive }) =>
-                      [
-                        "relative flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all",
-                        "hover:bg-sidebar-hover/90",
-                        "focus:outline-none",
-                        isActive
-                          ? "bg-sidebar-hover/90 before:absolute before:left-0 before:top-0 before:h-full before:w-1.5 before:bg-primary before:rounded-r"
-                          : "before:w-0",
-                      ].join(" ")
-                    }
+            ) : null}
+
+            {/* Items */}
+            {section.items.map((item) => {
+              const Icon = item.icon;
+
+              // ── Group with children ──────────────────────────────
+              if (item.children && item.children.length > 0) {
+                const visibleChildren = item.children.filter((child) =>
+                  (child.required ?? []).every((perm) => roleHasPermission(role, perm))
+                );
+                if (visibleChildren.length === 0) return null;
+
+                const isGroupActive = visibleChildren.some(
+                  (child) => child.path && location.pathname.startsWith(child.path)
+                );
+
+                return (
+                  <GroupItem
+                    key={item.key}
+                    label={item.label}
+                    icon={Icon}
+                    isGroupActive={isGroupActive}
+                    onClose={() => setMobileOpen(false)}
                   >
-                    {child.label}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
-          );
-        }
+                    {visibleChildren.map((child) => (
+                      <NavLink
+                        key={child.key}
+                        to={child.path!}
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          [
+                            "relative flex items-center px-3 py-1.5 rounded-md text-sm transition-all",
+                            "hover:bg-white/10",
+                            isActive
+                              ? "text-white font-medium bg-white/10 before:absolute before:left-0 before:top-0.5 before:bottom-0.5 before:w-1 before:bg-primary before:rounded-r"
+                              : "text-white/55 hover:text-white",
+                          ].join(" ")
+                        }
+                      >
+                        {child.label}
+                      </NavLink>
+                    ))}
+                  </GroupItem>
+                );
+              }
 
-        // ── Flat item (all other menu items)
-        return (
-          <NavLink
-            key={item.key}
-            to={item.path!}
-            onClick={() => setMobileOpen(false)}
-            className={({ isActive }) =>
-              [
-                "relative flex items-center gap-2 px-3 py-2 rounded-md transition-all",
-                "hover:bg-sidebar-hover/90 hover:pl-3.5",
-                "focus:outline-none",
-                isActive
-                  ? "bg-sidebar-hover/90 before:absolute before:left-0 before:top-0 before:h-full before:w-1.5 before:bg-primary before:rounded-r"
-                  : "before:w-0",
-              ].join(" ")
-            }
-          >
-            {Icon && <Icon size={16} className="text-gray-300" />}
-            {item.label}
-          </NavLink>
-        );
-      })}
-    </nav>
+              // ── Flat item ────────────────────────────────────────
+              return (
+                <NavLink
+                  key={item.key}
+                  to={item.path!}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    [
+                      "relative flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all group",
+                      "hover:bg-white/10",
+                      isActive
+                        ? "bg-white/10 text-white font-medium before:absolute before:left-0 before:top-0.5 before:bottom-0.5 before:w-1 before:bg-primary before:rounded-r"
+                        : "text-white/55 hover:text-white",
+                    ].join(" ")
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {Icon && (
+                        <Icon
+                          size={16}
+                          className={isActive ? "text-primary" : "text-white/40 group-hover:text-white/80"}
+                        />
+                      )}
+                      {item.label}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* ── User footer ── */}
+      <div className="mt-auto pt-3 border-t border-white/10">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-md">
+          <div className="w-7 h-7 rounded-full bg-primary/30 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
+            {role ? role[0].toUpperCase() : "U"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 uppercase tracking-wide">
+              {role}
+            </span>
+          </div>
+        </div>
+        <button
+          className="w-full text-left px-3 py-1.5 text-xs text-white/40 hover:text-red-400 transition-colors rounded-md hover:bg-white/5"
+          onClick={() => { logout(); navigate(ROUTES.PUBLIC.LOGIN); }}
+        >
+          Sign out
+        </button>
+      </div>
+    </>
   );
 
   return (
@@ -130,19 +245,11 @@ export default function PrivateLayout() {
 
       {/* ===== Desktop fixed sidebar ===== */}
       <aside
-        className="hidden lg:flex fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-4"
+        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3"
         style={{ width: SIDEBAR_W }}
         aria-label="Sidebar"
       >
-        <div className="w-full">
-          <div
-            className="h-12 flex items-center font-semibold tracking-wide"
-            aria-label={`${APP.NAME} logo`}
-          >
-            {APP.NAME}
-          </div>
-          {SidebarNav}
-        </div>
+        {SidebarContent}
       </aside>
 
       {/* ===== Mobile overlay & drawer ===== */}
@@ -153,29 +260,28 @@ export default function PrivateLayout() {
           aria-hidden="true"
         />
       )}
+
       <aside
         id="mobile-sidebar"
         className={[
-          "fixed z-50 inset-y-0 left-0 w-64 bg-sidebar-bg text-white p-4 lg:hidden",
+          "fixed z-50 inset-y-0 left-0 bg-sidebar-bg text-white p-3 lg:hidden",
+          "flex flex-col",
           "transform transition-transform duration-200 ease-out",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
+        style={{ width: SIDEBAR_W }}
         role="dialog"
         aria-modal="true"
         aria-label="Sidebar navigation"
       >
-        <div className="h-12 flex items-center justify-between font-semibold tracking-wide">
-          <span aria-label={`${APP.NAME} logo`}>{APP.NAME}</span>
-          <button
-            className="text-white/80 hover:text-white transition"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close sidebar"
-            title="Close"
-          >
-            ✕
-          </button>
-        </div>
-        {SidebarNav}
+        <button
+          className="absolute top-3 right-3 text-white/50 hover:text-white transition z-10"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close sidebar"
+        >
+          ✕
+        </button>
+        {SidebarContent}
       </aside>
 
       {/* ===== Fixed header ===== */}
