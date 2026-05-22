@@ -6,9 +6,10 @@ export type MenuItem = {
   key: string;
   label: string;
   path?: string;
-  required?: Permission[];      // permissions needed to see this item
-  children?: MenuItem[];        // optional sub-items
-  icon?: React.ComponentType<{ size?: number; className?: string }>; // optional icon
+  section?: string;
+  required?: Permission[];
+  children?: MenuItem[];
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
 };
 
 export const MENU: MenuItem[] = [
@@ -16,24 +17,26 @@ export const MENU: MenuItem[] = [
     key: "dashboard",
     label: NAV.DASHBOARD,
     path: "/app/dashboard",
+    section: "MAIN",
     required: ["VIEW_DASHBOARD"],
     icon: Home,
   },
   {
     key: "members-group",
     label: PRIVATE.MEMBERS_TITLE,
+    section: "MEMBERS",
     required: ["VIEW_MEMBERS"],
     icon: Users,
     children: [
       {
         key: "members",
-        label: "All Members",
+        label: "Members",
         path: "/app/members",
         required: ["VIEW_MEMBERS"],
       },
       {
         key: "families",
-        label: "Family Directory",
+        label: "Families",
         path: "/app/families",
         required: ["VIEW_FAMILIES"],
       },
@@ -43,6 +46,7 @@ export const MENU: MenuItem[] = [
     key: "logs",
     label: PRIVATE.LOGS_TITLE,
     path: "/app/logs",
+    section: "ADMINISTRATION",
     required: ["VIEW_LOGS"],
     icon: FileText,
   },
