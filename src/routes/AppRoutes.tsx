@@ -7,7 +7,6 @@ import Contact from "../pages/public/Contact";
 import Login from "../pages/public/Login";
 import Dashboard from "../pages/private/Dashboard";
 import Members from "../pages/private/Members";
-import Logs from "../pages/private/Logs";
 import Users from "../pages/private/Users";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
@@ -23,6 +22,7 @@ import ViewFamily from "@/pages/private/families/ViewFamily";
 import PrintFamily from "@/pages/private/families/PrintFamily";
 import EditFamily from "@/pages/private/families/EditFamily";
 import LineageView from "@/pages/private/members/LineageView";
+import LogsPage from "@/pages/private/logs/LogsPage";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -75,10 +75,7 @@ export default function AppRoutes() {
           <Route path="families/:familyCode/edit" element={<EditFamily />} />
           <Route path="families/:familyCode/view" element={<ViewFamily />} />
           <Route path="families/:familyCode/print" element={<PrintFamily />} />
-          <Route
-            path={ROUTES.PRIVATE.LOGS.replace("/app/", "")}
-            element={<Logs />}
-          />
+          <Route path="logs" element={<LogsPage />} />
           <Route
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
             element={<Users />}
