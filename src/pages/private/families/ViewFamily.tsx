@@ -80,7 +80,7 @@ export default function ViewFamily() {
                         ? `${family.familyCode} · ${family.headPersonName ?? "No head assigned"}`
                         : undefined
                 }
-                backTo={ROUTES.PRIVATE.FAMILIES}
+                backTo="back"
                 actions={
                     family ? (
                         <>
