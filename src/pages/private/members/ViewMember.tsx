@@ -75,7 +75,7 @@ export default function ViewMember() {
       <PageHeader
         title="Member Details"
         subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
-        backTo={ROUTES.PRIVATE.MEMBERS}
+        backTo="back"
         actions={
           member ? (
             <>
