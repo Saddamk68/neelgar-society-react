@@ -23,12 +23,12 @@ export type ImportReportResponse = {
 // ── Download import template ──────────────────────────────────────────────────
 // GET /api/v1/import/template — returns an .xlsx file
 
-export async function downloadImportTemplate(): Promise<void> {
+export async function downloadImportTemplate(societyId: number): Promise<void> {
   const token = getAuthToken();
 
   const resp = await fetch(
     // Build full URL from the api baseURL
-    `${(api.defaults.baseURL ?? "").replace(/\/$/, "")}${ENDPOINTS.importMembers.template()}`,
+    `${(api.defaults.baseURL ?? "").replace(/\/$/, "")}${ENDPOINTS.importMembers.template()}?societyId=${societyId}`,
     {
       method: "GET",
       headers: {
