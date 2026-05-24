@@ -1,42 +1,40 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+/*
+ * App.css — Single source of truth for all design tokens (colors, etc.)
+ *
+ * HOW IT WORKS:
+ *  1. CSS variables are defined here in :root
+ *  2. tailwind.config.cjs reads them via var(--color-*)
+ *  3. index.css references them for non-Tailwind styles
+ *
+ * TO CHANGE A COLOR: update the value here only — everything updates automatically.
+ */
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+:root {
+  /* ── Brand ────────────────────────────────────────────────────────────── */
+  --color-primary:    #3b82f6;   /* blue-500  — buttons, links, focus rings  */
+  --color-secondary:  #0ea5e9;   /* sky-500   — accents, secondary actions    */
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --color-background: #f8fafc;   /* slate-50  — page background               */
+  --color-surface:    #ffffff;   /* white     — cards, panels                 */
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text-primary: #111827; /* gray-900  — headings, body text           */
+  --color-text-muted:   #6b7280; /* gray-500  — placeholder, secondary text   */
 
-.card {
-  padding: 2em;
-}
+  /* ── Sidebar ──────────────────────────────────────────────────────────── */
+  --color-sidebar-bg:    #1e293b; /* slate-800 — sidebar background           */
+  --color-sidebar-hover: #334155; /* slate-700 — sidebar item hover           */
 
-.read-the-docs {
-  color: #888;
+  /* ── Semantic ─────────────────────────────────────────────────────────── */
+  --color-success: #22c55e;      /* green-500 — success states                */
+  --color-danger:  #ef4444;      /* red-500   — errors, destructive actions   */
+  --color-warning: #f59e0b;      /* amber-500 — warnings                      */
+
+  /* ── Scrollbar ────────────────────────────────────────────────────────── */
+  --color-scrollbar-thumb:       #cbd5e1; /* slate-300 */
+  --color-scrollbar-thumb-hover: #94a3b8; /* slate-400 */
+
+  /* ── Focus ring ───────────────────────────────────────────────────────── */
+  --color-focus-ring: rgba(59, 130, 246, 0.45); /* primary at 45% opacity    */
 }
