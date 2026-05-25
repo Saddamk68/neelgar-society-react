@@ -7,7 +7,6 @@ import Contact from "../pages/public/Contact";
 import Login from "../pages/public/Login";
 import Dashboard from "../pages/private/Dashboard";
 import Members from "../pages/private/Members";
-import Logs from "../pages/private/Logs";
 import Users from "../pages/private/Users";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +14,15 @@ import AddMember from "../pages/private/members/AddMember";
 import EditMember from "../pages/private/members/EditMember";
 import ViewMember from "../pages/private/members/ViewMember";
 import ViewProfile from "@/pages/private/profile/ViewProfile";
+import ImportMembers from "@/pages/private/members/ImportMembers";
+import PrintMember from "@/pages/private/members/PrintMember";
+import Gotras from "@/pages/private/Gotras";
+import Families from "@/pages/private/Families";
+import ViewFamily from "@/pages/private/families/ViewFamily";
+import PrintFamily from "@/pages/private/families/PrintFamily";
+import EditFamily from "@/pages/private/families/EditFamily";
+import LineageView from "@/pages/private/members/LineageView";
+import LogsPage from "@/pages/private/logs/LogsPage";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -58,17 +66,22 @@ export default function AppRoutes() {
             element={<Members />}
           />
           <Route path="members/new" element={<AddMember />} />
-          <Route path="members/:id/edit" element={<EditMember />} />
-          <Route path="members/:id/view" element={<ViewMember />} />
-          <Route
-            path={ROUTES.PRIVATE.LOGS.replace("/app/", "")}
-            element={<Logs />}
-          />
+          <Route path="members/:memberCode/edit" element={<EditMember />} />
+          <Route path="members/:memberCode/view" element={<ViewMember />} />
+          <Route path="members/:memberCode/print" element={<PrintMember />} />
+          <Route path="members/:memberCode/lineage" element={<LineageView />} />
+          <Route path="members/import" element={<ImportMembers />} />
+          <Route path="families" element={<Families />} />
+          <Route path="families/:familyCode/edit" element={<EditFamily />} />
+          <Route path="families/:familyCode/view" element={<ViewFamily />} />
+          <Route path="families/:familyCode/print" element={<PrintFamily />} />
+          <Route path="logs" element={<LogsPage />} />
           <Route
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
             element={<Users />}
           />
           <Route path="profile" element={<ViewProfile />} />
+          <Route path="gotras" element={<Gotras />} />
         </Route>
       </Route>
 

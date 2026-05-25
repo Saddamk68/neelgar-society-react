@@ -1,20 +1,67 @@
-import { Role } from "@/constants/roles";
+import type { Role } from "@/constants/roles";
+
+export type UserStatus = "PENDING" | "APPROVED" | "REJECTED" | "INACTIVE";
 
 export type UserRecord = {
   id: number;
-  name: string;
-  email: string;
+  username: string;
+  email: string | null;
   role: Role;
-  createdAt?: string;
+  status: UserStatus;
+  isActive: boolean;
+  personName: string | null;
+  memberCode: string | null;
+  createdAt: string | null;
 };
 
-export type UserProfile = {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  active: boolean;
-  userImage?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+export type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
 };
+
+/**
+ * Full user profile — returned by GET /api/v1/users/me
+ */
+export type UserProfile = {
+  // Account
+  userId: number;
+  username: string;
+  email: string | null;
+  image: string | null;
+  hasPhoto: boolean | null;
+  role: string;
+  status: UserStatus;
+  isActive: boolean;
+  createdAt: string | null;
+
+  // Personal details (from linked Person record)
+  personId: number | null;
+  memberCode: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  gender: string | null;
+  dob: string | null;
+  contactNumber: string | null;
+  education: string | null;
+  occupation: string | null;
+
+  // Family + Society
+  familyId: number | null;
+  familyCode: string | null;
+  societyId: number | null;
+  societyCode: string | null;
+  societyName: string | null;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type UpdateRoleRequest = { role: string; };
+export type AdminResetPasswordRequest = { newPassword: string; };
