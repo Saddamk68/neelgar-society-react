@@ -1,27 +1,79 @@
-import { ENV } from "@/config/env";
-
+/**
+ * All API endpoint paths.
+ * The base URL is handled by apiClient — these are just the path part.
+ */
 export const ENDPOINTS = {
-  auth: {
-    login: `${ENV.API_BASE_URL}/auth/login`,
-    register: `${ENV.API_BASE_URL}/auth/register`,
+
+  dashboard: {
+    stats: () => `/dashboard/stats`,
   },
+
   members: {
-    base: `${ENV.API_BASE_URL}/member`,
-    list: () => `${ENV.API_BASE_URL}/member`,
-    get: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
-    create: () => `${ENV.API_BASE_URL}/member`,
-    update: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
-    remove: (id: string | number) => `${ENV.API_BASE_URL}/member/${id}`,
+    list: () => `/members`,
+    get: (memberCode: string) => `/members/${memberCode}`,
+    create: () => `/members`,
+    update: (memberCode: string) => `/members/${memberCode}`,
+    deactivate: (memberCode: string) => `/members/${memberCode}/deactivate`,
+    reactivate: (memberCode: string) => `/members/${memberCode}/reactivate`,
+    checkDuplicate: () => `/members/check-duplicates`,
+    search: () => `/members/search`,
+    uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,
+    deletePhoto: (memberCode: string) => `/members/${memberCode}/photo`,
+    photoThumb: (memberCode: string) => `/members/${memberCode}/photo/thumb`,
   },
-  logs: {
-    base: `${ENV.API_BASE_URL}/logs`,
-    byId: (id: string | number) => `${ENV.API_BASE_URL}/logs/${id}`,
+
+  families: {
+    list: () => `/families`,
+    get: (familyCode: string) => `/families/${familyCode}`,
+    create: () => `/families`,
+    search: () => `/families/search`,
+    members: (familyCode: string) => `/families/${familyCode}/members`,
+    reassignHead: (familyCode: string) => `/families/${familyCode}/head`,
+    clans: () => `/families/clans`,
+    reassign: () => `/families/reassign`,
   },
+
   users: {
-    base: `${ENV.API_BASE_URL}/user`,
-    getAll: () => `${ENV.API_BASE_URL}/user/get-all-users`,
-    byId: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
-    update: (id: string | number) => `${ENV.API_BASE_URL}/user/${id}`,
-    current: () => `${ENV.API_BASE_URL}/user`,
+    list: () => `/users`,
+    me: () => `/users/me`,
+    byId: (id: number) => `/users/${id}`,
+    approve: (id: number) => `/users/${id}/approve`,
+    reject: (id: number) => `/users/${id}/reject`,
+    updateRole: (id: number) => `/users/${id}/role`,
+    deactivate: (id: number) => `/users/${id}/deactivate`,
+    reactivate: (id: number) => `/users/${id}/reactivate`,
+    changePassword: () => `/users/change-password`,
+    resetPassword: (id: number) => `/users/${id}/reset-password`,
   },
+
+  importMembers: {
+    upload: () => `/import/members`,
+    template: () => `/import/template`,
+  },
+
+  logs: {
+    list: () => `/logs`,
+    byId: (id: string | number) => `/logs/${id}`,
+  },
+
+  gotras: {
+    list: () => `/gotras`,
+    create: () => `/gotras`,
+    update: (id: number) => `/gotras/${id}`,
+    deactivate: (id: number) => `/gotras/${id}`,
+  },
+
+  relationships: {
+    // GET /relationships/person/{memberCode} — full summary (father, mother, spouse, children, siblings)
+    forPerson: (memberCode: string) => `/relationships/person/${memberCode}`,
+    // POST /relationships/parent — link a parent
+    linkParent: () => `/relationships/parent`,
+    // POST /relationships/spouse — link a spouse
+    linkSpouse: () => `/relationships/spouse`,
+    // PATCH /relationships/{id}/end — end a relationship
+    end: (id: number) => `/relationships/${id}/end`,
+    // PATCH /relationships/{id}/deactivate — soft delete
+    deactivate: (id: number) => `/relationships/${id}/deactivate`,
+  },
+
 } as const;

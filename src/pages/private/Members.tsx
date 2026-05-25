@@ -1,242 +1,326 @@
 import { useEffect, useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Eye, Pencil } from "lucide-react";
-import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
-import Tooltip from "../../components/Tooltip";
-import {
-  listMembers,
-  MemberListItem,
-} from "../../features/members/services/memberService";
+import { Eye, Pencil, Download, FileSpreadsheet, UserCheck } from "lucide-react";
+import { listMembers, searchMembers, reactivateMember } from "../../features/members/services/memberService";
+import { Member } from "../../features/members/types";
 import { MEMBER_COLUMNS } from "../../features/members/tableConfig";
 import { ROUTES } from "../../constants/routes";
-import { PRIVATE } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
-import MembersSkeleton from "../../components/skeletons/MembersSkeleton"; // 🔹 NEW
+import { useAuth } from "../../context/AuthContext";
+import { downloadImportTemplate } from "../../features/members/services/memberImportExportService";
+import MembersSkeleton from "../../components/skeletons/MembersSkeleton";
+import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
+import Tooltip from "../../components/Tooltip";
+import MemberAvatar from "@/components/MemberAvatar";
+import { REACTIVATE_ROLES } from "@/constants/roles";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type LocalSortConfig = {
-  key: keyof MemberListItem | null;
+  key: keyof Member | null;
   direction: "asc" | "desc";
 };
 
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { label: "Active", active: true },
+  { label: "Inactive", active: false },
+] as const;
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function Members() {
   const notify = useNotify();
+  const { user } = useAuth();
+  const canReactivate = !!user && REACTIVATE_ROLES.includes(user.role);
+  const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<boolean>(true);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
-  const [size] = useState(30); // fixed page size
+  const [size] = useState(30);
+  const [reactivateTarget, setReactivateTarget] = useState<Member | null>(null);
   const [sortConfig, setSortConfig] = useState<LocalSortConfig>({
     key: null,
     direction: "asc",
   });
 
+  // Reset to page 0 when switching tabs
+  const handleTabChange = (tab: boolean) => {
+    setActiveTab(tab);
+    setPage(0);
+    setSearch("");
+  };
+
+  // ── Data fetching ───────────────────────────────────────────────────────────
+
+  const isSearching = search.trim().length > 0;
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["members", page, search],
-    queryFn: () => listMembers(page, size, search),
+    queryKey: ["members", activeTab, page, search],
+    queryFn: async () => {
+      if (isSearching) {
+        const results = await searchMembers(search.trim());
+        const filtered = results.filter((m) => m.isActive === activeTab);
+        return {
+          content: filtered,
+          totalElements: filtered.length,
+          totalPages: 1,
+          size: filtered.length,
+          number: 0,
+        };
+      }
+      return listMembers(user?.societyId, page, size, "", activeTab);
+    },
   });
 
   useEffect(() => {
-    if (isError) {
-      notify.error("Failed to load members.");
-    }
-  }, [isError, notify]);
+    if (isError) notify.error("Failed to load members.");
+  }, [isError]);
 
-  // Filter + Sort (client-side on current page)
-  const filteredAndSorted = useMemo(() => {
-    if (!data) return [];
+  // ── Client-side sort ────────────────────────────────────────────────────────
 
-    let filtered = data.content.filter((m) =>
-      [
-        m.id?.toString(),
-        m.name,
-        m.fatherName,
-        m.motherName,
-        m.gotra,
-        m.currentVillage,
-      ]
-        .filter(Boolean)
-        .some((val) =>
-          val!.toLowerCase().includes(search.trim().toLowerCase())
-        )
-    );
+  const sorted = useMemo(() => {
+    if (!data?.content) return [];
+    if (!sortConfig.key) return data.content;
 
-    if (sortConfig.key) {
-      filtered.sort((a: any, b: any) => {
-        const aVal = (a[sortConfig.key!] ?? "").toString().toLowerCase();
-        const bVal = (b[sortConfig.key!] ?? "").toString().toLowerCase();
-        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [data, search, sortConfig]);
-
-  const handleSort = (key: keyof MemberListItem) => {
-    setSortConfig((prev) => {
-      if (prev.key === key) {
-        return {
-          key,
-          direction: prev.direction === "asc" ? "desc" : "asc",
-        };
-      }
-      return { key, direction: "asc" };
+    return [...data.content].sort((a: any, b: any) => {
+      const aVal = (a[sortConfig.key!] ?? "").toString().toLowerCase();
+      const bVal = (b[sortConfig.key!] ?? "").toString().toLowerCase();
+      if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
     });
+  }, [data, sortConfig]);
+
+  const handleSort = (key: keyof Member) => {
+    setSortConfig((prev) =>
+      prev.key === key
+        ? { key, direction: prev.direction === "asc" ? "desc" : "asc" }
+        : { key, direction: "asc" }
+    );
   };
 
-  // 🔹 Helper to limit visible pages (max 5)
-  const getVisiblePages = (totalPages: number, currentPage: number) => {
-    const maxVisible = 5;
-    let start = Math.max(0, currentPage - Math.floor(maxVisible / 2));
-    let end = start + maxVisible - 1;
+  // ── Reactivate ──────────────────────────────────────────────────────────────
 
-    if (end >= totalPages) {
-      end = totalPages - 1;
-      start = Math.max(0, end - maxVisible + 1);
-    }
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  const handleReactivate = (member: Member) => {
+    setReactivateTarget(member);
   };
 
-  // Map global MEMBER_COLUMNS to ColumnConfig<MemberListItem> and add responsive hide flags
-  const responsiveColumns: ColumnConfig<MemberListItem>[] = MEMBER_COLUMNS.map((c) => {
-    const base: ColumnConfig<MemberListItem> = {
-      key: c.key as keyof MemberListItem,
-      title: c.title,
-      align: (c as any).align,
-      truncate: (c as any).truncate,
-      tooltip: (c as any).tooltip,
-      sortable: (c as any).sortable,
-      hideBelow: (c as any).hideBelow as "sm" | "md" | "lg" | undefined,
-      weight: (c as any).weight as number | undefined,
-      width: (c as any).width as string | undefined,
-    };
+  // ── Table columns ───────────────────────────────────────────────────────────
 
-    return base;
-  });
+  const columns: ColumnConfig<Member>[] = MEMBER_COLUMNS.map((c) => ({
+    key: c.key as any,
+    title: c.title,
+    align: (c as any).align,
+    truncate: (c as any).truncate,
+    tooltip: (c as any).tooltip,
+    sortable: (c as any).sortable,
+    hideBelow: (c as any).hideBelow,
+    weight: (c as any).weight,
+  }));
 
   const rtSortConfig: SortConfig | undefined = sortConfig.key
     ? { key: String(sortConfig.key), direction: sortConfig.direction }
     : undefined;
 
-  function renderMemberCell(row: MemberListItem, col: ColumnConfig<MemberListItem>) {
+  // ── Cell renderer ───────────────────────────────────────────────────────────
+
+  const renderCell = (row: Member, col: ColumnConfig<Member>) => {
+    if (col.key === "memberCode") {
+      return (
+        <div className="flex items-center gap-2.5">
+          <MemberAvatar
+            memberCode={row.memberCode}
+            firstName={row.firstName}
+            lastName={row.lastName}
+            hasPhoto={row.hasPhoto ?? false}
+            size="thumb"
+          />
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-slate-800 truncate">
+              {row.firstName} {row.lastName ?? ""}
+            </div>
+            <div className="text-xs text-slate-400 font-mono">{row.memberCode}</div>
+          </div>
+        </div>
+      );
+    }
+
     if (col.key === "actions") {
       return (
         <div className="flex items-center justify-center gap-2">
           <Tooltip content="View" offset={20}>
             <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}/view`}
-              aria-label={`View member ${row.id}`}
+              to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/view`}
               onClick={(e) => e.stopPropagation()}
-              className="p-1 rounded hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
+              className="p-1 rounded hover:bg-sky-50"
             >
-              <Eye className="w-5 h-5 text-sky-600" />
+              <Eye className="w-4 h-4 text-primary" />
             </Link>
           </Tooltip>
 
-          <Tooltip content="Edit" offset={20}>
-            <Link
-              to={`${ROUTES.PRIVATE.MEMBERS}/${row.id}/edit`}
-              aria-label={`Edit member ${row.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="p-1 rounded hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
-            >
-              <Pencil className="w-5 h-5 text-sky-600" />
-            </Link>
-          </Tooltip>
+          {/* Active tab: View + Edit only — deactivation moved to EditMember */}
+          {activeTab && (
+            <Tooltip content="Edit" offset={20}>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/edit`}
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded hover:bg-sky-50"
+              >
+                <Pencil className="w-4 h-4 text-primary" />
+              </Link>
+            </Tooltip>
+          )}
+
+          {/* Inactive tab: Reactivate — only for authorized roles */}
+          {!activeTab && canReactivate && (
+            <Tooltip content="Reactivate" offset={20}>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleReactivate(row); }}
+                className="p-1 rounded hover:bg-green-50 transition"
+              >
+                <UserCheck className="w-4 h-4 text-green-600" />
+              </button>
+            </Tooltip>
+          )}
         </div>
       );
     }
+
     return undefined;
-  }
+  };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4 flex flex-col h-[calc(98vh-8rem)]">
-      {/* Page header */}
+
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-semibold">{PRIVATE.MEMBERS_TITLE}</h1>
-          <p className="text-text-muted">{PRIVATE.MEMBERS_DESC}</p>
+          <h1 className="text-2xl font-semibold">Members</h1>
+          <p className="text-slate-500 text-sm">
+            {data ? `${data.totalElements} member(s)` : "Manage society members"}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
           <input
             type="text"
-            placeholder="Search members by ID, Name, Father, Mother, Gotra, Village…"
+            placeholder="Search members…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-2 border rounded-md text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary"
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            className="px-3 py-2 border rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/new`}
-            className="hidden md:flex items-center justify-center px-4 py-2 rounded-md bg-primary text-white shadow-sm hover:shadow transition"
-          >
-            Add Member
-          </Link>
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/new`}
-            className="flex md:hidden items-center justify-center w-9 h-9 rounded-full bg-primary text-white shadow-sm hover:shadow transition text-lg font-bold"
-          >
-            +
-          </Link>
+          {activeTab && (
+            <>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/new`}
+                className="hidden md:flex items-center px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+              >
+                Add Member
+              </Link>
+              <Link
+                to={`${ROUTES.PRIVATE.MEMBERS}/new`}
+                className="md:hidden flex items-center justify-center w-9 h-9 bg-primary text-white rounded-full text-lg"
+              >
+                +
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {/* 🔹 Loading */}
-      {isLoading && <MembersSkeleton />}
+      {/* Tabs + toolbar row */}
+      <div className="flex items-center justify-between border-b">
+        <div className="flex items-center gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={String(tab.active)}
+              onClick={() => handleTabChange(tab.active)}
+              className={[
+                "px-4 py-2 text-sm font-medium transition",
+                activeTab === tab.active
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-slate-500 hover:text-slate-800",
+              ].join(" ")}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      {/* 🔹 Error */}
-      {isError && (
-        <div className="bg-white rounded-xl shadow p-4">
-          <div className="text-sm text-danger">Failed to load members.</div>
+        <div className="flex items-center gap-4 pr-1 text-sm pb-1">
+          <Link
+            to={`${ROUTES.PRIVATE.MEMBERS}/import`}
+            className="flex items-center gap-1 text-primary hover:underline text-sm"
+          >
+            <Download className="w-3 h-3" />
+            Import
+          </Link>
+          <button
+            onClick={() => downloadImportTemplate()}
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            <FileSpreadsheet className="w-3 h-3" />
+            Template
+          </button>
+        </div>
+      </div>
+
+      {/* Inactive notice banner */}
+      {!activeTab && (
+        <div className={`border rounded-lg px-4 py-2 text-sm ${canReactivate
+          ? "bg-green-50 border-green-200 text-green-800"
+          : "bg-amber-50 border-amber-200 text-amber-800"
+          }`}>
+          {canReactivate
+            ? "Showing inactive members — click the reactivate button to restore a member."
+            : "Showing inactive members — these records are read-only. Contact an admin to reactivate."}
         </div>
       )}
 
-      {/* 🔹 Data Table + Pagination */}
+      {/* Table */}
+      {isLoading && <MembersSkeleton />}
+
+      {isError && (
+        <div className="bg-white p-4 rounded shadow text-red-500 text-sm">
+          Failed to load members.
+        </div>
+      )}
+
       {!isLoading && !isError && data && (
         <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
-          <div className="p-0">
-            <ResponsiveTable<MemberListItem>
-              columns={responsiveColumns}
-              data={filteredAndSorted}
-              sortConfig={rtSortConfig}
-              onSort={(key) => handleSort(key as keyof MemberListItem)}
-              renderCell={renderMemberCell}
-              rowKey={(r) => r.id}
-            />
-          </div>
+          <ResponsiveTable<Member>
+            columns={columns}
+            data={sorted}
+            sortConfig={rtSortConfig}
+            onSort={(key) => handleSort(key as keyof Member)}
+            renderCell={renderCell}
+            rowKey={(r) => r.memberCode}
+          />
 
           {data.totalPages > 1 && (
-            <div className="flex justify-center py-2 text-xs text-gray-600 border-t bg-gray-50">
+            <div className="flex justify-center py-2 text-xs text-gray-600 border-t bg-gray-50 gap-1">
               <span
-                className={`cursor-pointer mx-1 ${
-                  page === 0 ? "text-gray-400 cursor-not-allowed" : "hover:underline"
-                }`}
+                className={`cursor-pointer mx-1 ${page === 0 ? "text-gray-400" : "hover:underline"}`}
                 onClick={() => page > 0 && setPage(page - 1)}
               >
                 Prev
               </span>
-
-              {getVisiblePages(data.totalPages, page).map((p) => (
+              {Array.from({ length: data.totalPages }, (_, i) => i).map((p) => (
                 <span
                   key={p}
-                  className={`cursor-pointer mx-1 ${
-                    p === page
-                      ? "font-bold text-primary underline"
-                      : "hover:underline"
-                  }`}
+                  className={`cursor-pointer mx-1 ${p === page ? "font-bold text-primary underline" : "hover:underline"}`}
                   onClick={() => setPage(p)}
                 >
                   {p + 1}
                 </span>
               ))}
-
               <span
-                className={`cursor-pointer mx-1 ${
-                  page >= data.totalPages - 1
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "hover:underline"
-                }`}
+                className={`cursor-pointer mx-1 ${page >= data.totalPages - 1 ? "text-gray-400" : "hover:underline"}`}
                 onClick={() => page < data.totalPages - 1 && setPage(page + 1)}
               >
                 Next
@@ -245,6 +329,30 @@ export default function Members() {
           )}
         </div>
       )}
+
+      {/* Reactivate confirmation dialog */}
+      <ConfirmDialog
+        isOpen={!!reactivateTarget}
+        onClose={() => setReactivateTarget(null)}
+        onConfirm={async () => {
+          if (!reactivateTarget) return;
+          setReactivateTarget(null);
+          try {
+            await reactivateMember(reactivateTarget.memberCode, user?.username ?? "system");
+            notify.success(`Member ${reactivateTarget?.firstName} ${reactivateTarget?.lastName ?? ""} (${reactivateTarget.memberCode}) reactivated.`);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["families"] });
+          } catch (err: any) {
+            notify.error(err.message || "Failed to reactivate member.");
+          }
+        }}
+        title="Reactivate member"
+        message={`Reactivate ${reactivateTarget?.firstName} ${reactivateTarget?.lastName ?? ""} (${reactivateTarget?.memberCode})? They will appear as active again.`}
+        confirmLabel="Reactivate"
+        variant="success"
+        loading={false}
+      />
+
     </div>
   );
 }

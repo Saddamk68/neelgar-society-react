@@ -1,11 +1,7 @@
-// src/features/members/tableConfig.ts
 export const MEMBER_COLUMNS = [
-  { key: "id", title: "ID", weight: 6, sortable: true },
-  { key: "name", title: "Name", weight: 18, truncate: true, tooltip: true, sortable: true },
-  { key: "fatherName", title: "Father Name", weight: 18, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
-  { key: "motherName", title: "Mother Name", weight: 18, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
-  { key: "gotra", title: "Gotra", weight: 10, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
-  { key: "currentVillage", title: "Village", truncate: true, tooltip: true, hideBelow: "sm", weight: 12, sortable: true },
-  { key: "phone", title: "Phone", weight: 10, truncate: true, tooltip: true, hideBelow: "sm" },
+  { key: "memberCode", title: "Member", weight: 26, sortable: false },
+  { key: "contactNumber", title: "Phone", weight: 14, truncate: true, tooltip: true, hideBelow: "sm" },
+  { key: "familyCode", title: "Family", weight: 12, truncate: true, tooltip: true, hideBelow: "sm", sortable: true },
+  { key: "occupation", title: "Occupation", weight: 14, truncate: true, tooltip: true, hideBelow: "sm" },
   { key: "actions", title: "Actions", weight: 8, align: "center" },
 ] as const;
