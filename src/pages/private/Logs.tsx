@@ -7,6 +7,8 @@ import { PRIVATE, LOGS_UI } from "../../constants/messages";
 import { useNotify } from "../../services/notifications";
 import { LOG_LEVEL_STYLES } from "../../features/logs/types";
 import Modal from "../../components/Modal";
+import DatePicker from "../../components/form/DatePicker";
+
 
 type Filters = {
   level: "ALL" | LogLevel;
@@ -125,25 +127,17 @@ export default function Logs() {
           {/* Date filters */}
           <div>
             <label className="block text-xs text-text-muted mb-1">{LOGS_UI.FROM}</label>
-            <input
-              type="date"
-              className="rounded-md border border-slate-300 px-2 py-2"
+            <DatePicker
               value={filters.from ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, from: e.target.value || undefined }))
-              }
+              onChange={(val) => setFilters((f) => ({ ...f, from: val || undefined }))}
             />
           </div>
 
           <div>
             <label className="block text-xs text-text-muted mb-1">{LOGS_UI.TO}</label>
-            <input
-              type="date"
-              className="rounded-md border border-slate-300 px-2 py-2"
+            <DatePicker
               value={filters.to ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, to: e.target.value || undefined }))
-              }
+              onChange={(val) => setFilters((f) => ({ ...f, to: val || undefined }))}
             />
           </div>
 

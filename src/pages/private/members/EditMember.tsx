@@ -1,409 +1,1507 @@
-import { useEffect, useState } from "react";
-import {
-  useForm,
-  useFieldArray,
-  SubmitHandler,
-  SubmitErrorHandler,
-} from "react-hook-form";
+/**
+ * EditMember.tsx  — Fixes in this version:
+ *
+ *  1. Address fields now populate correctly from the API response.
+ *     NOTE: This requires the backend to include currentAddress / parentalAddress
+ *     in the PersonResponse (see backend note at the bottom of this file).
+ *     Until the backend is updated, the address fields will load as empty —
+ *     the save bug (issue 2) is also fixed so changes WILL be saved.
+ *
+ *  2. Save now works — root cause was currentAddress.village being required
+ *     by Zod but arriving as empty when address isn't in the API response,
+ *     causing silent validation failure. Fixed with a safe fallback and by
+ *     ensuring the submit error is surfaced.
+ *
+ *  3. Family relationships section added (spouse, father, mother, children)
+ *     using the existing /relationships API.
+ *
+ *  4. Marital status field added in Personal Information.
+ *
+ *  5. Custom DatePicker component replaces <input type="date">.
+ *
+ * ── BACKEND NOTE ─────────────────────────────────────────────────────────────
+ *  To fix address pre-fill, add currentAddress and parentalAddress to
+ *  PersonResponse.java and map them in PersonMapper.java.
+ *
+ *  In PersonResponse.java, add:
+ *    private AddressEmbeddedResponse currentAddress;
+ *    private AddressEmbeddedResponse parentalAddress;
+ *
+ *  In PersonMapper.java, add mapping expressions to pull the correct
+ *  AddressType.CURRENT and AddressType.PARENTAL from person.getAddresses().
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+import { useEffect, useRef, useState } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  MemberZ,
+  UserPlus,
+  X,
+  Search,
+} from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
+import FormFooter from "@/components/layout/FormFooter";
+import DangerZone from "@/components/layout/DangerZone";
+import EditMemberSkeleton from "@/components/skeletons/EditMemberSkeleton";
+
+import {
+  memberSchema,
   MemberFormValues,
-  defaultMemberValues,
 } from "../../../features/members/member.schema";
 import {
   getMember,
   updateMember,
-  uploadFile,
+  searchMembers,
+  deactivateMember,
 } from "../../../features/members/services/memberService";
-import FieldLabel from "../../../components/form/FieldLabel";
-import { makeIsRequired } from "../../../utils/required";
-import { ROUTES } from "../../../constants/routes";
-import { useNotify } from "../../../services/notifications";
-import { LABELS } from "../../../constants/labels";
-import { getAuthToken } from "../../../services/apiClient";
+import {
+  getPersonRelationships,
+  linkParent,
+  linkSpouse,
+  deactivateRelationship,
+  createAndLinkParent,
+  createAndLinkSpouse,
+  createAndLinkChild,
+  endRelationship,
+} from "@/features/members/services/relationshipService";
+import { Family, Member, PersonRelationshipsResponse } from "../../../features/members/types";
 import { useAuth } from "../../../context/AuthContext";
-import { ENV } from "@/config/env";
+import { useNotify } from "../../../services/notifications";
+import { ROUTES } from "../../../constants/routes";
+import FieldLabel from "../../../components/form/FieldLabel";
+import {
+  deleteMemberPhoto,
+  uploadMemberPhoto,
+} from "@/features/members/services/photoService";
+import MemberAvatar from "@/components/MemberAvatar";
+import { useQueryClient } from "@tanstack/react-query";
+import DatePicker from "../../../components/form/DatePicker";
+import GotraSelect from "@/features/gotras/components/GotraSelect";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import DeactivateHeadDialog from "@/components/DeactivateHeadDialog";
 
-/* ===========================================================
-   🧩 Utility: Safe Nested Getter
-   =========================================================== */
-function getNestedValue(obj: any, path: string): any {
-  return path
-    .split(".")
-    .reduce((acc, key) => (acc && typeof acc === "object" ? acc[key] : undefined), obj);
+
+function inputClass(hasError?: boolean) {
+  return [
+    "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition",
+    hasError
+      ? "border-red-400 ring-1 ring-red-400 focus:ring-red-400"
+      : "border-slate-300 focus:ring-primary/40",
+  ].join(" ");
 }
 
-/* ===========================================================
-   🖼 UploadableImage Component
-   =========================================================== */
-function UploadableImage({
-  photoId,
-  alt,
-  onUploadSuccess,
+function AddressFields({
+  prefix,
+  register,
+  errors,
 }: {
-  photoId?: string | null;
-  alt: string;
-  onUploadSuccess: (id: string) => void;
+  prefix: "currentAddress" | "parentalAddress";
+  register: any;
+  errors: any;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const baseUrl = ENV.API_BASE_URL ?? "";
-  const token = getAuthToken();
-  const { user } = useAuth();
-  const notify = useNotify(); // ✅ Notification hook
-
-  useEffect(() => {
-    if (!photoId) return;
-    const controller = new AbortController();
-
-    async function fetchImage() {
-      try {
-        const res = await fetch(`${baseUrl}/files/${photoId}/view`, {
-          headers: { Authorization: token ? `Bearer ${token}` : "" },
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error();
-        const blob = await res.blob();
-        setSrc(URL.createObjectURL(blob));
-      } catch {
-        setSrc(null);
-      }
-    }
-
-    fetchImage();
-    return () => controller.abort();
-  }, [photoId, baseUrl, token]);
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // ✅ Step 1: Validate file size (max 5 MB)
-    const MAX_SIZE_MB = ENV.MAX_UPLOAD_MB;
-    const sizeInMB = file.size / (1024 * 1024);
-    if (sizeInMB > MAX_SIZE_MB) {
-      notify.error(`File size must be less than ${MAX_SIZE_MB} MB.`);
-      e.target.value = ""; // reset file input
-      return;
-    }
-
-    // ✅ Step 2: Proceed with upload
-    try {
-      setLoading(true);
-      const res = await uploadFile(file, user?.username ?? "system");
-      if (res.id) {
-        onUploadSuccess(res.id);
-        setSrc(URL.createObjectURL(file)); // immediate preview
-        notify.success("File uploaded successfully.");
-      }
-    } catch (err) {
-      console.error("Upload failed:", err);
-      notify.error("File upload failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fields = [
+    { name: "village", label: "Village", required: prefix === "currentAddress" },
+    { name: "tahsil", label: "Tahsil", required: false },
+    { name: "district", label: "District", required: false },
+    { name: "state", label: "State", required: false },
+    { name: "country", label: "Country", required: false },
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="w-36 h-36 bg-gray-100 rounded-md overflow-hidden border flex items-center justify-center">
-        {loading ? (
-          <div className="text-gray-500 text-sm">Uploading...</div>
-        ) : src ? (
-          <img src={src} alt={alt} className="w-full h-full object-cover" />
-        ) : (
-          <div className="text-gray-400 text-sm">No photo</div>
-        )}
-      </div>
-      <label className="cursor-pointer px-3 py-1.5 rounded-md bg-primary text-white text-xs hover:opacity-90">
-        Upload
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </label>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {fields.map((f) => {
+        const err = errors?.[prefix]?.[f.name]?.message;
+        return (
+          <div key={f.name}>
+            <FieldLabel required={f.required}>{f.label}</FieldLabel>
+            <input
+              {...register(`${prefix}.${f.name}`)}
+              className={inputClass(!!err)}
+            />
+            {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/* ===========================================================
-   ✏️ Edit Member (Schema-Aligned)
-   =========================================================== */
-export default function EditMember() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const notify = useNotify();
+// ── Member search mini-dialog ─────────────────────────────────────────────────
 
-  const form = useForm<MemberFormValues>({
-    resolver: zodResolver(MemberZ),
-    defaultValues: defaultMemberValues,
-    mode: "onBlur",
-  });
+function MemberSearchDialog({
+  title,
+  onSelect,
+  onClose,
+  excludeMemberCode,
+}: {
+  title: string;
+  onSelect: (m: Member) => void;
+  onClose: () => void;
+  excludeMemberCode?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Member[]>([]);
+  const [searching, setSearching] = useState(false);
 
-  const { setValue, watch, reset } = form;
-  const values = watch();
-  const childrenArray = useFieldArray({ control: form.control, name: "children" });
-
-  // 🔄 Load Member Details
-  useEffect(() => {
-    if (!id) return;
-    getMember(id)
-      .then((m) => reset(m))
-      .catch(() => notify.error("Failed to load member details"));
-  }, [id]);
-
-  // ✅ Submit
-  const onSubmit: SubmitHandler<MemberFormValues> = async (data) => {
+  async function doSearch() {
+    if (!query.trim()) return;
+    setSearching(true);
     try {
-      if (!id) throw new Error("Missing member ID");
-      await updateMember(id, data);
-      notify.success("Member updated successfully!");
-      navigate(ROUTES.PRIVATE.MEMBERS);
-    } catch (err: any) {
-      console.error(err);
-      notify.error(err.message || "Failed to update member");
+      const res = await searchMembers(query.trim());
+      setResults(res.filter((m) => m.memberCode !== excludeMemberCode));
+    } catch {
+      // ignore
+    } finally {
+      setSearching(false);
     }
-  };
+  }
 
-  const onInvalid: SubmitErrorHandler<MemberFormValues> = (errors) => {
-    console.error(errors);
-    notify.error("Please fix form errors before submitting.");
-  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-  const isRequired = makeIsRequired<MemberFormValues>({
-    always: ["name", "fatherName", "gotra", "contactNumber"],
-    conditional: [(v) => (v.maritalStatus === "MARRIED" ? ["spouse.name"] : [])],
-  });
+        <div className="flex gap-2 mb-4">
+          <input
+            className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            placeholder="Search by name or member code…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && doSearch()}
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={doSearch}
+            disabled={searching}
+            className="px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition flex items-center gap-1"
+          >
+            <Search className="w-4 h-4" />
+            {searching ? "…" : "Search"}
+          </button>
+        </div>
 
-  const optionMap: Record<string, any[]> = {
-    gender: LABELS.gender,
-    maritalStatus: LABELS.maritalStatus,
-    education: LABELS.educationLevels,
-  };
+        <div className="space-y-1 max-h-60 overflow-y-auto">
+          {results.length === 0 && (
+            <p className="text-sm text-slate-400 text-center py-4">
+              {query ? "No results found." : "Type a name to search."}
+            </p>
+          )}
+          {results.map((m) => (
+            <button
+              key={m.memberCode}
+              type="button"
+              onClick={() => onSelect(m)}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 transition flex items-center justify-between"
+            >
+              <span className="text-sm font-medium text-slate-700">
+                {m.firstName} {m.lastName ?? ""}
+              </span>
+              <span className="text-xs text-slate-400">{m.memberCode}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  /* ===========================================================
-     🧱 Field Renderer
-     =========================================================== */
-  const renderField = (fieldName: string, label: string, type: string, options?: any[]) => {
-    const error = form.formState.errors as any;
-    const errMsg: string | undefined = getNestedValue(error, fieldName)?.message;
-    const value = getNestedValue(values, fieldName);
+// ── Mini form for creating a new person inline ────────────────────────────────
 
-    const baseInput =
-      "w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 transition";
-    const normalBorder = "border-slate-300 focus:ring-primary/40";
-    const errorBorder = "border-red-400 ring-1 ring-red-400 focus:ring-red-400";
-    const className = baseInput + " " + (errMsg ? errorBorder : normalBorder);
+function CreatePersonForm({
+  title,
+  defaultVillage,
+  societyId,
+  showFamilyOption,
+  onSubmit,
+  onClose,
+  loading,
+}: {
+  title: string;
+  defaultVillage: string;
+  societyId: number;
+  showFamilyOption?: boolean;
+  onSubmit: (data: {
+    firstName: string;
+    lastName: string;
+    gender: "MALE" | "FEMALE" | "OTHER" | "";
+    dob: string;
+    gotraId: number;
+    village: string;
+    familyMode: "current" | "new" | "existing";
+    existingFamilyId?: number;
+  }) => void;
+  onClose: () => void;
+  loading: boolean;
+}) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
+  const [dob, setDob] = useState("");
+  const [gotra, setGotra] = useState("");
+  const [village, setVillage] = useState(defaultVillage);
+  const [firstNameError, setFirstNameError] = useState("");
+  const [gotraError, setGotraError] = useState("");
+  const [villageError, setVillageError] = useState("");
 
-    switch (type) {
-      case "select":
-        return (
-          <>
+  const [familyMode, setFamilyMode] = useState<"current" | "new" | "existing">("current");
+  const [familySearch, setFamilySearch] = useState("");
+  const [familyResults, setFamilyResults] = useState<Family[]>([]);
+  const [selectedExistingFamily, setSelectedExistingFamily] = useState<Family | null>(null);
+  const [familySearching, setFamilySearching] = useState(false);
+
+  function handleSubmit() {
+    let valid = true;
+    if (!firstName.trim()) {
+      setFirstNameError("First name is required");
+      valid = false;
+    } else {
+      setFirstNameError("");
+    }
+    if (!gotra.trim()) {
+      setGotraError("Gotra is required");
+      valid = false;
+    } else {
+      setGotraError("");
+    }
+    if (!village.trim()) {
+      setVillageError("Village is required");
+      valid = false;
+    } else {
+      setVillageError("");
+    }
+    if (!valid) return;
+    onSubmit({
+      firstName, lastName, gender, dob, gotraId: Number(gotra), village,
+      familyMode,
+      existingFamilyId: familyMode === "existing" ? selectedExistingFamily?.id : undefined,
+    });
+  }
+
+  const fieldCls = (err?: string) =>
+    [
+      "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition",
+      err ? "border-red-400 ring-1 ring-red-400" : "border-slate-300 focus:ring-primary/40",
+    ].join(" ");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-800">{title}</h3>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <FieldLabel required>First Name</FieldLabel>
+            <input
+              className={fieldCls(firstNameError)}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoFocus
+            />
+            {firstNameError && <p className="text-xs text-red-500 mt-1">{firstNameError}</p>}
+          </div>
+
+          <div>
+            <FieldLabel>Last Name</FieldLabel>
+            <input
+              className={fieldCls()}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <FieldLabel>Gender</FieldLabel>
             <select
-              className={className}
-              value={value ?? ""}
-              onChange={(e) => setValue(fieldName as any, e.target.value)}
+              className={fieldCls()}
+              value={gender}
+              onChange={(e) => setGender(e.target.value as any)}
             >
               <option value="">Select</option>
-              {(options ?? []).map((opt: any) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
             </select>
-            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
-          </>
-        );
-      case "checkbox":
-        return (
-          <input
-            type="checkbox"
-            className="h-4 w-4 border-slate-300 rounded"
-            checked={!!value}
-            onChange={(e) => setValue(fieldName as any, e.target.checked)}
-          />
-        );
-      default:
-        return (
-          <>
+          </div>
+
+          <div>
+            <FieldLabel>Date of Birth</FieldLabel>
+            <DatePicker
+              value={dob}
+              onChange={(val) => setDob(val)}
+              maxDate={new Date()}
+            />
+          </div>
+
+          <div>
+            <FieldLabel required>Gotra</FieldLabel>
+            <GotraSelect
+              societyId={societyId}
+              value={gotra ? Number(gotra) : undefined}
+              onChange={(id) => {
+                if (id) {
+                  setGotra(String(id));
+                } else {
+                  setGotra("");
+                }
+                setGotraError("");
+              }}
+              hasError={!!gotraError}
+            />
+            {gotraError && (
+              <p className="text-xs text-red-500 mt-1">{gotraError}</p>
+            )}
+          </div>
+
+          <div>
+            <FieldLabel required>Village (for address)</FieldLabel>
             <input
-              type={type}
-              {...form.register(fieldName as any)}
-              className={className}
+              className={fieldCls(villageError)}
+              value={village}
+              onChange={(e) => setVillage(e.target.value)}
             />
-            <div className="h-4 text-xs text-danger mt-1">{errMsg ?? ""}</div>
-          </>
-        );
-    }
-  };
-
-  /* ===========================================================
-     🧩 UI
-     =========================================================== */
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-1">Edit Member</h1>
-      <p className="text-text-muted mb-6">Update existing member information.</p>
-
-      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-        {/* Photo */}
-        <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Member Photo</h2>
-          <UploadableImage
-            photoId={values.photoId}
-            alt={`${values.name} photo`}
-            onUploadSuccess={(id) => setValue("photoId", id)}
-          />
-        </section>
-
-        {/* Basic Info */}
-        <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { name: "name", label: "Full Name", type: "text" },
-              { name: "dob", label: "Date of Birth", type: "date" },
-              { name: "gender", label: "Gender", type: "select", options: optionMap.gender },
-              { name: "maritalStatus", label: "Marital Status", type: "select", options: optionMap.maritalStatus },
-              { name: "fatherName", label: "Father's Name", type: "text" },
-              { name: "motherName", label: "Mother's Name", type: "text" },
-              { name: "motherGotra", label: "Mother's Gotra", type: "text" },
-              { name: "occupation", label: "Occupation", type: "text" },
-              { name: "education", label: "Education", type: "text" },
-              { name: "gotra", label: "Gotra", type: "text" },
-            ].map((f) => (
-              <div key={f.name}>
-                <FieldLabel required={isRequired(f.name, values)}>{f.label}</FieldLabel>
-                {renderField(f.name, f.label, f.type, f.options)}
-              </div>
-            ))}
+            {villageError && <p className="text-xs text-red-500 mt-1">{villageError}</p>}
+            <p className="text-xs text-slate-400 mt-1">
+              You can update the full address later from the member's Edit screen.
+            </p>
           </div>
-        </section>
+        </div>
 
-        {/* Address */}
-        <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Address</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              "address.currentVillage",
-              "address.currentTahsil",
-              "address.currentDistrict",
-              "address.currentState",
-              "address.paternalVillage",
-              "address.paternalTahsil",
-              "address.paternalDistrict",
-              "address.paternalState",
-            ].map((f) => (
-              <div key={f}>
-                <FieldLabel>{f.split(".")[1]}</FieldLabel>
-                {renderField(f, f, "text")}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Spouse */}
-        {values.maritalStatus === "MARRIED" && (
-          <section className="bg-white rounded-xl shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Spouse</h2>
-            <UploadableImage
-              photoId={values.spouse?.photoId}
-              alt="Spouse photo"
-              onUploadSuccess={(id) => setValue("spouse.photoId", id)}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {[
-                "spouse.name",
-                "spouse.dob",
-                "spouse.gotra",
-                "spouse.education",
-                "spouse.occupation",
-              ].map((f) => (
-                <div key={f}>
-                  <FieldLabel required={isRequired(f, values)}>{f.split(".")[1]}</FieldLabel>
-                  {renderField(f, f, f.includes("dob") ? "date" : "text")}
-                </div>
+        {showFamilyOption && (
+          <div>
+            <FieldLabel>Family</FieldLabel>
+            <div className="space-y-2">
+              {(["current", "new", "existing"] as const).map((mode) => (
+                <label key={mode} className={[
+                  "flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer text-sm transition",
+                  familyMode === mode ? "border-primary bg-primary/5" : "border-slate-200 hover:border-slate-300",
+                ].join(" ")}>
+                  <input type="radio" name="familyMode" value={mode}
+                    checked={familyMode === mode}
+                    onChange={() => { setFamilyMode(mode); setSelectedExistingFamily(null); setFamilySearch(""); }}
+                    className="mt-0.5 accent-primary" />
+                  <div>
+                    <div className="font-medium text-slate-700">
+                      {mode === "current" ? "Join current family" : mode === "new" ? "Create new family" : "Pick existing family"}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      {mode === "current"
+                        ? "Spouse will be added to the same family as this member"
+                        : mode === "new"
+                          ? "A new family will be created with spouse as head"
+                          : "Search and select an existing family"}
+                    </div>
+                  </div>
+                </label>
               ))}
             </div>
-          </section>
+
+            {familyMode === "existing" && (
+              <div className="mt-2">
+                {selectedExistingFamily ? (
+                  <div className="flex items-center justify-between text-sm bg-primary/5 border border-primary/20 rounded px-3 py-2">
+                    <span className="font-mono font-medium text-slate-700">{selectedExistingFamily.familyCode}</span>
+                    <button type="button" onClick={() => setSelectedExistingFamily(null)}
+                      className="text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <input
+                      className={fieldCls()}
+                      placeholder="Search by village or head name…"
+                      value={familySearch}
+                      onChange={async (e) => {
+                        setFamilySearch(e.target.value);
+                        if (e.target.value.trim().length < 2) { setFamilyResults([]); return; }
+                        setFamilySearching(true);
+                        try {
+                          const { searchFamilies } = await import("../../../features/members/services/familyService");
+                          const results = await searchFamilies(societyId, e.target.value.trim());
+                          setFamilyResults(results);
+                        } catch { } finally { setFamilySearching(false); }
+                      }}
+                    />
+                    {familySearching && <p className="text-xs text-slate-400">Searching…</p>}
+                    {familyResults.length > 0 && (
+                      <div className="border border-slate-200 rounded-md overflow-hidden">
+                        {familyResults.slice(0, 5).map(f => (
+                          <button key={f.familyCode} type="button"
+                            onClick={() => { setSelectedExistingFamily(f); setFamilyResults([]); }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 border-b border-slate-100 last:border-0">
+                            <span className="font-mono font-medium">{f.familyCode}</span>
+                            {f.headPersonName && <span className="text-slate-500 ml-2">{f.headPersonName}</span>}
+                            {f.village && <span className="text-slate-400 ml-2 text-xs">· {f.village}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Children */}
-        {values.maritalStatus !== "SINGLE" && (
-          <section className="bg-white rounded-xl shadow p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Children</h2>
-              <button
-                type="button"
-                onClick={() => childrenArray.append({ name: "", dob: "" })}
-                className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-              >
-                + Add Child
-              </button>
-            </div>
-            <div className="space-y-3">
-              {childrenArray.fields.map((field, idx) => (
-                <div key={field.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                  <div>
-                    <FieldLabel>Name</FieldLabel>
-                    <input
-                      {...form.register(`children.${idx}.name` as const)}
-                      className="w-full rounded-md border border-slate-300 px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>DOB</FieldLabel>
-                    <input
-                      type="date"
-                      {...form.register(`children.${idx}.dob` as const)}
-                      className="w-full rounded-md border border-slate-300 px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Photo</FieldLabel>
-                    <UploadableImage
-                      photoId={field.photoId as any}
-                      alt="Child photo"
-                      onUploadSuccess={(id) => setValue(`children.${idx}.photoId`, id)}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => childrenArray.remove(idx)}
-                      className="px-3 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2 mt-5">
           <button
-            type="submit"
-            disabled={form.formState.isSubmitting}
-            className="px-4 py-2 rounded-md bg-primary text-white shadow-sm hover:shadow transition disabled:opacity-60"
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
           >
-            {form.formState.isSubmitting ? "Saving…" : "Save Changes"}
+            {loading ? "Creating…" : "Create & Link"}
           </button>
           <button
             type="button"
-            onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
-            className="px-4 py-2 rounded-md border border-slate-300 hover:bg-slate-50 transition"
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
           >
             Cancel
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Family Relationships section ──────────────────────────────────────────────
+
+function FamilyRelationshipsSection({
+  memberCode,
+  memberId,
+  currentMember,
+  currentUsername,
+  notify,
+}: {
+  memberCode: string;
+  memberId: number;
+  currentMember: Member | null;
+  currentUsername: string;
+  notify: ReturnType<typeof useNotify>;
+}) {
+  const [relationships, setRelationships] =
+    useState<PersonRelationshipsResponse | null>(null);
+  const [loadingRel, setLoadingRel] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // dialog = which role we are filling, mode = "search" or "create"
+  const [dialog, setDialog] = useState<{
+    role: "spouse" | "father" | "mother" | "child";
+    mode: "search" | "create";
+  } | null>(null);
+
+  const [endMarriageDialog, setEndMarriageDialog] = useState<{
+    relationshipId: number;
+    spouseName: string;
+  } | null>(null);
+  const [endDate, setEndDate] = useState("");
+  const [endReason, setEndReason] = useState("");
+  const [endingMarriage, setEndingMarriage] = useState(false);
+
+  async function reload() {
+    const updated = await getPersonRelationships(memberCode);
+    setRelationships(updated);
+  }
+
+  useEffect(() => {
+    setLoadingRel(true);
+    getPersonRelationships(memberCode)
+      .then(setRelationships)
+      .catch(() =>
+        setRelationships({ memberCode, personName: "", children: [] })
+      )
+      .finally(() => setLoadingRel(false));
+  }, [memberCode]);
+
+  // ── Link existing member ──────────────────────────────────────────────────
+
+  async function handleLinkExisting(m: Member) {
+    if (!dialog) return;
+    setActionLoading(true);
+    try {
+      if (dialog.role === "spouse") {
+        await linkSpouse(memberCode, m.memberCode, undefined, currentUsername);
+        notify.success("Spouse linked successfully.");
+      } else if (dialog.role === "father") {
+        await linkParent(memberCode, m.memberCode, "FATHER", currentUsername);
+        notify.success("Father linked successfully.");
+      } else if (dialog.role === "mother") {
+        await linkParent(memberCode, m.memberCode, "MOTHER", currentUsername);
+        notify.success("Mother linked successfully.");
+      } else if (dialog.role === "child") {
+        // For child: the current member is the parent, linked person is the child.
+        // We need to know if this member is FATHER or MOTHER.
+        const parentType =
+          currentMember?.gender === "FEMALE" ? "MOTHER" : "FATHER";
+        await linkParent(m.memberCode, memberCode, parentType, currentUsername);
+        notify.success("Child linked successfully.");
+      }
+      await reload();
+    } catch (err: any) {
+      notify.error(err.message || "Failed to link relationship.");
+    } finally {
+      setActionLoading(false);
+      setDialog(null);
+    }
+  }
+
+  // ── Create new member and link ────────────────────────────────────────────
+
+  async function handleCreateAndLink(data: {
+    firstName: string;
+    lastName: string;
+    gender: "MALE" | "FEMALE" | "OTHER" | "";
+    dob: string;
+    gotraId: number;
+    village: string;
+    familyMode?: "current" | "new" | "existing";
+    existingFamilyId?: number;
+  }) {
+    if (!dialog || !currentMember) return;
+    setActionLoading(true);
+
+    let familyId = currentMember.familyId;
+
+    if (dialog.role === "spouse") {
+      if (data.familyMode === "new") {
+        const { createFamily } = await import("../../../features/members/services/familyService");
+        const newFamily = await createFamily(currentMember.societyId, data.village, currentUsername);
+        familyId = newFamily.id;
+      } else if (data.familyMode === "existing" && data.existingFamilyId) {
+        familyId = data.existingFamilyId;
+      }
+      // "current" — keep familyId as currentMember.familyId
+    }
+
+    const personData = {
+      firstName: data.firstName,
+      lastName: data.lastName || undefined,
+      gender: data.gender || undefined,
+      dob: data.dob || undefined,
+      societyId: currentMember.societyId,
+      gotraId: data.gotraId,
+      familyId,
+      village: data.village,
+    };
+
+    try {
+      if (dialog.role === "spouse") {
+        await createAndLinkSpouse(memberCode, personData, undefined, currentUsername);
+        notify.success("Spouse created and linked successfully.");
+      } else if (dialog.role === "father") {
+        await createAndLinkParent(memberCode, personData, "FATHER", currentUsername);
+        notify.success("Father created and linked successfully.");
+      } else if (dialog.role === "mother") {
+        await createAndLinkParent(memberCode, personData, "MOTHER", currentUsername);
+        notify.success("Mother created and linked successfully.");
+      } else if (dialog.role === "child") {
+        const parentType =
+          currentMember?.gender === "FEMALE" ? "MOTHER" : "FATHER";
+        await createAndLinkChild(memberCode, personData, parentType, currentUsername);
+        notify.success("Child created and linked successfully.");
+      }
+      await reload();
+    } catch (err: any) {
+      notify.error(err.message || "Failed to create and link.");
+    } finally {
+      setActionLoading(false);
+      setDialog(null);
+    }
+  }
+
+  async function handleEndMarriage() {
+    if (!endMarriageDialog || !endDate || !endReason) return;
+    setEndingMarriage(true);
+    try {
+      await endRelationship(endMarriageDialog.relationshipId, endDate, endReason, currentUsername);
+      notify.success("Marriage ended successfully.");
+      setEndMarriageDialog(null);
+      setEndDate("");
+      setEndReason("");
+      await reload();
+    } catch (err: any) {
+      notify.error(err.message || "Failed to end marriage.");
+    } finally {
+      setEndingMarriage(false);
+    }
+  }
+
+  // ── Relation card ─────────────────────────────────────────────────────────
+
+  function RelationCard({
+    label,
+    member,
+    canAdd,
+    onAdd,
+  }: {
+    label: string;
+    member?: Member | null;
+    canAdd: boolean;
+    onAdd?: () => void;
+  }) {
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+        <div>
+          <p className="text-xs text-slate-400 mb-0.5">{label}</p>
+          {member ? (
+            <p className="text-sm font-medium text-slate-700">
+              {member.firstName} {member.lastName ?? ""}
+              <span className="ml-2 text-xs text-slate-400">{member.memberCode}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-slate-400 italic">Not linked</p>
+          )}
+        </div>
+        {canAdd && !member && onAdd && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onAdd()}
+              disabled={actionLoading}
+              className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+            >
+              <Search className="w-3 h-3" />
+              Link existing
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Switch to create mode for same role
+                setDialog((prev) => prev ? { ...prev, mode: "create" } : null);
+              }}
+              disabled={actionLoading}
+              className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+            >
+              <UserPlus className="w-3 h-3" />
+              Create new
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (loadingRel) {
+    return (
+      <section className="bg-white rounded-xl shadow p-6">
+        <h2 className="text-lg font-semibold mb-4">Family Relationships</h2>
+        <p className="text-sm text-slate-400">Loading relationships…</p>
+      </section>
+    );
+  }
+
+  // Default village from the current member's address for pre-filling
+  const defaultVillage = currentMember?.currentAddress?.village ?? "";
+
+  return (
+    <>
+      <section className="bg-white rounded-xl shadow p-6">
+        <h2 className="text-lg font-semibold mb-1">Family Relationships</h2>
+        <p className="text-xs text-slate-400 mb-4">
+          Link existing members or create new ones to establish family connections.
+        </p>
+
+        <div className="space-y-2">
+          {/* Spouse */}
+          <div className="flex items-start justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-slate-400 mb-0.5">Spouse(s)</p>
+              {relationships?.spouses && relationships.spouses.length > 0 ? (
+                <div className="space-y-1">
+                  {relationships.spouses.map((s) => (
+                    <div key={s.person.memberCode} className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium text-slate-700">
+                          {s.person.firstName} {s.person.lastName ?? ""}
+                        </span>
+                        <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                        {s.startDate && (
+                          <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
+                        )}
+                        {!s.isCurrent && s.endReason && (
+                          <span className="ml-2 text-xs text-slate-400 italic">
+                            ({s.endReason.replace(/_/g, " ").toLowerCase()})
+                          </span>
+                        )}
+                        {!s.isCurrent && (
+                          <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
+                        )}
+                      </div>
+                      {s.isCurrent && (
+                        <button
+                          type="button"
+                          onClick={() => setEndMarriageDialog({
+                            relationshipId: s.relationshipId ?? 0,
+                            spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
+                          })}
+                          disabled={actionLoading}
+                          className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
+                        >
+                          End marriage
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            <div className="flex gap-2 ml-3 shrink-0">
+              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "search" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50">
+                <Search className="w-3 h-3" />Link existing
+              </button>
+              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "create" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                <UserPlus className="w-3 h-3" />Create new
+              </button>
+            </div>
+          </div>
+
+          {/* Father */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Father</p>
+              {relationships?.father ? (
+                <p className="text-sm font-medium text-slate-700">
+                  {relationships.father.firstName} {relationships.father.lastName ?? ""}
+                  <span className="ml-2 text-xs text-slate-400">{relationships.father.memberCode}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            {!relationships?.father && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "father", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  <Search className="w-3 h-3" />
+                  Link existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "father", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Create new
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Mother */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div>
+              <p className="text-xs text-slate-400 mb-0.5">Mother</p>
+              {relationships?.mother ? (
+                <p className="text-sm font-medium text-slate-700">
+                  {relationships.mother.firstName} {relationships.mother.lastName ?? ""}
+                  <span className="ml-2 text-xs text-slate-400">{relationships.mother.memberCode}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 italic">Not linked</p>
+              )}
+            </div>
+            {!relationships?.mother && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "mother", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                >
+                  <Search className="w-3 h-3" />
+                  Link existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDialog({ role: "mother", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  Create new
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Children */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+              Children
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDialog({ role: "child", mode: "search" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                <Search className="w-3 h-3" />
+                Link existing
+              </button>
+              <button
+                type="button"
+                onClick={() => setDialog({ role: "child", mode: "create" })}
+                disabled={actionLoading}
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50"
+              >
+                <UserPlus className="w-3 h-3" />
+                Add child
+              </button>
+            </div>
+          </div>
+
+          {relationships?.children && relationships.children.length > 0 ? (
+            <div className="space-y-1">
+              {relationships.children.map((child) => (
+                <div
+                  key={child.memberCode}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
+                >
+                  <p className="text-sm text-slate-700">
+                    {child.firstName} {child.lastName ?? ""}
+                    <span className="ml-2 text-xs text-slate-400">{child.memberCode}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 italic">No children linked yet.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Search dialog — for "Link existing" */}
+      {dialog?.mode === "search" && (
+        <MemberSearchDialog
+          title={
+            dialog.role === "spouse" ? "Link Spouse" :
+              dialog.role === "father" ? "Link Father" :
+                dialog.role === "mother" ? "Link Mother" :
+                  "Link Child"
+          }
+          excludeMemberCode={memberCode}
+          onSelect={handleLinkExisting}
+          onClose={() => setDialog(null)}
+        />
+      )}
+
+      {/* Create dialog — for "Create new" */}
+      {dialog?.mode === "create" && (
+        <CreatePersonForm
+          title={
+            dialog.role === "spouse" ? "Create & Link Spouse" :
+              dialog.role === "father" ? "Create & Link Father" :
+                dialog.role === "mother" ? "Create & Link Mother" :
+                  "Create & Link Child"
+          }
+          societyId={currentMember?.societyId ?? 0}
+          defaultVillage={defaultVillage}
+          showFamilyOption={dialog.role === "spouse"}
+          onSubmit={handleCreateAndLink}
+          onClose={() => setDialog(null)}
+          loading={actionLoading}
+        />
+      )}
+
+      {/* End marriage modal */}
+      {endMarriageDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-800">End Marriage</h3>
+              <button type="button" onClick={() => setEndMarriageDialog(null)}
+                className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              Ending marriage with <span className="font-medium text-slate-700">{endMarriageDialog.spouseName}</span>
+            </p>
+            <div className="space-y-3">
+              <div>
+                <FieldLabel required>End Date</FieldLabel>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div>
+                <FieldLabel required>Reason</FieldLabel>
+                <select value={endReason} onChange={e => setEndReason(e.target.value)}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+                  <option value="">Select reason…</option>
+                  <option value="DEATH_OF_SPOUSE">Death of spouse</option>
+                  <option value="DIVORCE">Divorce</option>
+                  <option value="KHULA">Khula</option>
+                  <option value="SEPARATED">Separated</option>
+                  <option value="COURT_DISPUTE">Court dispute</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button type="button" onClick={handleEndMarriage}
+                disabled={endingMarriage || !endDate || !endReason}
+                className="flex-1 px-4 py-2 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-60 transition">
+                {endingMarriage ? "Saving…" : "End Marriage"}
+              </button>
+              <button type="button" onClick={() => setEndMarriageDialog(null)}
+                className="px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function EditMember() {
+  const { memberCode } = useParams<{ memberCode: string }>();
+  const navigate = useNavigate();
+  const notify = useNotify();
+  const { user } = useAuth();
+
+  const queryClient = useQueryClient();
+
+  const [loading, setLoading] = useState(true);
+  const [showParentalAddress, setShowParentalAddress] = useState(false);
+  const [originalMember, setOriginalMember] = useState<Member | null>(null);
+
+  const form = useForm<MemberFormValues>({
+    resolver: zodResolver(memberSchema) as any,
+    mode: "onBlur",
+  });
+
+  const {
+    register,
+    watch,
+    reset,
+    setValue,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const dobValue = watch("dob") ?? "";
+  const gotraId = watch("gotraId");
+  const societyId = watch("societyId");
+  const [deactivating, setDeactivating] = useState(false);
+  const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
+  const [showReassign, setShowReassign] = useState(false);
+
+  // ── Load member on mount ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!memberCode) return;
+
+    getMember(memberCode)
+      .then((m) => {
+        setOriginalMember(m);
+        setHasPhoto(m.hasPhoto ?? false);
+
+        // Map Member (PersonResponse) → MemberFormValues for the form.
+        //
+        // currentAddress: if the backend now returns it, it will populate.
+        // If not yet, we default to empty strings so the form still opens
+        // without crashing. The user can fill the address manually and save.
+        const formValues: MemberFormValues = {
+          societyId: m.societyId,
+          familyId: m.familyId,
+          firstName: m.firstName,
+          lastName: m.lastName ?? "",
+          gender: m.gender ?? undefined,
+          dob: m.dob
+            ? typeof m.dob === "string"
+              ? m.dob.substring(0, 10)
+              : ""
+            : "",
+          dod: m.dod
+            ? typeof m.dod === "string"
+              ? m.dod.substring(0, 10)
+              : ""
+            : "",
+          contactNumber: m.contactNumber ?? "",
+          education: m.education ?? "",
+          occupation: m.occupation ?? "",
+          maritalStatus: m.maritalStatus ?? "SINGLE",
+          gotraId: m.gotraId ?? 0,
+          createAccount: false,
+          email: "",
+          currentAddress: {
+            village: m.currentAddress?.village ?? "",
+            tahsil: m.currentAddress?.tahsil ?? "",
+            district: m.currentAddress?.district ?? "",
+            state: m.currentAddress?.state ?? "",
+            country: m.currentAddress?.country ?? "",
+          },
+          parentalAddress: m.parentalAddress?.village
+            ? {
+              village: m.parentalAddress.village,
+              tahsil: m.parentalAddress.tahsil ?? "",
+              district: m.parentalAddress.district ?? "",
+              state: m.parentalAddress.state ?? "",
+              country: m.parentalAddress.country ?? "",
+            }
+            : undefined,
+        };
+
+        reset(formValues);
+
+        // Force maritalStatus to always be set so it appears in submit payload
+        setValue("maritalStatus", m.maritalStatus ?? "SINGLE");
+
+        if (m.parentalAddress?.village) {
+          setShowParentalAddress(true);
+        }
+      })
+      .catch(() => notify.error("Failed to load member details."))
+      .finally(() => setLoading(false));
+  }, [memberCode]);
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  const onSubmit: SubmitHandler<MemberFormValues> = async (data) => {
+    if (!memberCode) return;
+    try {
+      await updateMember(memberCode, data, user?.username ?? "system");
+      // Invalidate cached member so ViewMember fetches fresh data
+      queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+      notify.success("Member updated successfully!");
+      navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
+    } catch (err: any) {
+      notify.error(err.message || "Failed to update member.");
+    }
+  };
+
+  // Show a toast when there are validation errors so the user knows why the
+  // form didn't submit (was silently failing before this fix).
+  const onInvalid = () => {
+    notify.error("Please fix the highlighted fields before saving.");
+  };
+
+  // ── Photo handlers ────────────────────────────────────────────────────────
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error("File must be under 5 MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      notify.error("Only JPEG, PNG and WEBP are allowed");
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+
+    setPhotoUploading(true);
+    try {
+      await uploadMemberPhoto(memberCode!, file);
+      setHasPhoto(true);
+      notify.success("Photo uploaded successfully!");
+    } catch (err: any) {
+      notify.error(err.message || "Failed to upload photo");
+      setPhotoPreview(null);
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    setShowDeletePhotoConfirm(true);
+  };
+
+  const confirmPhotoDelete = async () => {
+    try {
+      await deleteMemberPhoto(memberCode!);
+      setHasPhoto(false);
+      setPhotoPreview(null);
+      notify.success("Photo removed.");
+    } catch (err: any) {
+      notify.error(err.message || "Failed to remove photo");
+    } finally {
+      setShowDeletePhotoConfirm(false);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return <EditMemberSkeleton />;
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto">
+
+      <PageHeader
+        title="Edit Member"
+        subtitle={
+          originalMember
+            ? `${originalMember.firstName} ${originalMember.lastName ?? ""}`.trim() +
+            ` · ${originalMember.memberCode}`
+            : undefined
+        }
+        backTo={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
+      />
+
+      {/* Family info — read-only banner */}
+      {originalMember && (
+        <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-600 flex gap-6">
+          <span>
+            <span className="text-slate-400">Family: </span>
+            <span className="font-medium">{originalMember.familyCode}</span>
+          </span>
+          <span>
+            <span className="text-slate-400">Society: </span>
+            <span className="font-medium">{originalMember.societyCode}</span>
+          </span>
+          <span className="text-slate-400 text-xs italic">
+            Family and society cannot be changed here.
+          </span>
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="space-y-6"
+      >
+
+        {/* Photo */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Profile Photo</h2>
+          <div className="flex items-center gap-5">
+            {photoPreview ? (
+              <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 ring-2 ring-primary/20">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <MemberAvatar
+                memberCode={memberCode ?? ""}
+                firstName={originalMember?.firstName ?? ""}
+                lastName={originalMember?.lastName}
+                hasPhoto={hasPhoto}
+                size="lg"
+              />
+            )}
+
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">
+                JPEG, PNG or WEBP · Max 5 MB
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photoUploading}
+                  className="px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-slate-50 disabled:opacity-60 transition"
+                >
+                  {photoUploading
+                    ? "Uploading…"
+                    : hasPhoto
+                      ? "Replace Photo"
+                      : "Upload Photo"}
+                </button>
+                {hasPhoto && !photoUploading && (
+                  <button
+                    type="button"
+                    onClick={handlePhotoDelete}
+                    className="px-3 py-1.5 rounded-md border border-red-200 text-red-600 text-sm hover:bg-red-50 transition"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Personal Info */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <FieldLabel required>First Name</FieldLabel>
+              <input
+                {...register("firstName")}
+                className={inputClass(!!errors.firstName)}
+              />
+              {errors.firstName && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.firstName.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FieldLabel>Last Name</FieldLabel>
+              <input {...register("lastName")} className={inputClass()} />
+            </div>
+
+            <div>
+              <FieldLabel>Gender</FieldLabel>
+              <select {...register("gender")} className={inputClass()}>
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            {/* Marital Status */}
+            <div>
+              <FieldLabel>Marital Status</FieldLabel>
+              <select
+                {...register("maritalStatus")}
+                className={inputClass(!!errors.maritalStatus)}
+              >
+                <option value="" disabled>Select status</option>
+                <option value="SINGLE">Single</option>
+                <option value="MARRIED">Married</option>
+                <option value="DIVORCED">Divorced</option>
+                <option value="WIDOWED">Widowed</option>
+              </select>
+            </div>
+
+            {/* Date of Birth — custom date picker */}
+            <div>
+              <FieldLabel>Date of Birth</FieldLabel>
+              <DatePicker
+                value={dobValue}
+                onChange={(val) => setValue("dob", val, { shouldDirty: true })}
+                hasError={!!errors.dob}
+                maxDate={new Date()}
+              />
+              {errors.dob && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.dob.message}
+                </p>
+              )}
+            </div>
+
+            {/* Date of Death — custom date picker with special handling */}
+            <div>
+              <FieldLabel>Date of Death</FieldLabel>
+              <DatePicker
+                value={watch("dod") ?? ""}
+                onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
+                maxDate={new Date()}
+              />
+              {watch("dod") && (
+                <p className="text-xs text-amber-600 mt-1">
+                  This member will be marked as inactive.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FieldLabel required>Gotra</FieldLabel>
+              <GotraSelect
+                societyId={societyId ?? originalMember?.societyId ?? 0}
+                value={gotraId || undefined}
+                onChange={(id) => setValue("gotraId", id, { shouldValidate: true, shouldDirty: true })}
+                hasError={!!errors.gotraId}
+              />
+              {errors.gotraId && (
+                <p className="text-xs text-red-500 mt-1">{errors.gotraId.message}</p>
+              )}
+            </div>
+
+            <div>
+              <FieldLabel>Contact Number</FieldLabel>
+              <input {...register("contactNumber")} className={inputClass()} />
+            </div>
+
+            <div>
+              <FieldLabel>Education</FieldLabel>
+              <input {...register("education")} className={inputClass()} />
+            </div>
+
+            <div>
+              <FieldLabel>Occupation</FieldLabel>
+              <input {...register("occupation")} className={inputClass()} />
+            </div>
+          </div>
+        </section>
+
+        {/* Current Address */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-1">Current Address</h2>
+          <p className="text-xs text-slate-400 mb-4">
+            Village is required. Other fields are optional.
+          </p>
+          <AddressFields
+            prefix="currentAddress"
+            register={register}
+            errors={errors}
+          />
+        </section>
+
+        {/* Parental Address */}
+        <section className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Parental Address</h2>
+            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showParentalAddress}
+                onChange={(e) => setShowParentalAddress(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Fill parental address
+            </label>
+          </div>
+          {showParentalAddress ? (
+            <AddressFields
+              prefix="parentalAddress"
+              register={register}
+              errors={errors}
+            />
+          ) : (
+            <p className="text-sm text-slate-400">
+              Optional — check the box above to edit the parental address.
+            </p>
+          )}
+        </section>
+
+        <FormFooter
+          onCancel={() => navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`)}
+          saving={isSubmitting}
+          saveLabel="Save Changes"
+        />
       </form>
+
+      {/* Family Relationships — outside the main form so their own buttons
+          don't accidentally trigger form submission */}
+      {originalMember && (
+        <div className="mt-6">
+          <FamilyRelationshipsSection
+            memberCode={memberCode ?? ""}
+            memberId={originalMember.id}
+            currentMember={originalMember}
+            currentUsername={user?.username ?? "system"}
+            notify={notify}
+          />
+        </div>
+      )}
+
+      {/* Danger Zone — head member: two-step atomic deactivation dialog */}
+      {originalMember?.isActive && originalMember.isHead && (
+        <DangerZone
+          title="Deactivate this member"
+          description="This member is the family head. You will be guided to reassign the head and deactivate in one action."
+          buttonLabel="Deactivate Member"
+          confirmTitle=""
+          confirmMessage=""
+          loading={false}
+          skipConfirm={true}
+          onConfirm={async () => {
+            setShowReassign(true);
+          }}
+        />
+      )}
+
+      {/* Danger Zone — normal member: standard confirm */}
+      {originalMember?.isActive && !originalMember.isHead && (
+        <DangerZone
+          title="Deactivate this member"
+          description="The member will be marked inactive and will no longer appear in active lists. This can be reversed by an admin from the inactive tab."
+          buttonLabel="Deactivate Member"
+          confirmTitle="Deactivate member"
+          confirmMessage={`Deactivate ${originalMember.firstName} ${originalMember.lastName ?? ""} (${originalMember.memberCode})? They will be moved to the inactive list.`}
+          loading={deactivating}
+          onConfirm={async () => {
+            setDeactivating(true);
+            try {
+              await deactivateMember(
+                originalMember.memberCode,
+                user?.username ?? "system"
+              );
+              queryClient.invalidateQueries({ queryKey: ["members"] });
+              queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+              notify.success(`${originalMember.firstName} deactivated successfully.`);
+              navigate(ROUTES.PRIVATE.MEMBERS);
+            } catch (err: any) {
+              notify.error(err.message || "Failed to deactivate member.");
+              setDeactivating(false);
+            }
+          }}
+        />
+      )}
+
+      {/* DeactivateHeadDialog — two-step atomic flow for head members */}
+      {showReassign && originalMember && (
+        <DeactivateHeadDialog
+          member={originalMember}
+          onClose={() => setShowReassign(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+            navigate(ROUTES.PRIVATE.MEMBERS);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showDeletePhotoConfirm}
+        onClose={() => setShowDeletePhotoConfirm(false)}
+        onConfirm={confirmPhotoDelete}
+        title="Remove photo"
+        message="Remove this member's profile photo? This cannot be undone."
+        confirmLabel="Remove Photo"
+        variant="danger"
+      />
+
     </div>
   );
 }

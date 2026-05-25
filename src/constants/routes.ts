@@ -9,8 +9,10 @@ export const ROUTES = {
   PRIVATE: {
     DASHBOARD: "/app/dashboard",
     MEMBERS: "/app/members",
+    FAMILIES: "/app/families",
     LOGS: "/app/logs",
     USERS: "/app/users",
     PROFILE: "/app/profile",
+    GOTRAS: "/app/gotras",
   },
 };

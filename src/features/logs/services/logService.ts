@@ -1,32 +1,30 @@
 import { api } from "../../../services/apiClient";
-import { ENDPOINTS } from "../../../config/endpoints";
-import type { LogEntry } from "../types";
+import { AuditLog, AuditLogPage, AuditLogFilters } from "../types";
 
-export type PaginatedResponse<T> = {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-};
-
-export type LogFilters = {
-  actor?: string;
-  action?: string;
-  level?: string;
-  from?: string;
-  to?: string;
-  q?: string;
-  sort?: string;
-};
+function unwrap<T>(res: any): T {
+  return res.data?.data ?? res.data;
+}
 
 export async function listLogs(
   page = 0,
   size = 20,
-  filters: LogFilters = {}
-): Promise<PaginatedResponse<LogEntry>> {
-  const res = await api.get(ENDPOINTS.logs.base, {
-    params: { page, size, ...filters },
+  filters: AuditLogFilters = {}
+): Promise<AuditLogPage> {
+  const res = await api.get("/logs", {
+    params: {
+      page,
+      size,
+      ...(filters.action ? { action: filters.action } : {}),
+      ...(filters.entityType ? { entityType: filters.entityType } : {}),
+      ...(filters.actorCode ? { actorCode: filters.actorCode } : {}),
+      ...(filters.from ? { from: filters.from } : {}),
+      ...(filters.to ? { to: filters.to } : {}),
+    },
   });
-  return res.data;
+  return unwrap<AuditLogPage>(res);
+}
+
+export async function getLog(id: number): Promise<AuditLog> {
+  const res = await api.get(`/logs/${id}`);
+  return unwrap<AuditLog>(res);
 }
