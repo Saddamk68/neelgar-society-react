@@ -9,7 +9,6 @@ import {
   setAuthToken,
   getAuthToken,
   clearAuthToken,
-  setRefreshToken,
   onUnauthorized,
 } from "../services/apiClient";
 import { FEATURES } from "../config/features";
@@ -177,20 +176,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const restoreSession = async () => {
-      const storedToken = getAuthToken();
       const storedUser = loadUser();
 
-      // Happy path: we already have a valid (non-expired) token and user info stored
-      if (storedToken && storedUser && msUntilExpiry(storedToken) > 0) {
-        if (!cancelled) {
-          commitUser(storedUser, storedToken);
-          setIsInitializing(false);
-        }
-        return;
-      }
-
-      // No token — try a silent refresh via the httpOnly cookie
-      // This lets the user stay logged in after a page refresh without re-entering credentials
+      // Access token is in memory only — always gone after a page refresh.
+      // Go straight to silent refresh using the refresh token from localStorage.
+      // If the refresh token is also missing or expired, the catch block below
+      // will clear state and send the user to the login page.
       try {
         const newToken = await oauth2Refresh();
 
