@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import PublicLayout from "../layouts/PublicLayout";
 import PrivateLayout from "../layouts/PrivateLayout";
 import Home from "../pages/public/Home";
@@ -31,12 +32,16 @@ import LogsPage from "@/pages/private/logs/LogsPage";
  * - If authenticated, it renders the protected outlet.
  */
 function RequireAuth() {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, mustChangePassword } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated && mustChangePassword) {
+      navigate(ROUTES.PRIVATE.PROFILE, { replace: true });
+    }
+  }, [isAuthenticated, mustChangePassword, navigate]);
 
   if (isInitializing) {
-    // While the auth provider is initializing, don't redirect.
-    // Optionally return a spinner component here for better UX:
-    // return <FullPageSpinner />;
     return null;
   }
 
