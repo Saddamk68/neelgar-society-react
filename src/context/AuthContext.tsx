@@ -28,16 +28,18 @@ export type AuthUser = {
   personName?: string;
   memberCode?: string;
   societyId?: number;
+  mustChangePassword?: boolean;
 };
 
 export type AuthState = {
   isAuthenticated: boolean;
-  isInitializing: boolean;   // true while we check localStorage / attempt silent refresh on page load
+  isInitializing: boolean;
   role: Role;
   user: AuthUser | null;
+  mustChangePassword: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  demoLogin: (role?: Role) => void;  // dev only — gated by FEATURES.SHOW_DEMO_LOGIN
+  demoLogin: (role?: Role) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ function toAuthUser(accessToken: string, extraData?: any): AuthUser {
     personName: extraData?.personName ?? claims.personName ?? undefined,
     memberCode: extraData?.memberCode ?? claims.memberCode ?? undefined,
     societyId: extraData?.societyId ?? claims.societyId ?? undefined,
+    mustChangePassword: claims.mustChangePassword === true,
   };
 }
 
@@ -111,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const [role, setRole] = useState<Role>("MEMBER");
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // ── Web Worker ref ─────────────────────────────────────────────────────────
   // WHY useRef here instead of a plain variable:
@@ -149,7 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setUser(u);
     setRole(u.role);
-    scheduleRefresh(token); // arm the Web Worker countdown for proactive refresh
+    setMustChangePassword(u.mustChangePassword === true);
+    scheduleRefresh(token);
   }, [scheduleRefresh]);
 
   // Clear everything — called on logout or when refresh fails unrecoverably
@@ -366,7 +371,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, isInitializing, role, user, login, logout, demoLogin }}
+      value={{ isAuthenticated, isInitializing, role, user, mustChangePassword, login, logout, demoLogin }}
     >
       {children}
     </AuthContext.Provider>
