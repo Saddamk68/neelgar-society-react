@@ -65,7 +65,7 @@ export default function PrivateLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { logout, role, isInitializing } = useAuth();
+  const { logout, role, isInitializing, mustChangePassword } = useAuth();
   if (isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -82,6 +82,13 @@ export default function PrivateLayout() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Force redirect to profile if password change is required
+  useEffect(() => {
+    if (mustChangePassword && location.pathname !== ROUTES.PRIVATE.PROFILE) {
+      navigate(ROUTES.PRIVATE.PROFILE, { replace: true });
+    }
+  }, [mustChangePassword, location.pathname, navigate]);
 
   // Visible menu items based on permissions
   const visibleMenu = useMemo(
