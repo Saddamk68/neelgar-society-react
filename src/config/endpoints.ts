@@ -46,6 +46,13 @@ export const ENDPOINTS = {
     resetPassword: (id: number) => `/users/${id}/reset-password`,
   },
 
+  roles: {
+    list: () => `/roles`,
+    allPermissions: () => `/roles/permissions`,
+    userPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
+    updateUserPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
+  },
+  
   importMembers: {
     upload: () => `/import/members`,
     template: () => `/import/template`,

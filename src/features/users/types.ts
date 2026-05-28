@@ -63,5 +63,5 @@ export type ChangePasswordRequest = {
   newPassword: string;
 };
 
-export type UpdateRoleRequest = { role: string; };
+export type UpdateRoleRequest = { role: Role; };
 export type AdminResetPasswordRequest = { newPassword: string; };
