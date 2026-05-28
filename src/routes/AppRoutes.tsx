@@ -95,7 +95,9 @@ export default function AppRoutes() {
           <Route path="members/new" element={
             <RequirePermission perm={PERM.MEMBER_CREATE}><AddMember /></RequirePermission>
           } />
-          <Route path="members/:memberCode/edit" element={<EditMember />} />
+          <Route path="members/:memberCode/edit" element={
+            <RequirePermission perm={PERM.MEMBER_UPDATE}><EditMember /></RequirePermission>
+          } />
           <Route path="members/:memberCode/view" element={<ViewMember />} />
           <Route path="members/:memberCode/print" element={<PrintMember />} />
           <Route path="members/:memberCode/lineage" element={<LineageView />} />
@@ -103,7 +105,9 @@ export default function AppRoutes() {
             <RequirePermission perm={PERM.IMPORT_MEMBERS}><ImportMembers /></RequirePermission>
           } />
           <Route path="families" element={<Families />} />
-          <Route path="families/:familyCode/edit" element={<EditFamily />} />
+          <Route path="families/:familyCode/edit" element={
+            <RequirePermission perm={PERM.FAMILY_CREATE}><EditFamily /></RequirePermission>
+          } />
           <Route path="families/:familyCode/view" element={<ViewFamily />} />
           <Route path="families/:familyCode/print" element={<PrintFamily />} />
           <Route path="logs" element={
