@@ -10,14 +10,14 @@ body {
 /* Accessible, consistent focus rings for interactive elements */
 :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.45); /* primary/50 */
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
   border-radius: 0.375rem; /* match default rounded */
 }
 
 /* Minimal, elegant custom scrollbar only where we add .app-scroll */
 .app-scroll {
   scrollbar-width: thin;                 /* Firefox */
-  scrollbar-color: #94a3b8 transparent;  /* thumb / track */
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
 }
 
 /* Chrome, Edge, Safari */
@@ -31,14 +31,14 @@ body {
 }
 
 .app-scroll::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;             /* slate-300 */
+  background-color: var(--color-scrollbar-thumb);
   border-radius: 9999px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 .app-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;             /* slate-400 on hover */
+  background-color: var(--color-scrollbar-thumb-hover);
 }
 
 /* Make tables scroll nicely inside cards too (if they overflow-x) */

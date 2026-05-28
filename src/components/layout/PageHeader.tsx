@@ -5,12 +5,28 @@ import type { ReactNode } from "react";
 type Props = {
     title: string;
     subtitle?: string;
-    backTo?: string;
+    /**
+     * Where the back button navigates to.
+     * - Pass a path string (e.g. ROUTES.PRIVATE.MEMBERS) to go to a specific page.
+     * - Pass "back" to go to the previous page in browser history (navigate(-1)).
+     *   Use "back" whenever the caller can be reached from multiple places
+     *   (e.g. Members list active tab, inactive tab, search results) so the
+     *   correct origin is always restored.
+     */
+    backTo?: string | "back";
     actions?: ReactNode;
 };
 
 export default function PageHeader({ title, subtitle, backTo, actions }: Props) {
     const navigate = useNavigate();
+
+    function handleBack() {
+        if (backTo === "back") {
+            navigate(-1);
+        } else if (backTo) {
+            navigate(backTo);
+        }
+    }
 
     return (
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
@@ -19,7 +35,7 @@ export default function PageHeader({ title, subtitle, backTo, actions }: Props) 
             <div className="flex items-start gap-3">
                 {backTo && (
                     <button
-                        onClick={() => navigate(backTo)}
+                        onClick={handleBack}
                         className="mt-1 p-1.5 rounded-md hover:bg-slate-100 transition text-slate-500 hover:text-slate-800"
                         aria-label="Go back"
                     >

@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { APP, PROFILE_MENU } from "../constants/messages";
 import { MENU } from "../config/menu";
-import { roleHasPermission } from "../constants/permissions";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ChevronDown } from "lucide-react";
@@ -65,7 +64,7 @@ export default function PrivateLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { logout, role, isInitializing } = useAuth();
+  const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
   if (isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -83,13 +82,20 @@ export default function PrivateLayout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Force redirect to profile if password change is required
+  useEffect(() => {
+    if (mustChangePassword && location.pathname !== ROUTES.PRIVATE.PROFILE) {
+      navigate(ROUTES.PRIVATE.PROFILE, { replace: true });
+    }
+  }, [mustChangePassword, location.pathname, navigate]);
+
   // Visible menu items based on permissions
   const visibleMenu = useMemo(
     () =>
       MENU.filter((item) =>
-        (item.required ?? []).every((perm) => roleHasPermission(role, perm))
+        (item.required ?? []).every((perm) => hasPermission(perm))
       ),
-    [role]
+    [hasPermission]
   );
 
   // ── Group items by section for rendering section labels ──────────
@@ -145,7 +151,7 @@ export default function PrivateLayout() {
               // ── Group with children ──────────────────────────────
               if (item.children && item.children.length > 0) {
                 const visibleChildren = item.children.filter((child) =>
-                  (child.required ?? []).every((perm) => roleHasPermission(role, perm))
+                  (child.required ?? []).every((perm) => hasPermission(perm))
                 );
                 if (visibleChildren.length === 0) return null;
 

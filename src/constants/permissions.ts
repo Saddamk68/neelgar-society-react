@@ -1,18 +1,27 @@
 /**
- * Client-side only — controls what UI elements are visible.
+ * Permission constants — names match backend @PreAuthorize strings exactly.
  * Real authorization is always enforced server-side via JWT claims.
+ * These constants are used purely for UI gating.
  */
-export const PERMISSIONS = {
-  VIEW_DASHBOARD: ["SUPER_ADMIN", "ADMIN", "PRESIDENT", "EDITOR", "MEMBER"],
-  VIEW_MEMBERS: ["SUPER_ADMIN", "ADMIN", "PRESIDENT", "SECRETARY", "EDITOR"],
-  VIEW_FAMILIES: ["SUPER_ADMIN", "ADMIN", "PRESIDENT", "SECRETARY", "EDITOR"],
-  VIEW_LOGS: ["SUPER_ADMIN", "ADMIN", "PRESIDENT"],
-  MANAGE_USERS: ["SUPER_ADMIN", "ADMIN", "PRESIDENT"],
-  MANAGE_GOTRAS: ["SUPER_ADMIN", "ADMIN", "PRESIDENT"],
+export const PERM = {
+  VIEW_DASHBOARD: "VIEW_DASHBOARD",
+  MEMBER_VIEW: "MEMBER_VIEW",
+  MEMBER_CREATE: "MEMBER_CREATE",
+  MEMBER_UPDATE: "MEMBER_UPDATE",
+  MEMBER_DEACTIVATE: "MEMBER_DEACTIVATE",
+  IMPORT_MEMBERS: "IMPORT_MEMBERS",
+  FAMILY_VIEW: "FAMILY_VIEW",
+  FAMILY_CREATE: "FAMILY_CREATE",
+  RELATIONSHIP_MANAGE: "RELATIONSHIP_MANAGE",
+  ADDRESS_MANAGE: "ADDRESS_MANAGE",
+  USER_MANAGE: "USER_MANAGE",
+  USER_APPROVE: "USER_APPROVE",
+  USER_REJECT: "USER_REJECT",
+  VIEW_LOGS: "VIEW_LOGS",
+  GOTRA_MANAGE: "GOTRA_MANAGE",
 } as const;
 
-export type Permission = keyof typeof PERMISSIONS;
+export type Perm = typeof PERM[keyof typeof PERM];
 
-export function roleHasPermission(role: string, perm: Permission): boolean {
-  return (PERMISSIONS[perm] as readonly string[]).includes(role);
-}
+// Alias kept so existing imports of `Permission` type still compile during migration
+export type Permission = Perm;
