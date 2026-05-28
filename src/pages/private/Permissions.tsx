@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Shield } from "lucide-react";
 import UserListPanel from "@/features/users/components/UserListPanel";
 import PermissionEditor from "@/features/users/components/PermissionEditor";
+import { useSearchParams } from "react-router-dom";
 import type { UserRecord } from "@/features/users/types";
 
 export default function Permissions() {
     const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
+    const [searchParams] = useSearchParams();
+    const preselectedId = searchParams.get("user") ? Number(searchParams.get("user")) : null;
 
     return (
         <div className="flex flex-col h-full">
@@ -30,8 +33,9 @@ export default function Permissions() {
                 {/* Left — user list */}
                 <div className="w-72 flex-shrink-0 overflow-hidden flex flex-col">
                     <UserListPanel
-                        selectedUserId={selectedUser?.id ?? null}
+                        selectedUserId={selectedUser?.id ?? preselectedId}
                         onSelect={setSelectedUser}
+                        preselectedId={preselectedId}
                     />
                 </div>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { listUsers } from "../services/userService";
@@ -11,10 +11,11 @@ const ADMIN_ROLES: Role[] = ["SUPER_ADMIN", "ADMIN", "PRESIDENT"];
 
 interface Props {
     selectedUserId: number | null;
+    preselectedId?: number | null;
     onSelect: (user: UserRecord) => void;
 }
 
-export default function UserListPanel({ selectedUserId, onSelect }: Props) {
+export default function UserListPanel({ selectedUserId, onSelect, preselectedId }: Props) {
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState<Role | "">("");
 
@@ -33,6 +34,12 @@ export default function UserListPanel({ selectedUserId, onSelect }: Props) {
         const matchesRole = !roleFilter || u.role === roleFilter;
         return matchesSearch && matchesRole;
     });
+
+    useEffect(() => {
+        if (!preselectedId || !users.length) return;
+        const match = users.find(u => u.id === preselectedId);
+        if (match) onSelect(match);
+    }, [preselectedId, users]);
 
     return (
         <div className="flex flex-col h-full border-r border-slate-100">
