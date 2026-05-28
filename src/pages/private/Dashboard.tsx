@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Users, Home, UserPlus, Download, UserCheck, TrendingUp } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { roleHasPermission } from "../../constants/permissions";
 import { getDashboardStats } from "../../features/dashboard/dashboardService";
 import { getMember } from "../../features/members/services/memberService";
 import { ROUTES } from "../../constants/routes";
 import { Member } from "../../features/members/types";
 import { DashboardStats } from "../../features/dashboard/dashboardService";
+import { usePermission } from "../../hooks/usePermission";
+import { PERM } from "../../constants/permissions";
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -59,9 +60,10 @@ function QuickAction({
 
 // ── Admin dashboard ───────────────────────────────────────────────────────────
 
-function AdminDashboard({ stats, role }: { stats: DashboardStats; role: string }) {
-  const canManageUsers = roleHasPermission(role as any, "MANAGE_USERS");
-  const canImport = roleHasPermission(role as any, "VIEW_MEMBERS");
+function AdminDashboard({ stats }: { stats: DashboardStats }) {
+  const { can } = usePermission();
+  const canManageUsers = can(PERM.USER_MANAGE);
+  const canImport = can(PERM.IMPORT_MEMBERS);
 
   return (
     <div className="space-y-6">
@@ -273,5 +275,5 @@ export default function Dashboard() {
     );
   }
 
-  return <AdminDashboard stats={stats} role={role} />;
+  return <AdminDashboard stats={stats} />;
 }

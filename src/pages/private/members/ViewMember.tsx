@@ -9,9 +9,10 @@ import { Member, PersonRelationshipsResponse } from "../../../features/members/t
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "@/components/MemberAvatar";
-import { useAuth } from "@/context/AuthContext";
 import ReassignFamilyDialog from "@/components/ReassignFamilyDialog";
 import { getPersonRelationships } from "@/features/members/services/relationshipService";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -42,9 +43,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ViewMember() {
   const { memberCode } = useParams<{ memberCode: string }>();
   const notify = useNotify();
-  const { role } = useAuth();
+  const { can } = usePermission();
   const [showReassign, setShowReassign] = useState(false);
-  const canReassign = ["SUPER_ADMIN", "ADMIN", "PRESIDENT"].includes(role);
+  const canReassign = can(PERM.FAMILY_CREATE);
 
   const { data: member, isLoading, isError, refetch } = useQuery<Member>({
     queryKey: ["member", memberCode],

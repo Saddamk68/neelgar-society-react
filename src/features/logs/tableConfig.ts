@@ -1,4 +1,4 @@
-import type { LogEntry } from "./types";
+import type { AuditLog } from "./types";
 
 export type ColumnConfig<T> = {
   key: keyof T;
@@ -10,55 +10,43 @@ export type ColumnConfig<T> = {
   sortable?: boolean;
 };
 
-export const LOGS_COLUMNS: ColumnConfig<LogEntry>[] = [
+export const LOGS_COLUMNS: ColumnConfig<AuditLog>[] = [
   {
-    key: "eventTime",
-    title: "Event Time",
-    width: "150px",
+    key: "timestamp",
+    title: "Time",
+    width: "160px",
     sortable: true,
   },
   {
-    key: "level",
-    title: "Level",
-    width: "90px",
-    align: "center",
-    sortable: true,
-  },
-  {
-    key: "actor",
+    key: "actorUsername",
     title: "Actor",
-    width: "90px",
+    width: "140px",
     truncate: true,
-    tooltip: true,
-    sortable: true,
   },
   {
     key: "action",
     title: "Action",
+    width: "180px",
+  },
+  {
+    key: "entityType",
+    title: "Entity",
+    width: "120px",
+  },
+  {
+    key: "entityCode",
+    title: "Code",
     width: "140px",
     truncate: true,
-    tooltip: true,
-    sortable: true,
   },
   {
     key: "ipAddress",
     title: "IP Address",
-    width: "120px",
-    truncate: true,
-    tooltip: true,
+    width: "130px",
   },
   {
-    key: "userAgent",
-    title: "User Agent",
-    width: "160px",
-    truncate: true,
-    tooltip: true,
-  },
-  {
-    key: "metadata",
-    title: "Log Details",
-    width: "380px",
-    truncate: true,
-    tooltip: true,
+    key: "actorRole",
+    title: "Role",
+    width: "110px",
   },
 ] as const;

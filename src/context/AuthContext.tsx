@@ -25,6 +25,7 @@ import { jwtDecode } from "jwt-decode";
 export type AuthUser = {
   username: string;
   role: Role;
+  permissions: string[];
   personName?: string;
   memberCode?: string;
   societyId?: number;
@@ -35,6 +36,8 @@ export type AuthState = {
   isAuthenticated: boolean;
   isInitializing: boolean;
   role: Role;
+  permissions: string[];
+  hasPermission: (perm: string) => boolean;
   user: AuthUser | null;
   mustChangePassword: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -88,6 +91,7 @@ function toAuthUser(accessToken: string, extraData?: any): AuthUser {
   return {
     username: extraData?.username ?? claims.username ?? claims.sub ?? "",
     role: ((extraData?.role ?? claims.role ?? "MEMBER") as string).toUpperCase() as Role,
+    permissions: Array.isArray(claims.permissions) ? claims.permissions : [],
     personName: extraData?.personName ?? claims.personName ?? undefined,
     memberCode: extraData?.memberCode ?? claims.memberCode ?? undefined,
     societyId: extraData?.societyId ?? claims.societyId ?? undefined,
@@ -113,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [role, setRole] = useState<Role>("MEMBER");
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
@@ -153,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setUser(u);
     setRole(u.role);
+    setPermissions(u.permissions ?? []);
     setMustChangePassword(u.mustChangePassword === true);
     scheduleRefresh(token);
   }, [scheduleRefresh]);
@@ -170,11 +176,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsAuthenticated(false);
       setRole("MEMBER");
+      setPermissions([]);
       setUser(null);
       clearAuthToken();
       saveUser(null);
     }
   }, []);
+
+  const hasPermission = useCallback((perm: string): boolean => {
+    return permissions.includes(perm);
+  }, [permissions]);
 
   // ── On page load: try to restore session ──────────────────────────────────
   useEffect(() => {
@@ -241,8 +252,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Demo login (dev only) ──────────────────────────────────────────────────
   const demoLogin = (newRole: Role = "ADMIN"): void => {
+    if (import.meta.env.PROD) return;
     if (!FEATURES.SHOW_DEMO_LOGIN) return;
-    commitUser({ username: "demo", role: newRole }, "demo-token");
+    commitUser({ username: "demo", role: newRole, permissions: [] }, "demo-token");
   };
 
   // ── Boot the Web Worker once on mount, tear it down on unmount ───────────
@@ -371,7 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, isInitializing, role, user, mustChangePassword, login, logout, demoLogin }}
+      value={{ isAuthenticated, isInitializing, role, permissions, hasPermission, user, mustChangePassword, login, logout, demoLogin }}
     >
       {children}
     </AuthContext.Provider>
