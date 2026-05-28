@@ -1,13 +1,14 @@
-import { Home, Users, FileText, User, BookOpen } from "lucide-react";
+import { Home, Users, FileText, User, BookOpen, Shield } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
-import type { Permission } from "../constants/permissions";
+import { PERM } from "../constants/permissions";
+import type { Perm } from "../constants/permissions";
 
 export type MenuItem = {
   key: string;
   label: string;
   path?: string;
   section?: string;
-  required?: Permission[];
+  required?: Perm[];
   children?: MenuItem[];
   icon?: React.ComponentType<{ size?: number; className?: string }>;
 };
@@ -18,27 +19,27 @@ export const MENU: MenuItem[] = [
     label: NAV.DASHBOARD,
     path: "/app/dashboard",
     section: "MAIN",
-    required: ["VIEW_DASHBOARD"],
+    required: [PERM.VIEW_DASHBOARD],
     icon: Home,
   },
   {
     key: "members-group",
     label: PRIVATE.MEMBERS_TITLE,
     section: "MEMBERS",
-    required: ["VIEW_MEMBERS"],
+    required: [PERM.MEMBER_VIEW],
     icon: Users,
     children: [
       {
         key: "members",
         label: "Members",
         path: "/app/members",
-        required: ["VIEW_MEMBERS"],
+        required: [PERM.MEMBER_VIEW],
       },
       {
         key: "families",
         label: "Families",
         path: "/app/families",
-        required: ["VIEW_FAMILIES"],
+        required: [PERM.FAMILY_VIEW],
       },
     ],
   },
@@ -47,22 +48,29 @@ export const MENU: MenuItem[] = [
     label: PRIVATE.LOGS_TITLE,
     path: "/app/logs",
     section: "ADMINISTRATION",
-    required: ["VIEW_LOGS"],
+    required: [PERM.VIEW_LOGS],
     icon: FileText,
   },
   {
     key: "users",
     label: PRIVATE.USERS_TITLE,
     path: "/app/users",
-    required: ["MANAGE_USERS"],
+    required: [PERM.USER_MANAGE],
     icon: User,
   },
   {
     key: "gotras",
     label: "Gotras",
     path: "/app/gotras",
-    required: ["MANAGE_GOTRAS"],
+    required: [PERM.GOTRA_MANAGE],
     icon: BookOpen,
+  },
+  {
+    key: "permissions",
+    label: "Permissions",
+    path: "/app/permissions",
+    required: [PERM.USER_MANAGE],
+    icon: Shield,
   },
 
 ];

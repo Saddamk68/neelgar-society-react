@@ -13,8 +13,9 @@ import MembersSkeleton from "../../components/skeletons/MembersSkeleton";
 import ResponsiveTable, { ColumnConfig, SortConfig } from "../../components/ResponsiveTable";
 import Tooltip from "../../components/Tooltip";
 import MemberAvatar from "@/components/MemberAvatar";
-import { REACTIVATE_ROLES } from "@/constants/roles";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
 
 type LocalSortConfig = {
   key: keyof Member | null;
@@ -33,7 +34,8 @@ const TABS = [
 export default function Members() {
   const notify = useNotify();
   const { user } = useAuth();
-  const canReactivate = !!user && REACTIVATE_ROLES.includes(user.role);
+  const { can } = usePermission();
+  const canReactivate = can(PERM.MEMBER_DEACTIVATE);
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<boolean>(true);
@@ -261,7 +263,7 @@ export default function Members() {
             Import
           </Link>
           <button
-            onClick={() => downloadImportTemplate()}
+            onClick={() => user?.societyId && downloadImportTemplate(user.societyId)}
             className="flex items-center gap-1 text-primary hover:underline"
           >
             <FileSpreadsheet className="w-3 h-3" />
