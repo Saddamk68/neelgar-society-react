@@ -120,7 +120,13 @@ export default function ImportMembers() {
                 </ol>
 
                 <button
-                    onClick={downloadImportTemplate}
+                    onClick={() => {
+                        if (!user?.societyId) {
+                            notify.error("Society information missing. Please re-login.");
+                            return;
+                        }
+                        downloadImportTemplate(user.societyId);
+                    }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-300 text-sm hover:bg-slate-50 transition"
                 >
                     <FileSpreadsheet className="w-4 h-4 text-green-600" />

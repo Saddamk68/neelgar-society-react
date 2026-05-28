@@ -103,11 +103,11 @@ export default function FamilyConnections({
 
     if (isError || !data) return null;
 
-    const { father, mother, spouse, children, siblings } = data;
+    const { father, mother, spouses, children, siblings } = data;
 
     // Nothing to show — collapse section entirely
     const hasAny =
-        father || mother || spouse || children?.length || siblings?.length;
+        father || mother || spouses?.length || children?.length || siblings?.length;
     if (!hasAny) return null;
 
     return (
@@ -125,9 +125,11 @@ export default function FamilyConnections({
             )}
 
             {/* Spouse */}
-            {spouse && (
+            {spouses && spouses.length > 0 && (
                 <Section title="Spouse">
-                    <RelationRow label="Spouse" member={spouse} currentSocietyId={societyId} />
+                    {spouses.map((sp, i) => (
+                        <RelationRow key={i} label="Spouse" member={sp.person} currentSocietyId={societyId} />
+                    ))}
                 </Section>
             )}
 

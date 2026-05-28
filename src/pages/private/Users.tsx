@@ -23,9 +23,13 @@ import type { UserRecord, UserStatus } from "@/features/users/types";
 import { useAuth } from "@/context/AuthContext";
 import { useNotify } from "@/services/notifications";
 import type { Role } from "@/constants/roles";
-import { ALL_ROLES, REACTIVATE_ROLES } from "@/constants/roles";
 import Tooltip from "@/components/Tooltip";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { ALL_ROLES } from "@/constants/roles";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
+import { Shield } from "lucide-react";
+import UserPermissionsPanel from "@/features/users/components/UserPermissionsPanel";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -214,7 +218,8 @@ const TABS: { label: string; value: UserStatus | "" }[] = [
 
 export default function Users() {
   const { user: authUser } = useAuth();
-  const canReactivate = !!authUser && REACTIVATE_ROLES.includes(authUser.role);
+  const { can } = usePermission();
+  const canReactivate = can(PERM.USER_MANAGE);
   const notify = useNotify();
   const queryClient = useQueryClient();
 
@@ -223,6 +228,7 @@ export default function Users() {
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRecord | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<UserRecord | null>(null);
+  const [permTarget, setPermTarget] = useState<UserRecord | null>(null);
 
   // ── Fetch users ─────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -420,7 +426,7 @@ export default function Users() {
 
                           {/* Edit role — only for active users */}
                           {u.isActive && editingRoleId !== u.id && (
-                            <Tooltip content="Edit role">
+                            <Tooltip content="Edit Role">
                               <button
                                 onClick={() => setEditingRoleId(u.id)}
                                 className="text-primary hover:text-primary/80 transition"
@@ -432,14 +438,25 @@ export default function Users() {
 
                           {/* Reset password — only for active users */}
                           {u.isActive && (
-                            <Tooltip content="Reset password">
-                              <button
-                                onClick={() => setResetTarget(u)}
-                                className="text-amber-600 hover:text-amber-700 transition"
-                              >
-                                <KeyRound className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
+                            <>
+                              <Tooltip content="Reset Password">
+                                <button
+                                  onClick={() => setResetTarget(u)}
+                                  className="text-amber-600 hover:text-amber-700 transition"
+                                >
+                                  <KeyRound className="w-4 h-4" />
+                                </button>
+                              </Tooltip>
+
+                              <Tooltip content="Manage Permissions">
+                                <button
+                                  onClick={() => setPermTarget(u)}
+                                  className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-primary"
+                                >
+                                  <Shield className="w-4 h-4" />
+                                </button>
+                              </Tooltip>
+                            </>
                           )}
 
                           {/* Deactivate — hide for own account to prevent self-lockout */}
@@ -533,6 +550,31 @@ export default function Users() {
         variant="danger"
         loading={deactivateMutation.isPending}
       />
+
+      {/* Permissions panel modal */}
+      {permTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <h2 className="text-base font-semibold text-slate-800">
+                Permissions — {permTarget.personName || permTarget.username}
+              </h2>
+              <button
+                onClick={() => setPermTarget(null)}
+                className="text-slate-400 hover:text-slate-600 text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5">
+              <UserPermissionsPanel
+                userId={permTarget.id}
+                username={permTarget.username}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

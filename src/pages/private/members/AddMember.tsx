@@ -295,7 +295,7 @@ export default function AddMember() {
       <PageHeader
         title="Add Member"
         subtitle="Follow the steps to register a new member."
-        backTo={ROUTES.PRIVATE.MEMBERS}
+        backTo="back"
       />
 
       <StepBar current={step} />

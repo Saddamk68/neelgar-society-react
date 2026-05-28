@@ -1181,7 +1181,7 @@ export default function EditMember() {
             ` · ${originalMember.memberCode}`
             : undefined
         }
-        backTo={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
+        backTo="back"
       />
 
       {/* Family info — read-only banner */}
