@@ -208,8 +208,8 @@ function ResetPasswordModal({
 
 const TABS: { label: string; value: UserStatus | "" }[] = [
   { label: "All", value: "" },
-  { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
+  { label: "Pending", value: "PENDING" },
   { label: "Rejected", value: "REJECTED" },
   { label: "Inactive", value: "INACTIVE" },
 ];
