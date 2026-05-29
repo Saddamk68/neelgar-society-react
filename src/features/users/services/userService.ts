@@ -56,6 +56,38 @@ export async function listUsers(params?: {
   };
 }
 
+// ── List users by active status (paginated, filterable by status) ──────────────────────────────
+
+export async function listUsersByActiveStatus(params?: {
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<UserRecord>> {
+
+  const query = {
+    page: params?.page ?? 0,
+    size: params?.size ?? 20,
+    sort: "createdAt,desc",
+  };
+
+  const resp = await api.get(
+    ENDPOINTS.users.listByActiveStatus(params?.isActive ?? true),
+    { params: query }
+  );
+
+  const page = unwrap<any>(resp.data);
+
+  return {
+    content: (page.content ?? []).map(mapToUserRecord),
+    totalElements: page.totalElements ?? 0,
+    totalPages: page.totalPages ?? 0,
+    number: page.number ?? 0,
+    size: page.size ?? 20,
+    first: page.first ?? true,
+    last: page.last ?? true,
+  };
+}
+
 // ── Approve user ──────────────────────────────────────────────────────────────
 
 export async function approveUser(id: number): Promise<UserRecord> {

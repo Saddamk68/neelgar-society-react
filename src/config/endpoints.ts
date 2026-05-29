@@ -35,6 +35,7 @@ export const ENDPOINTS = {
 
   users: {
     list: () => `/users`,
+    listByActiveStatus: (isActive: boolean) => `/users/by-active-status/${isActive}`,
     me: () => `/users/me`,
     byId: (id: number) => `/users/${id}`,
     approve: (id: number) => `/users/${id}/approve`,
@@ -53,7 +54,7 @@ export const ENDPOINTS = {
     userPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
     updateUserPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
   },
-  
+
   importMembers: {
     upload: () => `/import/members`,
     template: () => `/import/template`,
