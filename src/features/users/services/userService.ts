@@ -100,3 +100,12 @@ export async function adminResetPassword(
   const body: AdminResetPasswordRequest = { newPassword };
   await api.post(ENDPOINTS.users.resetPassword(id), body);
 }
+
+// ── Provision account for existing member ─────────────────────────────────────
+
+export async function provisionUserAccount(
+  personId: number,
+  email?: string
+): Promise<void> {
+  await api.post(ENDPOINTS.users.provision(), { personId, email: email ?? null });
+}
