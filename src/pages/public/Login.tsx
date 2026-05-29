@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ROUTES } from "../../constants/routes";
-import { FEATURES } from "../../config/features";
-import type { Role } from "../../constants/roles";
 
 export default function Login() {
-  const { login, demoLogin, isAuthenticated } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -37,11 +35,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoLogin = (role: Role) => {
-    demoLogin(role);
-    // No navigate() here either — useEffect handles it
   };
 
   return (
@@ -121,35 +114,6 @@ export default function Login() {
         <p className="text-xs text-text-muted mt-4 text-center">
           New accounts require admin approval before first login.
         </p>
-
-        {/* Dev-only demo login */}
-        {FEATURES.SHOW_DEMO_LOGIN && (
-          <div className="mt-6 pt-4 border-t">
-            <p className="text-xs text-text-muted mb-2 text-center">
-              Dev — quick login
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleDemoLogin("SUPER_ADMIN")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-purple-400 text-purple-700 hover:bg-purple-50 transition"
-              >
-                Super Admin
-              </button>
-              <button
-                onClick={() => handleDemoLogin("ADMIN")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-primary text-primary hover:bg-primary/5 transition"
-              >
-                Admin
-              </button>
-              <button
-                onClick={() => handleDemoLogin("MEMBER")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
-              >
-                Member
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
     </section>
