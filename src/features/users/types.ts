@@ -34,7 +34,6 @@ export type UserProfile = {
   email: string | null;
   image: string | null;
   hasPhoto: boolean | null;
-  hasUser?: boolean;  
   role: string;
   status: UserStatus;
   isActive: boolean;

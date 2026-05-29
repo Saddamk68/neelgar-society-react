@@ -174,7 +174,6 @@ export default function ViewMember() {
             <div className="flex items-center gap-2">
               <Link
                 to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/lineage`}
-                // className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
                 className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
               >
                 <GitFork className="w-4 h-4" />
@@ -195,15 +194,20 @@ export default function ViewMember() {
                 {canReassign && (
                   <ActionItem
                     icon={ArrowRightLeft}
-                    label="Reassign Family"
+                    label="Reassign family"
                     onClick={() => setShowReassign(true)}
                   />
                 )}
-                <ActionItem
-                  icon={KeyRound}
-                  label="Provision Login"
-                  onClick={() => setShowProvision(true)}
-                />
+                {canManageUsers && member.isActive && !member.hasUser && (
+                  <>
+                    <div className="border-t border-slate-100 my-1" />
+                    <ActionItem
+                      icon={KeyRound}
+                      label="Provision Login"
+                      onClick={() => setShowProvision(true)}
+                    />
+                  </>
+                )}
               </ActionsMenu>
             </div>
           ) : undefined
