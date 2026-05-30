@@ -25,6 +25,8 @@ function mapToUserRecord(u: any): UserRecord {
     personName: u.personName ?? null,
     memberCode: u.memberCode ?? null,
     createdAt: u.createdAt ?? null,
+    failedAttempts: u.failedAttempts ?? null,
+    lockUntil: u.lockUntil ?? null,
   };
 }
 
@@ -140,4 +142,10 @@ export async function provisionUserAccount(
   email?: string
 ): Promise<void> {
   await api.post(ENDPOINTS.users.provision(), { personId, email: email ?? null });
+}
+
+// ── Unlock account ────────────────────────────────────────────────────────────
+
+export async function unlockUserAccount(username: string): Promise<void> {
+  await api.post(ENDPOINTS.users.unlock(username));
 }

@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  LockOpen,
 } from "lucide-react";
 import {
   listUsers,
@@ -18,6 +19,7 @@ import {
   deactivateUser,
   adminResetPassword,
   reactivateUser,
+  unlockUserAccount,
 } from "@/features/users/services/userService";
 import type { UserRecord, UserStatus } from "@/features/users/types";
 import { useAuth } from "@/context/AuthContext";
@@ -280,6 +282,16 @@ export default function Users() {
     onError: (err: any) => notify.error(err?.message || "Failed to reactivate."),
   });
 
+  // ── Unlock account ──────────────────────────────────────────────────────
+  const unlockMutation = useMutation({
+    mutationFn: (username: string) => unlockUserAccount(username),
+    onSuccess: (_, username) => {
+      notify.success(`Account ${username} unlocked.`);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: any) => notify.error(err?.message || "Failed to unlock account."),
+  });
+
   // ── Reset password ──────────────────────────────────────────────────────
   const resetMutation = useMutation({
     mutationFn: ({ id, pwd }: { id: number; pwd: string }) =>
@@ -389,7 +401,14 @@ export default function Users() {
                       </td>
 
                       <td className="py-2.5 px-4">
-                        <StatusBadge status={u.status} isActive={u.isActive} />
+                        <div className="flex flex-col gap-1 items-start">
+                          <StatusBadge status={u.status} isActive={u.isActive} />
+                          {u.lockUntil && new Date(u.lockUntil) > new Date() && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                              Locked
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-2.5 px-4 text-text-muted font-mono text-xs">
@@ -468,6 +487,19 @@ export default function Users() {
                                 className="text-slate-400 hover:text-red-500 transition"
                               >
                                 <UserX className="w-4 h-4" />
+                              </button>
+                            </Tooltip>
+                          )}
+
+                          {/* Unlock — only for locked accounts */}
+                          {u.lockUntil && new Date(u.lockUntil) > new Date() && (
+                            <Tooltip content="Unlock account">
+                              <button
+                                onClick={() => unlockMutation.mutate(u.username)}
+                                disabled={unlockMutation.isPending}
+                                className="text-red-400 hover:text-green-600 transition"
+                              >
+                                <LockOpen className="w-4 h-4" />
                               </button>
                             </Tooltip>
                           )}
