@@ -96,7 +96,7 @@ function MemberCard({
     generationLevel: number;
     motherName?: string;
     onClick: () => void;
-    }) {
+}) {
     const fullName = [member.firstName, member.lastName].filter(Boolean).join(" ");
     const isSameFamily = member.familyCode === focalFamilyCode;
     const birthYear = member.dob ? member.dob.substring(0, 4) : null;
