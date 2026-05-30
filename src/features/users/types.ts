@@ -63,5 +63,10 @@ export type ChangePasswordRequest = {
   newPassword: string;
 };
 
+export type ProvisionAccountRequest = {
+  personId: number;
+  email?: string | null;
+};
+
 export type UpdateRoleRequest = { role: Role; };
 export type AdminResetPasswordRequest = { newPassword: string; };
