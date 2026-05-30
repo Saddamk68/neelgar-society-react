@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
-import { listUsers } from "../services/userService";
+import { listUsers, listUsersByActiveStatus } from "../services/userService";
 import type { UserRecord } from "../types";
 import type { Role } from "@/constants/roles";
 import { ALL_ROLES } from "@/constants/roles";
@@ -20,8 +20,12 @@ export default function UserListPanel({ selectedUserId, onSelect, preselectedId 
     const [roleFilter, setRoleFilter] = useState<Role | "">("");
 
     const { data, isLoading } = useQuery({
-        queryKey: ["users-for-permissions"],
-        queryFn: () => listUsers({ size: 200 }),
+        queryKey: ["users-for-permissions", true],
+        queryFn: () =>
+            listUsersByActiveStatus({
+                isActive: true,
+                size: 200,
+            }),
     });
 
     const users = data?.content ?? [];
@@ -96,8 +100,8 @@ export default function UserListPanel({ selectedUserId, onSelect, preselectedId 
                                     <p className="text-xs text-slate-400 truncate">{u.username}</p>
                                 </div>
                                 <span className={`text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${isAdmin
-                                        ? "bg-amber-100 text-amber-700"
-                                        : "bg-slate-100 text-slate-600"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-slate-100 text-slate-600"
                                     }`}>
                                     {u.role}
                                 </span>
