@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle,
   XCircle,
@@ -123,13 +124,16 @@ function RoleEditor({
 
 function KebabMenu({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [dropUp, setDropUp] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, dropUp: false });
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -141,13 +145,18 @@ function KebabMenu({ children }: { children: React.ReactNode }) {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      setDropUp(spaceBelow < 220);
+      const dropUp = spaceBelow < 220;
+      setCoords({
+        top: dropUp ? rect.top + window.scrollY - 8 : rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 192,
+        dropUp,
+      });
     }
     setOpen((v) => !v);
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
         ref={buttonRef}
         onClick={handleOpen}
@@ -156,18 +165,25 @@ function KebabMenu({ children }: { children: React.ReactNode }) {
       >
         <MoreVertical className="w-4 h-4" />
       </button>
-      {open && (
+
+      {open && createPortal(
         <div
-          className={[
-            "absolute right-0 z-30 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 text-sm",
-            dropUp ? "bottom-full mb-1" : "top-full mt-1",
-          ].join(" ")}
+          ref={menuRef}
+          style={{
+            position: "absolute",
+            top: coords.dropUp ? undefined : coords.top,
+            bottom: coords.dropUp ? window.innerHeight - coords.top - window.scrollY + 8 : undefined,
+            left: coords.left,
+            zIndex: 9999,
+          }}
+          className="w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 text-sm"
           onClick={() => setOpen(false)}
         >
           {children}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
