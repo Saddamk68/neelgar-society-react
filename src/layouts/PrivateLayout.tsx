@@ -7,6 +7,7 @@ import { MENU } from "../config/menu";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ChevronDown } from "lucide-react";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const SIDEBAR_W = 240; // px
 const HEADER_H = 64;   // h-16
@@ -63,6 +64,7 @@ export default function PrivateLayout() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
   if (isInitializing) {
@@ -237,7 +239,7 @@ export default function PrivateLayout() {
         </div>
         <button
           className="w-full text-left px-3 py-1.5 text-xs text-white/40 hover:text-red-400 transition-colors rounded-md hover:bg-white/5"
-          onClick={() => { logout(); navigate(ROUTES.PUBLIC.LOGIN); }}
+          onClick={() => setConfirmLogout(true)}
         >
           Sign out
         </button>
@@ -345,8 +347,7 @@ export default function PrivateLayout() {
                 role="menuitem"
                 onClick={() => {
                   setProfileOpen(false);
-                  logout();
-                  navigate(ROUTES.PUBLIC.LOGIN);
+                  setConfirmLogout(true);
                 }}
               >
                 {PROFILE_MENU.LOGOUT}
@@ -375,6 +376,22 @@ export default function PrivateLayout() {
           <Outlet />
         </div>
       </main>
+
+      <ConfirmDialog
+        isOpen={confirmLogout}
+        title="Sign out?"
+        message="Are you sure you want to sign out? Make sure to save any unsaved work before confirming."
+        confirmLabel="Sign out"
+        cancelLabel="Stay"
+        variant="danger"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+          navigate(ROUTES.PUBLIC.LOGIN);
+        }}
+        onClose={() => setConfirmLogout(false)}
+      />
+
     </div>
   );
 }
