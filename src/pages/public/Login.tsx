@@ -31,7 +31,23 @@ export default function Login() {
       // Do NOT call navigate() here — the useEffect above handles it
       // once React commits isAuthenticated = true
     } catch (err: any) {
-      setError(err?.message || "Login failed. Please try again.");
+      const raw: string = err?.message || "";
+      if (raw.toLowerCase().includes("locked")) {
+        // Extract time hint if backend sends it
+        setError("Your account has been temporarily locked due to too many failed attempts. Please try again after 15 minutes or contact your system administrator.");
+      } else if (raw.toLowerCase().includes("pending")) {
+        setError("Your account is pending admin approval. Please wait or contact your administrator.");
+      } else if (raw.toLowerCase().includes("rejected")) {
+        setError("Your account has been rejected. Please contact your system administrator.");
+      } else if (raw.toLowerCase().includes("disabled")) {
+        setError("Your account has been deactivated. Please contact your system administrator.");
+      } else if (raw.match(/\d+ attempt/i)) {
+        setError(raw.replace("OAuth 2.0 Parameter: ", "").trim());
+      } else if (raw.toLowerCase().includes("username or password")) {
+        setError("Invalid username or password. Please check your credentials and try again.");
+      } else {
+        setError(raw || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -88,7 +104,12 @@ export default function Login() {
 
           {/* Error message */}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+            <div className={[
+              "rounded-lg px-3 py-2 text-sm border",
+              error.toLowerCase().includes("locked")
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-red-50 border-red-200 text-red-700"
+            ].join(" ")}>
               {error}
             </div>
           )}

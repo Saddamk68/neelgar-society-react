@@ -62,6 +62,20 @@ const oauth2Client = axios.create({
   timeout: 15_000,
 });
 
+oauth2Client.interceptors.response.use(
+  (resp) => resp,
+  (error: AxiosError<any>) => {
+    const data = error.response?.data ?? {};
+    const message =
+      data?.error_description ||
+      data?.message ||
+      data?.error ||
+      error.message ||
+      "Authentication failed.";
+    return Promise.reject(new Error(message));
+  }
+);
+
 /**
  * LOGIN — calls POST /oauth2/token with username + password.
  * Stores both access token and refresh token.

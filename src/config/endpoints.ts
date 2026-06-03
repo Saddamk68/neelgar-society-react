@@ -46,6 +46,7 @@ export const ENDPOINTS = {
     changePassword: () => `/users/change-password`,
     resetPassword: (id: number) => `/users/${id}/reset-password`,
     provision: () => `/users/provision`,
+    unlock: (username: string) => `/users/${username}/unlock`,
   },
 
   roles: {

@@ -12,6 +12,8 @@ export type UserRecord = {
   personName: string | null;
   memberCode: string | null;
   createdAt: string | null;
+  failedAttempts: number | null;
+  lockUntil: string | null;
 };
 
 export type PageResponse<T> = {
