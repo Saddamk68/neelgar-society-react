@@ -17,7 +17,13 @@ export function normalizeBackendError(error: AxiosError<any>) {
   const statusCode = error.response?.status ?? 0;
   const data = error.response?.data ?? {};
   const rawStatus = data?.status ?? "";
-  const message = data?.message || data?.error || data?.title || "";
+  const message =
+    data?.error_description ||
+    data?.details ||
+    data?.message ||
+    data?.title ||
+    data?.error ||
+    "";
 
   // Extract symbolic error code (e.g. "UNAUTHORIZED" from "401 UNAUTHORIZED")
   let errorCode = "";

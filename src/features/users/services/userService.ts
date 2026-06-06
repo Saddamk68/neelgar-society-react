@@ -25,6 +25,8 @@ function mapToUserRecord(u: any): UserRecord {
     personName: u.personName ?? null,
     memberCode: u.memberCode ?? null,
     createdAt: u.createdAt ?? null,
+    failedAttempts: u.failedAttempts ?? null,
+    lockUntil: u.lockUntil ?? null,
   };
 }
 
@@ -43,6 +45,38 @@ export async function listUsers(params?: {
   if (params?.status) query.status = params.status;
 
   const resp = await api.get(ENDPOINTS.users.list(), { params: query });
+  const page = unwrap<any>(resp.data);
+
+  return {
+    content: (page.content ?? []).map(mapToUserRecord),
+    totalElements: page.totalElements ?? 0,
+    totalPages: page.totalPages ?? 0,
+    number: page.number ?? 0,
+    size: page.size ?? 20,
+    first: page.first ?? true,
+    last: page.last ?? true,
+  };
+}
+
+// ── List users by active status (paginated, filterable by status) ──────────────────────────────
+
+export async function listUsersByActiveStatus(params?: {
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<UserRecord>> {
+
+  const query = {
+    page: params?.page ?? 0,
+    size: params?.size ?? 20,
+    sort: "createdAt,desc",
+  };
+
+  const resp = await api.get(
+    ENDPOINTS.users.listByActiveStatus(params?.isActive ?? true),
+    { params: query }
+  );
+
   const page = unwrap<any>(resp.data);
 
   return {
@@ -99,4 +133,19 @@ export async function adminResetPassword(
 ): Promise<void> {
   const body: AdminResetPasswordRequest = { newPassword };
   await api.post(ENDPOINTS.users.resetPassword(id), body);
+}
+
+// ── Provision account for existing member ─────────────────────────────────────
+
+export async function provisionUserAccount(
+  personId: number,
+  email?: string
+): Promise<void> {
+  await api.post(ENDPOINTS.users.provision(), { personId, email: email ?? null });
+}
+
+// ── Unlock account ────────────────────────────────────────────────────────────
+
+export async function unlockUserAccount(username: string): Promise<void> {
+  await api.post(ENDPOINTS.users.unlock(username));
 }

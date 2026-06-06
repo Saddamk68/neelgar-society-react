@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import PublicLayout from "../layouts/PublicLayout";
 import PrivateLayout from "../layouts/PrivateLayout";
 import Home from "../pages/public/Home";
@@ -23,6 +24,9 @@ import PrintFamily from "@/pages/private/families/PrintFamily";
 import EditFamily from "@/pages/private/families/EditFamily";
 import LineageView from "@/pages/private/members/LineageView";
 import LogsPage from "@/pages/private/logs/LogsPage";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
+import Permissions from "@/pages/private/Permissions";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -31,16 +35,39 @@ import LogsPage from "@/pages/private/logs/LogsPage";
  * - If authenticated, it renders the protected outlet.
  */
 function RequireAuth() {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isAuthenticated, isInitializing, mustChangePassword } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated && mustChangePassword) {
+      navigate(ROUTES.PRIVATE.PROFILE, { replace: true });
+    }
+  }, [isAuthenticated, mustChangePassword, navigate]);
 
   if (isInitializing) {
-    // While the auth provider is initializing, don't redirect.
-    // Optionally return a spinner component here for better UX:
-    // return <FullPageSpinner />;
     return null;
   }
 
   return isAuthenticated ? <Outlet /> : <Navigate to={ROUTES.PUBLIC.LOGIN} replace />;
+}
+
+function RequirePermission({
+  perm,
+  children,
+}: {
+  perm: string;
+  children: React.ReactElement;
+}) {
+  const { can } = usePermission();
+  const { isInitializing, isAuthenticated, permissions } = useAuth();
+
+  // Wait for auth to finish initialising AND permissions to be loaded
+  if (isInitializing) return null;
+  if (!isAuthenticated) return null;
+  if (permissions.length === 0) return null;
+
+  if (!can(perm as any)) return <Navigate to={ROUTES.PRIVATE.DASHBOARD} replace />;
+  return children;
 }
 
 export default function AppRoutes() {
@@ -65,23 +92,42 @@ export default function AppRoutes() {
             path={ROUTES.PRIVATE.MEMBERS.replace("/app/", "")}
             element={<Members />}
           />
-          <Route path="members/new" element={<AddMember />} />
-          <Route path="members/:memberCode/edit" element={<EditMember />} />
+          <Route path="members/new" element={
+            <RequirePermission perm={PERM.MEMBER_CREATE}><AddMember /></RequirePermission>
+          } />
+          <Route path="members/:memberCode/edit" element={
+            <RequirePermission perm={PERM.MEMBER_UPDATE}><EditMember /></RequirePermission>
+          } />
           <Route path="members/:memberCode/view" element={<ViewMember />} />
           <Route path="members/:memberCode/print" element={<PrintMember />} />
           <Route path="members/:memberCode/lineage" element={<LineageView />} />
-          <Route path="members/import" element={<ImportMembers />} />
+          <Route path="members/import" element={
+            <RequirePermission perm={PERM.IMPORT_MEMBERS}><ImportMembers /></RequirePermission>
+          } />
           <Route path="families" element={<Families />} />
-          <Route path="families/:familyCode/edit" element={<EditFamily />} />
+          <Route path="families/:familyCode/edit" element={
+            <RequirePermission perm={PERM.FAMILY_CREATE}><EditFamily /></RequirePermission>
+          } />
           <Route path="families/:familyCode/view" element={<ViewFamily />} />
           <Route path="families/:familyCode/print" element={<PrintFamily />} />
-          <Route path="logs" element={<LogsPage />} />
+          <Route path="logs" element={
+            <RequirePermission perm={PERM.VIEW_LOGS}><LogsPage /></RequirePermission>
+          } />
           <Route
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
-            element={<Users />}
+            element={
+              <RequirePermission perm={PERM.USER_MANAGE}><Users /></RequirePermission>
+            }
           />
           <Route path="profile" element={<ViewProfile />} />
-          <Route path="gotras" element={<Gotras />} />
+          <Route path="gotras" element={
+            <RequirePermission perm={PERM.GOTRA_MANAGE}><Gotras /></RequirePermission>
+          } />
+          <Route path="permissions" element={
+            <RequirePermission perm={PERM.USER_MANAGE}>
+              <Permissions />
+            </RequirePermission>
+          } />
         </Route>
       </Route>
 

@@ -7,21 +7,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#3b82f6",   // blue
-        secondary: "#0ea5e9", // teal
-        background: "#f8fafc",
-        surface: "#ffffff",
+        // All values reference CSS variables defined in App.css.
+        // To change a color: update App.css only — Tailwind classes update automatically.
+        primary:    "var(--color-primary)",
+        secondary:  "var(--color-secondary)",
+        background: "var(--color-background)",
+        surface:    "var(--color-surface)",
         text: {
-          primary: "#111827",
-          muted: "#6b7280",
+          primary: "var(--color-text-primary)",
+          muted:   "var(--color-text-muted)",
         },
         sidebar: {
-          bg: "#1e293b",
-          hover: "#334155",
+          bg:    "var(--color-sidebar-bg)",
+          hover: "var(--color-sidebar-hover)",
         },
-        success: "#22c55e",
-        danger: "#ef4444",
-        warning: "#f59e0b",
+        success: "var(--color-success)",
+        danger:  "var(--color-danger)",
+        warning: "var(--color-warning)",
       },
     },
   },

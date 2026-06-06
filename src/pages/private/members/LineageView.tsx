@@ -99,7 +99,15 @@ function MemberCard({
 }) {
     const fullName = [member.firstName, member.lastName].filter(Boolean).join(" ");
     const isSameFamily = member.familyCode === focalFamilyCode;
+    const birthYear = member.dob ? member.dob.substring(0, 4) : null;
     const deathYear = member.dod ? member.dod.substring(0, 4) : null;
+
+    const yearRange = (() => {
+        if (!birthYear && !deathYear) return null;
+        const start = birthYear ?? "?";
+        const end = deathYear ?? "present";
+        return `${start} – ${end}`;
+    })();
 
     const spouseStyle = isSpouse && spouseIndex !== undefined
         ? spouseStyles[spouseIndex % spouseStyles.length]
@@ -134,13 +142,15 @@ function MemberCard({
                     size="sm"
                 />
 
-                {/* Name + deceased marker */}
+                {/* Name + year range */}
                 <div className="mt-1.5 text-sm font-semibold text-slate-800 leading-tight line-clamp-2 w-full">
                     {fullName}
-                    {deathYear && (
-                        <span className="ml-1 text-slate-400 font-normal text-xs">({deathYear})</span>
-                    )}
                 </div>
+                {yearRange && (
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5 w-full">
+                        {yearRange}
+                    </div>
+                )}
 
                 <div className="text-xs font-mono text-slate-400 mt-0.5 truncate w-full">
                     {member.memberCode}
@@ -375,8 +385,8 @@ function Legend({ showSpouses }: { showSpouses: boolean }) {
                 ))}
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
-                <span className="text-xs font-medium">(yyyy)</span>
-                <span>Deceased</span>
+                <span className="text-xs font-mono">yyyy – yyyy</span>
+                <span>Birth – Death / present</span>
             </div>
         </div>
     );

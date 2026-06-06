@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle,
   XCircle,
@@ -9,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  LockOpen,
+  MoreVertical,
 } from "lucide-react";
 import {
   listUsers,
@@ -18,14 +21,19 @@ import {
   deactivateUser,
   adminResetPassword,
   reactivateUser,
+  unlockUserAccount,
 } from "@/features/users/services/userService";
 import type { UserRecord, UserStatus } from "@/features/users/types";
 import { useAuth } from "@/context/AuthContext";
 import { useNotify } from "@/services/notifications";
 import type { Role } from "@/constants/roles";
-import { ALL_ROLES, REACTIVATE_ROLES } from "@/constants/roles";
 import Tooltip from "@/components/Tooltip";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { ALL_ROLES } from "@/constants/roles";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
+import { Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -109,6 +117,103 @@ function RoleEditor({
         Cancel
       </button>
     </div>
+  );
+}
+
+// ── Kebab dropdown menu ───────────────────────────────────────────────────────
+
+function KebabMenu({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, dropUp: false });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropUp = spaceBelow < 220;
+      setCoords({
+        top: dropUp ? rect.top + window.scrollY - 8 : rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 192,
+        dropUp,
+      });
+    }
+    setOpen((v) => !v);
+  };
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        onClick={handleOpen}
+        className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+        title="More actions"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: "absolute",
+            top: coords.dropUp ? undefined : coords.top,
+            bottom: coords.dropUp ? window.innerHeight - coords.top - window.scrollY + 8 : undefined,
+            left: coords.left,
+            zIndex: 9999,
+          }}
+          className="w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 text-sm"
+          onClick={() => setOpen(false)}
+        >
+          {children}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
+function KebabItem({
+  onClick,
+  icon: Icon,
+  label,
+  danger,
+  disabled,
+}: {
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "w-full flex items-center gap-2.5 px-3 py-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed",
+        danger
+          ? "text-red-600 hover:bg-red-50"
+          : "text-slate-700 hover:bg-slate-50",
+      ].join(" ")}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {label}
+    </button>
   );
 }
 
@@ -204,8 +309,8 @@ function ResetPasswordModal({
 
 const TABS: { label: string; value: UserStatus | "" }[] = [
   { label: "All", value: "" },
-  { label: "Pending", value: "PENDING" },
   { label: "Approved", value: "APPROVED" },
+  { label: "Pending", value: "PENDING" },
   { label: "Rejected", value: "REJECTED" },
   { label: "Inactive", value: "INACTIVE" },
 ];
@@ -214,7 +319,8 @@ const TABS: { label: string; value: UserStatus | "" }[] = [
 
 export default function Users() {
   const { user: authUser } = useAuth();
-  const canReactivate = !!authUser && REACTIVATE_ROLES.includes(authUser.role);
+  const { can } = usePermission();
+  const canReactivate = can(PERM.USER_MANAGE);
   const notify = useNotify();
   const queryClient = useQueryClient();
 
@@ -223,6 +329,7 @@ export default function Users() {
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRecord | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<UserRecord | null>(null);
+  const navigate = useNavigate();
 
   // ── Fetch users ─────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -272,6 +379,16 @@ export default function Users() {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (err: any) => notify.error(err?.message || "Failed to reactivate."),
+  });
+
+  // ── Unlock account ──────────────────────────────────────────────────────
+  const unlockMutation = useMutation({
+    mutationFn: (username: string) => unlockUserAccount(username),
+    onSuccess: (_, username) => {
+      notify.success(`Account ${username} unlocked.`);
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: any) => notify.error(err?.message || "Failed to unlock account."),
   });
 
   // ── Reset password ──────────────────────────────────────────────────────
@@ -383,7 +500,14 @@ export default function Users() {
                       </td>
 
                       <td className="py-2.5 px-4">
-                        <StatusBadge status={u.status} isActive={u.isActive} />
+                        <div className="flex flex-col gap-1 items-start">
+                          <StatusBadge status={u.status} isActive={u.isActive} />
+                          {u.lockUntil && new Date(u.lockUntil) > new Date() && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                              Locked
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-2.5 px-4 text-text-muted font-mono text-xs">
@@ -392,10 +516,10 @@ export default function Users() {
 
                       {/* Action buttons */}
                       <td className="py-2.5 px-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
 
-                          {/* Approve / Reject — only for PENDING users */}
-                          {u.status === "PENDING" && (
+                          {/* Approve / Reject inline — only for PENDING, no kebab */}
+                          {u.status === "PENDING" ? (
                             <>
                               <Tooltip content="Approve">
                                 <button
@@ -416,61 +540,66 @@ export default function Users() {
                                 </button>
                               </Tooltip>
                             </>
-                          )}
+                          ) : (
+                            <KebabMenu>
+                              {/* Edit role */}
+                              {u.isActive && editingRoleId !== u.id && (
+                                <KebabItem
+                                  icon={Pencil}
+                                  label="Edit role"
+                                  onClick={() => setEditingRoleId(u.id)}
+                                />
+                              )}
 
-                          {/* Edit role — only for active users */}
-                          {u.isActive && editingRoleId !== u.id && (
-                            <Tooltip content="Edit role">
-                              <button
-                                onClick={() => setEditingRoleId(u.id)}
-                                className="text-primary hover:text-primary/80 transition"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          )}
+                              {/* Reset password */}
+                              {u.isActive && (
+                                <KebabItem
+                                  icon={KeyRound}
+                                  label="Reset password"
+                                  onClick={() => setResetTarget(u)}
+                                />
+                              )}
 
-                          {/* Reset password — only for active users */}
-                          {u.isActive && (
-                            <Tooltip content="Reset password">
-                              <button
-                                onClick={() => setResetTarget(u)}
-                                className="text-amber-600 hover:text-amber-700 transition"
-                              >
-                                <KeyRound className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          )}
+                              {/* Manage permissions */}
+                              {u.isActive && (
+                                <KebabItem
+                                  icon={Shield}
+                                  label="Manage permissions"
+                                  onClick={() => navigate(`/app/permissions?user=${u.id}`)}
+                                />
+                              )}
 
-                          {/* Deactivate — hide for own account to prevent self-lockout */}
-                          {u.isActive && u.username !== authUser?.username && (
-                            <Tooltip content="Deactivate">
-                              <button
-                                onClick={() => setDeactivateTarget(u)}
-                                disabled={deactivateMutation.isPending}
-                                className="text-slate-400 hover:text-red-500 transition"
-                              >
-                                <UserX className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
-                          )}
+                              {/* Unlock */}
+                              {u.lockUntil && new Date(u.lockUntil) > new Date() && (
+                                <KebabItem
+                                  icon={LockOpen}
+                                  label="Unlock account"
+                                  onClick={() => unlockMutation.mutate(u.username)}
+                                  disabled={unlockMutation.isPending}
+                                />
+                              )}
 
-                          {/* Reactivate — only for inactive users, only for authorized roles */}
-                          {!u.isActive && (
-                            <Tooltip content={canReactivate ? "Reactivate" : "No permission"}>
-                              <button
-                                onClick={() => canReactivate && reactivateMutation.mutate(u.id)}
-                                disabled={!canReactivate || reactivateMutation.isPending}
-                                className={[
-                                  "transition",
-                                  canReactivate
-                                    ? "text-slate-400 hover:text-green-600 cursor-pointer"
-                                    : "text-slate-300 cursor-not-allowed",
-                                ].join(" ")}
-                              >
-                                <UserCheck className="w-4 h-4" />
-                              </button>
-                            </Tooltip>
+                              {/* Deactivate */}
+                              {u.isActive && u.username !== authUser?.username && (
+                                <KebabItem
+                                  icon={UserX}
+                                  label="Deactivate"
+                                  danger
+                                  onClick={() => setDeactivateTarget(u)}
+                                  disabled={deactivateMutation.isPending}
+                                />
+                              )}
+
+                              {/* Reactivate */}
+                              {!u.isActive && (
+                                <KebabItem
+                                  icon={UserCheck}
+                                  label="Reactivate"
+                                  disabled={!canReactivate || reactivateMutation.isPending}
+                                  onClick={() => canReactivate && reactivateMutation.mutate(u.id)}
+                                />
+                              )}
+                            </KebabMenu>
                           )}
 
                         </div>

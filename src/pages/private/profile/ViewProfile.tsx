@@ -49,10 +49,10 @@ const STATUS_STYLES: Record<UserStatus, string> = {
 
 // ── Change password section ───────────────────────────────────────────────────
 
-function ChangePasswordSection({ onSuccess }: { onSuccess: () => void }) {
+function ChangePasswordSection({ onSuccess, forceOpen = false }: { onSuccess: () => void; forceOpen?: boolean }) {
     const notify = useNotify();
 
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(forceOpen);
     const [currentPwd, setCurrentPwd] = useState("");
     const [newPwd, setNewPwd] = useState("");
     const [confirmPwd, setConfirmPwd] = useState("");
@@ -200,7 +200,7 @@ function ChangePasswordSection({ onSuccess }: { onSuccess: () => void }) {
 
 export default function ViewProfile() {
     const notify = useNotify();
-    const { logout } = useAuth();
+    const { logout, mustChangePassword } = useAuth();
 
     const { data: profile, isLoading, isError, refetch } = useQuery({
         queryKey: ["currentUserProfile"],
@@ -344,9 +344,16 @@ export default function ViewProfile() {
                 </div>
             )}
 
+            {/* Mandatory password change banner */}
+            {mustChangePassword && (
+                <div className="rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 text-sm text-amber-900 font-medium">
+                    ⚠ You must change your password before continuing. Please use the form below.
+                </div>
+            )}
+
             {/* Change password — always shown once page loads */}
             {!isLoading && (
-                <ChangePasswordSection onSuccess={logout} />
+                <ChangePasswordSection onSuccess={logout} forceOpen={mustChangePassword} />
             )}
 
         </div>
