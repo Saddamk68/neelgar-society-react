@@ -1,0 +1,100 @@
+name: Build and Deploy Frontend
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Node version
+        run: node -v
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_OAUTH2_BASE_URL: ${{ secrets.VITE_OAUTH2_BASE_URL }}
+          VITE_OAUTH2_CLIENT_ID: ${{ secrets.VITE_OAUTH2_CLIENT_ID }}
+        run: npm run build
+
+      - name: Verify dist was created
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "❌ dist/index.html not found"
+            exit 1
+          fi
+          echo "✓ Build output verified"
+
+  deploy:
+    name: Deploy to Server
+    runs-on: self-hosted
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build for production
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_OAUTH2_BASE_URL: ${{ secrets.VITE_OAUTH2_BASE_URL }}
+          VITE_OAUTH2_CLIENT_ID: ${{ secrets.VITE_OAUTH2_CLIENT_ID }}
+        run: npm ci && npm run build
+
+      - name: Verify dist
+        run: |
+          if [ ! -f dist/index.html ]; then
+            echo "❌ Build failed — dist/index.html missing"
+            exit 1
+          fi
+          echo "✓ dist/index.html exists"
+
+      - name: Backup current frontend
+        run: |
+          if [ "$(ls -A /var/www/neelgar 2>/dev/null)" ]; then
+            sudo cp -r /var/www/neelgar /var/www/neelgar.backup
+            echo "✓ Backup created"
+          else
+            echo "ℹ No existing frontend to backup"
+          fi
+
+      - name: Deploy frontend
+        run: |
+          sudo cp -r dist/. /var/www/neelgar/
+          echo "✓ Frontend deployed"
+
+      - name: Set permissions
+        run: sudo chown -R www-data:www-data /var/www/neelgar
+
+      - name: Verify deployment
+        run: |
+          if [ ! -f /var/www/neelgar/index.html ]; then
+            echo "❌ Deployment verification failed"
+            exit 1
+          fi
+          echo "✓ Deployment verified"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "⚠ Deployment failed — rolling back"
+          if [ -d /var/www/neelgar.backup ]; then
+            sudo cp -r /var/www/neelgar.backup/. /var/www/neelgar/
+            echo "✓ Rollback complete"
+          else
+            echo "❌ No backup found"
+          fi
