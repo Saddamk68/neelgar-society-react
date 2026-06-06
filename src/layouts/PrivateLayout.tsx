@@ -4,10 +4,10 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { APP, PROFILE_MENU } from "../constants/messages";
 import { MENU } from "../config/menu";
-import { roleHasPermission } from "../constants/permissions";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ChevronDown } from "lucide-react";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const SIDEBAR_W = 240; // px
 const HEADER_H = 64;   // h-16
@@ -64,8 +64,9 @@ export default function PrivateLayout() {
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const { logout, role, isInitializing } = useAuth();
+  const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
   if (isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -83,13 +84,20 @@ export default function PrivateLayout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Force redirect to profile if password change is required
+  useEffect(() => {
+    if (mustChangePassword && location.pathname !== ROUTES.PRIVATE.PROFILE) {
+      navigate(ROUTES.PRIVATE.PROFILE, { replace: true });
+    }
+  }, [mustChangePassword, location.pathname, navigate]);
+
   // Visible menu items based on permissions
   const visibleMenu = useMemo(
     () =>
       MENU.filter((item) =>
-        (item.required ?? []).every((perm) => roleHasPermission(role, perm))
+        (item.required ?? []).every((perm) => hasPermission(perm))
       ),
-    [role]
+    [hasPermission]
   );
 
   // ── Group items by section for rendering section labels ──────────
@@ -145,7 +153,7 @@ export default function PrivateLayout() {
               // ── Group with children ──────────────────────────────
               if (item.children && item.children.length > 0) {
                 const visibleChildren = item.children.filter((child) =>
-                  (child.required ?? []).every((perm) => roleHasPermission(role, perm))
+                  (child.required ?? []).every((perm) => hasPermission(perm))
                 );
                 if (visibleChildren.length === 0) return null;
 
@@ -231,7 +239,7 @@ export default function PrivateLayout() {
         </div>
         <button
           className="w-full text-left px-3 py-1.5 text-xs text-white/40 hover:text-red-400 transition-colors rounded-md hover:bg-white/5"
-          onClick={() => { logout(); navigate(ROUTES.PUBLIC.LOGIN); }}
+          onClick={() => setConfirmLogout(true)}
         >
           Sign out
         </button>
@@ -339,8 +347,7 @@ export default function PrivateLayout() {
                 role="menuitem"
                 onClick={() => {
                   setProfileOpen(false);
-                  logout();
-                  navigate(ROUTES.PUBLIC.LOGIN);
+                  setConfirmLogout(true);
                 }}
               >
                 {PROFILE_MENU.LOGOUT}
@@ -369,6 +376,22 @@ export default function PrivateLayout() {
           <Outlet />
         </div>
       </main>
+
+      <ConfirmDialog
+        isOpen={confirmLogout}
+        title="Sign out?"
+        message="Are you sure you want to sign out? Make sure to save any unsaved work before confirming."
+        confirmLabel="Sign out"
+        cancelLabel="Stay"
+        variant="danger"
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logout();
+          navigate(ROUTES.PUBLIC.LOGIN);
+        }}
+        onClose={() => setConfirmLogout(false)}
+      />
+
     </div>
   );
 }

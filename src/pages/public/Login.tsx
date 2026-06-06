@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { ROUTES } from "../../constants/routes";
-import { FEATURES } from "../../config/features";
-import type { Role } from "../../constants/roles";
 
 export default function Login() {
-  const { login, demoLogin, isAuthenticated } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -33,15 +31,26 @@ export default function Login() {
       // Do NOT call navigate() here — the useEffect above handles it
       // once React commits isAuthenticated = true
     } catch (err: any) {
-      setError(err?.message || "Login failed. Please try again.");
+      const raw: string = err?.message || "";
+      if (raw.toLowerCase().includes("locked")) {
+        // Extract time hint if backend sends it
+        setError("Your account has been temporarily locked due to too many failed attempts. Please try again after 15 minutes or contact your system administrator.");
+      } else if (raw.toLowerCase().includes("pending")) {
+        setError("Your account is pending admin approval. Please wait or contact your administrator.");
+      } else if (raw.toLowerCase().includes("rejected")) {
+        setError("Your account has been rejected. Please contact your system administrator.");
+      } else if (raw.toLowerCase().includes("disabled")) {
+        setError("Your account has been deactivated. Please contact your system administrator.");
+      } else if (raw.match(/\d+ attempt/i)) {
+        setError(raw.replace("OAuth 2.0 Parameter: ", "").trim());
+      } else if (raw.toLowerCase().includes("username or password")) {
+        setError("Invalid username or password. Please check your credentials and try again.");
+      } else {
+        setError(raw || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDemoLogin = (role: Role) => {
-    demoLogin(role);
-    // No navigate() here either — useEffect handles it
   };
 
   return (
@@ -95,7 +104,12 @@ export default function Login() {
 
           {/* Error message */}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+            <div className={[
+              "rounded-lg px-3 py-2 text-sm border",
+              error.toLowerCase().includes("locked")
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-red-50 border-red-200 text-red-700"
+            ].join(" ")}>
               {error}
             </div>
           )}
@@ -121,35 +135,6 @@ export default function Login() {
         <p className="text-xs text-text-muted mt-4 text-center">
           New accounts require admin approval before first login.
         </p>
-
-        {/* Dev-only demo login */}
-        {FEATURES.SHOW_DEMO_LOGIN && (
-          <div className="mt-6 pt-4 border-t">
-            <p className="text-xs text-text-muted mb-2 text-center">
-              Dev — quick login
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleDemoLogin("SUPER_ADMIN")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-purple-400 text-purple-700 hover:bg-purple-50 transition"
-              >
-                Super Admin
-              </button>
-              <button
-                onClick={() => handleDemoLogin("ADMIN")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-primary text-primary hover:bg-primary/5 transition"
-              >
-                Admin
-              </button>
-              <button
-                onClick={() => handleDemoLogin("MEMBER")}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition"
-              >
-                Member
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
     </section>

@@ -23,6 +23,7 @@ export type Member = {
   isHead?: boolean;
   isActive: boolean;
   hasPhoto?: boolean;
+  hasUser?: boolean;  
   createdAt?: string;
   createdBy?: string;
 };

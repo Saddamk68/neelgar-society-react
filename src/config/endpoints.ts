@@ -35,6 +35,7 @@ export const ENDPOINTS = {
 
   users: {
     list: () => `/users`,
+    listByActiveStatus: (isActive: boolean) => `/users/by-active-status/${isActive}`,
     me: () => `/users/me`,
     byId: (id: number) => `/users/${id}`,
     approve: (id: number) => `/users/${id}/approve`,
@@ -44,6 +45,15 @@ export const ENDPOINTS = {
     reactivate: (id: number) => `/users/${id}/reactivate`,
     changePassword: () => `/users/change-password`,
     resetPassword: (id: number) => `/users/${id}/reset-password`,
+    provision: () => `/users/provision`,
+    unlock: (username: string) => `/users/${username}/unlock`,
+  },
+
+  roles: {
+    list: () => `/roles`,
+    allPermissions: () => `/roles/permissions`,
+    userPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
+    updateUserPermissions: (userId: number) => `/roles/users/${userId}/permissions`,
   },
 
   importMembers: {

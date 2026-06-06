@@ -9,7 +9,6 @@ import {
   setAuthToken,
   getAuthToken,
   clearAuthToken,
-  setRefreshToken,
   onUnauthorized,
 } from "../services/apiClient";
 import { FEATURES } from "../config/features";
@@ -26,19 +25,24 @@ import { jwtDecode } from "jwt-decode";
 export type AuthUser = {
   username: string;
   role: Role;
+  permissions: string[];
   personName?: string;
   memberCode?: string;
   societyId?: number;
+  mustChangePassword?: boolean;
 };
 
 export type AuthState = {
   isAuthenticated: boolean;
-  isInitializing: boolean;   // true while we check localStorage / attempt silent refresh on page load
+  isInitializing: boolean;
   role: Role;
+  permissions: string[];
+  hasPermission: (perm: string) => boolean;
   user: AuthUser | null;
+  mustChangePassword: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  demoLogin: (role?: Role) => void;  // dev only — gated by FEATURES.SHOW_DEMO_LOGIN
+  demoLogin: (role?: Role) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,9 +91,11 @@ function toAuthUser(accessToken: string, extraData?: any): AuthUser {
   return {
     username: extraData?.username ?? claims.username ?? claims.sub ?? "",
     role: ((extraData?.role ?? claims.role ?? "MEMBER") as string).toUpperCase() as Role,
+    permissions: Array.isArray(claims.permissions) ? claims.permissions : [],
     personName: extraData?.personName ?? claims.personName ?? undefined,
     memberCode: extraData?.memberCode ?? claims.memberCode ?? undefined,
     societyId: extraData?.societyId ?? claims.societyId ?? undefined,
+    mustChangePassword: claims.mustChangePassword === true,
   };
 }
 
@@ -111,7 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [role, setRole] = useState<Role>("MEMBER");
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // ── Web Worker ref ─────────────────────────────────────────────────────────
   // WHY useRef here instead of a plain variable:
@@ -150,7 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(true);
     setUser(u);
     setRole(u.role);
-    scheduleRefresh(token); // arm the Web Worker countdown for proactive refresh
+    setPermissions(u.permissions ?? []);
+    setMustChangePassword(u.mustChangePassword === true);
+    scheduleRefresh(token);
   }, [scheduleRefresh]);
 
   // Clear everything — called on logout or when refresh fails unrecoverably
@@ -166,31 +176,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsAuthenticated(false);
       setRole("MEMBER");
+      setPermissions([]);
       setUser(null);
       clearAuthToken();
       saveUser(null);
     }
   }, []);
 
+  const hasPermission = useCallback((perm: string): boolean => {
+    return permissions.includes(perm);
+  }, [permissions]);
+
   // ── On page load: try to restore session ──────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     const restoreSession = async () => {
-      const storedToken = getAuthToken();
       const storedUser = loadUser();
 
-      // Happy path: we already have a valid (non-expired) token and user info stored
-      if (storedToken && storedUser && msUntilExpiry(storedToken) > 0) {
-        if (!cancelled) {
-          commitUser(storedUser, storedToken);
-          setIsInitializing(false);
-        }
-        return;
-      }
-
-      // No token — try a silent refresh via the httpOnly cookie
-      // This lets the user stay logged in after a page refresh without re-entering credentials
+      // Access token is in memory only — always gone after a page refresh.
+      // Go straight to silent refresh using the refresh token from localStorage.
+      // If the refresh token is also missing or expired, the catch block below
+      // will clear state and send the user to the login page.
       try {
         const newToken = await oauth2Refresh();
 
@@ -245,8 +252,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Demo login (dev only) ──────────────────────────────────────────────────
   const demoLogin = (newRole: Role = "ADMIN"): void => {
+    if (import.meta.env.PROD) return;
     if (!FEATURES.SHOW_DEMO_LOGIN) return;
-    commitUser({ username: "demo", role: newRole }, "demo-token");
+    commitUser({ username: "demo", role: newRole, permissions: [] }, "demo-token");
   };
 
   // ── Boot the Web Worker once on mount, tear it down on unmount ───────────
@@ -375,7 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, isInitializing, role, user, login, logout, demoLogin }}
+      value={{ isAuthenticated, isInitializing, role, permissions, hasPermission, user, mustChangePassword, login, logout, demoLogin }}
     >
       {children}
     </AuthContext.Provider>

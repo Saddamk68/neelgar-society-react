@@ -12,6 +12,8 @@ export type UserRecord = {
   personName: string | null;
   memberCode: string | null;
   createdAt: string | null;
+  failedAttempts: number | null;
+  lockUntil: string | null;
 };
 
 export type PageResponse<T> = {
@@ -63,5 +65,10 @@ export type ChangePasswordRequest = {
   newPassword: string;
 };
 
-export type UpdateRoleRequest = { role: string; };
+export type ProvisionAccountRequest = {
+  personId: number;
+  email?: string | null;
+};
+
+export type UpdateRoleRequest = { role: Role; };
 export type AdminResetPasswordRequest = { newPassword: string; };

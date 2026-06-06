@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Pencil, Printer, GitFork } from "lucide-react";
+import { ArrowRightLeft, Pencil, Printer, GitFork, KeyRound, EllipsisVertical } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import ViewMemberSkeleton from "@/components/skeletons/ViewMemberSkeleton";
 import { getMember } from "../../../features/members/services/memberService";
@@ -9,9 +9,80 @@ import { Member, PersonRelationshipsResponse } from "../../../features/members/t
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "@/components/MemberAvatar";
-import { useAuth } from "@/context/AuthContext";
 import ReassignFamilyDialog from "@/components/ReassignFamilyDialog";
 import { getPersonRelationships } from "@/features/members/services/relationshipService";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
+import { provisionUserAccount } from "@/features/users/services/userService";
+
+// ── Actions dropdown ──────────────────────────────────────────────────────────
+
+function ActionsMenu({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+      >
+        <EllipsisVertical className="w-5 h-5" />
+      </button>
+
+      {open && (
+        <>
+          {/* backdrop — clicking outside closes menu */}
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute right-0 z-20 mt-1 w-52 bg-white rounded-xl shadow-lg border border-slate-100 py-1 text-sm">
+            {children}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ActionItem({
+  icon: Icon,
+  label,
+  onClick,
+  href,
+  danger,
+  disabled,
+}: {
+  icon: React.ElementType;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  const cls = [
+    "flex items-center gap-3 w-full px-4 py-2 hover:bg-slate-50 transition text-left",
+    danger ? "text-red-600" : "text-slate-700",
+    disabled ? "opacity-40 pointer-events-none" : "",
+  ].join(" ");
+
+  if (href) {
+    return (
+      <Link to={href} className={cls}>
+        <Icon className="w-4 h-4 shrink-0" />
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" className={cls} onClick={onClick} disabled={disabled}>
+      <Icon className="w-4 h-4 shrink-0" />
+      {label}
+    </button>
+  );
+}
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -42,9 +113,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function ViewMember() {
   const { memberCode } = useParams<{ memberCode: string }>();
   const notify = useNotify();
-  const { role } = useAuth();
+  const { can } = usePermission();
   const [showReassign, setShowReassign] = useState(false);
-  const canReassign = ["SUPER_ADMIN", "ADMIN", "PRESIDENT"].includes(role);
+  const canReassign = can(PERM.FAMILY_CREATE);
+  const [showProvision, setShowProvision] = useState(false);
+  const [provisionEmail, setProvisionEmail] = useState("");
+  const [provisioning, setProvisioning] = useState(false);
+  const canManageUsers = can(PERM.USER_MANAGE);
 
   const { data: member, isLoading, isError, refetch } = useQuery<Member>({
     queryKey: ["member", memberCode],
@@ -67,6 +142,24 @@ export default function ViewMember() {
     if (isError) notify.error("Failed to load member details.");
   }, [isError]);
 
+  // ── Provision handler ────────────────────────────────────────────────────────
+
+  async function handleProvision() {
+    if (!member) return;
+    setProvisioning(true);
+    try {
+      await provisionUserAccount(member.id, provisionEmail || undefined);
+      notify.success("Login account provisioned. Awaiting admin approval.");
+      setShowProvision(false);
+      setProvisionEmail("");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? "Failed to provision account.";
+      notify.error(msg);
+    } finally {
+      setProvisioning(false);
+    }
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -75,42 +168,48 @@ export default function ViewMember() {
       <PageHeader
         title="Member Details"
         subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
-        backTo={ROUTES.PRIVATE.MEMBERS}
+        backTo="back"
         actions={
           member ? (
-            <>
-              <Link
-                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
-                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </Link>
-              {canReassign && member && (
-                <button
-                  type="button"
-                  onClick={() => setShowReassign(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                >
-                  <ArrowRightLeft className="w-4 h-4" />
-                  Reassign family
-                </button>
-              )}
+            <div className="flex items-center gap-2">
               <Link
                 to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/lineage`}
-                className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
+                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
               >
                 <GitFork className="w-4 h-4" />
                 Lineage
               </Link>
-              <Link
-                to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
-                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
-              >
-                <Pencil className="w-4 h-4" />
-                Edit
-              </Link>
-            </>
+
+              <ActionsMenu>
+                <ActionItem
+                  icon={Pencil}
+                  label="Edit"
+                  href={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
+                />
+                <ActionItem
+                  icon={Printer}
+                  label="Print"
+                  href={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/print`}
+                />
+                {canReassign && (
+                  <ActionItem
+                    icon={ArrowRightLeft}
+                    label="Reassign family"
+                    onClick={() => setShowReassign(true)}
+                  />
+                )}
+                {canManageUsers && member.isActive && !member.hasUser && (
+                  <>
+                    <div className="border-t border-slate-100 my-1" />
+                    <ActionItem
+                      icon={KeyRound}
+                      label="Provision Login"
+                      onClick={() => setShowProvision(true)}
+                    />
+                  </>
+                )}
+              </ActionsMenu>
+            </div>
           ) : undefined
         }
       />
@@ -326,6 +425,58 @@ export default function ViewMember() {
           member={member}
           onClose={() => setShowReassign(false)}
         />
+      )}
+
+      {/* Provision login modal */}
+      {showProvision && member && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+
+            <h2 className="text-base font-semibold text-slate-800 mb-1">
+              Provision Login Account
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Creates login credentials for{" "}
+              <span className="font-medium text-slate-700">
+                {member.firstName} {member.lastName ?? ""}
+              </span>{" "}
+              ({member.memberCode}). Username will be the member code. A default
+              password will be generated. The account will require admin approval
+              before the member can log in.
+            </p>
+
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Email address <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={provisionEmail}
+              onChange={e => setProvisionEmail(e.target.value)}
+              placeholder="member@example.com"
+              className="w-full border rounded-md px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/40 mb-5"
+            />
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowProvision(false); setProvisionEmail(""); }}
+                className="px-4 py-2 text-sm rounded-md border hover:bg-slate-50 transition"
+                disabled={provisioning}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleProvision}
+                disabled={provisioning}
+                className="px-4 py-2 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition disabled:opacity-60"
+              >
+                {provisioning ? "Provisioning…" : "Provision Account"}
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
     </div>
