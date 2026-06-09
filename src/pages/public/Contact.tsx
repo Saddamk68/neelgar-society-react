@@ -1,93 +1,188 @@
-// Replace your existing file at: src/pages/public/Contact.tsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { Mail, Phone, MapPin } from "lucide-react";
 
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
-  const [status, setStatus] = useState<'idle'|'sending'|'success'|'error'>('idle');
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus('sending');
     setError(null);
 
     if (!form.name || !form.email || !form.message) {
-      setError('Please fill name, email and message.');
-      setStatus('error');
+      setError("Please fill in name, email and message.");
+      setStatus("error");
       return;
     }
 
+    setStatus("sending");
     try {
-      // If your backend contact API exists, update the endpoint.
-      const resp = await fetch('/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const resp = await fetch("/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!resp.ok) throw new Error('Network error');
-      setStatus('success');
-      setForm({ name: '', email: '', subject: '', message: '' });
-    } catch (err:any) {
-      setStatus('error');
-      setError(err.message || 'Could not send message.');
+      if (!resp.ok) throw new Error("Network error");
+      setStatus("success");
+      setForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      setStatus("error");
+      setError(err.message || "Could not send message.");
     }
   }
 
   return (
-    <main id="contact" className="bg-slate-50 text-slate-900">
-      <div className="max-w-4xl mx-auto px-6 py-6">
-        <h1 className="text-2xl font-bold">Contact us</h1>
-        <p className="mt-2 text-slate-600">Questions, partnership inquiries or media requests — we’d love to hear from you.</p>
+    <div className="bg-background text-text-primary">
 
-        <div className="mt-8 grid md:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="font-semibold">Get in touch</h3>
-            <p className="mt-3 text-sm text-slate-600">
-              Email: <a className="text-indigo-600 underline" href="mailto:hello@neelgar.org">hello@neelgar.org</a>
-            </p>
-            <p className="mt-2 text-sm text-slate-600">Phone: <a className="text-indigo-600 underline" href="tel:+911234567890">+91 12345 67890</a></p>
+      {/* Header band */}
+      <section className="bg-surface border-b">
+        <div className="max-w-5xl mx-auto px-6 py-16 md:py-20">
+          <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide uppercase mb-4">
+            Contact
+          </span>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-text-primary">
+            Get in touch
+          </h1>
+          <p className="mt-4 text-text-muted max-w-xl text-base md:text-lg">
+            Questions, partnership inquiries or membership requests — we would love to hear from you.
+          </p>
+        </div>
+      </section>
 
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold">Office</h4>
-              <address className="not-italic text-sm text-slate-600 mt-1">
-                Neelgar Society<br />123 Community Lane<br />Bengaluru, Karnataka
-              </address>
+      {/* Content */}
+      <section className="py-16">
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-10">
+
+          {/* Contact info */}
+          <div className="flex flex-col gap-6">
+            <h2 className="text-lg font-bold">Contact information</h2>
+
+            <ContactItem
+              icon={Mail}
+              label="Email"
+              value="hello@neelgar.org"
+              href="mailto:hello@neelgar.org"
+            />
+            <ContactItem
+              icon={Phone}
+              label="Phone"
+              value="+91 12345 67890"
+              href="tel:+911234567890"
+            />
+            <ContactItem
+              icon={MapPin}
+              label="Office"
+              value="123 Community Lane, Bengaluru, Karnataka"
+            />
+
+            <div className="mt-4 text-xs text-text-muted">
+              Developed by Saddam Khan
             </div>
           </div>
 
-          <form className="bg-white p-6 rounded-lg shadow" onSubmit={submit} noValidate>
-            <div className="grid gap-3">
-              <label className="text-sm">Name
-                <input className="mt-1 block w-full p-2 border rounded" value={form.name} onChange={e=>setForm({...form, name: e.target.value})} />
-              </label>
-              <label className="text-sm">Email
-                <input type="email" className="mt-1 block w-full p-2 border rounded" value={form.email} onChange={e=>setForm({...form, email: e.target.value})} />
-              </label>
-              <label className="text-sm">Subject
-                <input className="mt-1 block w-full p-2 border rounded" value={form.subject} onChange={e=>setForm({...form, subject: e.target.value})} />
-              </label>
-              <label className="text-sm">Message
-                <textarea className="mt-1 block w-full p-2 border rounded h-28" value={form.message} onChange={e=>setForm({...form, message: e.target.value})} />
-              </label>
+          {/* Form */}
+          <div className="bg-surface rounded-xl border p-6 flex flex-col gap-4">
+            <h2 className="text-lg font-bold">Send a message</h2>
 
-              {error && <div className="text-sm text-red-600">{error}</div>}
-              {status === 'success' && <div className="text-sm text-green-700">Message sent — thank you!</div>}
-
-              <div>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded" disabled={status==='sending'}>
-                  {status === 'sending' ? 'Sending…' : 'Send message'}
-                </button>
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text-primary">Name</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Your name"
+                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                disabled={status === "sending"}
+              />
             </div>
-          </form>
-        </div>
 
-        {/* Developer credit placed inside the Contact section so it won't collide with your app footer */}
-        <div className="mt-8 text-center text-xs text-slate-500">
-          {/* © {new Date().getFullYear()} Neelgar Society —  */}
-          Developed by Saddam Khan
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text-primary">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="your@email.com"
+                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                disabled={status === "sending"}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text-primary">Subject</label>
+              <input
+                type="text"
+                value={form.subject}
+                onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                placeholder="How can we help?"
+                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                disabled={status === "sending"}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text-primary">Message</label>
+              <textarea
+                value={form.message}
+                onChange={(e) => setForm({ ...form, message: e.target.value })}
+                placeholder="Your message..."
+                rows={4}
+                className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                disabled={status === "sending"}
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+
+            {status === "success" && (
+              <p className="text-sm text-green-700">Message sent — thank you!</p>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={status === "sending"}
+              className="mt-1 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+            >
+              {status === "sending" ? "Sending..." : "Send message"}
+            </button>
+          </div>
+
         </div>
+      </section>
+
+    </div>
+  );
+}
+
+function ContactItem({
+  icon: Icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  href?: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-primary" />
       </div>
-    </main>
+      <div>
+        <div className="text-xs text-text-muted font-medium uppercase tracking-wide">{label}</div>
+        {href ? (
+          <a href={href} className="text-sm text-primary hover:underline mt-0.5 block">
+            {value}
+          </a>
+        ) : (
+          <div className="text-sm text-text-primary mt-0.5">{value}</div>
+        )}
+      </div>
+    </div>
   );
 }
