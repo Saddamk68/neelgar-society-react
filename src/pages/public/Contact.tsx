@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, Users } from "lucide-react";
+import { SOCIETY } from "../../constants/society";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -45,48 +46,72 @@ export default function Contact() {
             <span className="text-primary">to help.</span>
           </h1>
           <p className="mt-5 text-text-muted leading-relaxed max-w-xl">
-            Questions about your membership, family records or account access —
-            reach out and we will get back to you.
+            Questions about membership, the Samuhik Vivah Samelan, or your
+            local committee — reach out and we will get back to you.
           </p>
         </div>
       </section>
 
-      {/* Content */}
+      {/* Main content */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-12">
 
           {/* Left — contact info */}
-          <div>
-            <div className="border-l-2 border-primary pl-4 mb-8">
-              <h2 className="text-xl font-bold">Contact information</h2>
-              <p className="mt-1 text-text-muted text-sm">
-                Reach us through any of the channels below.
+          <div className="flex flex-col gap-8">
+
+            <div>
+              <div className="border-l-2 border-primary pl-4 mb-6">
+                <h2 className="text-xl font-bold">Central office</h2>
+                <p className="mt-1 text-text-muted text-sm">
+                  Headquartered in {SOCIETY.headquarters}.
+                </p>
+              </div>
+              <div className="flex flex-col gap-6">
+                <ContactItem
+                  icon={Mail}
+                  label="Email"
+                  value={SOCIETY.email}
+                  href={`mailto:${SOCIETY.email}`}
+                />
+                <ContactItem
+                  icon={Phone}
+                  label="Phone"
+                  value={SOCIETY.phone}
+                  href={`tel:${SOCIETY.phone.replace(/\s/g, "")}`}
+                />
+                <ContactItem
+                  icon={MapPin}
+                  label="Headquarters"
+                  value={SOCIETY.headquarters}
+                />
+              </div>
+            </div>
+
+            {/* Local committee note */}
+            <div className="bg-primary/5 border border-primary/10 rounded-xl p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text-primary text-sm">
+                    Looking for your local committee?
+                  </div>
+                  <p className="text-sm text-text-muted mt-1 leading-relaxed">
+                    Every town and village in our network has a local president
+                    and secretary. Log in to the member portal to find your
+                    nearest committee contact.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t">
+              <p className="text-xs text-text-muted mt-1">
+                Developed by <b>Saddam Khan</b>
               </p>
             </div>
 
-            <div className="flex flex-col gap-6">
-              <ContactItem
-                icon={Mail}
-                label="Email"
-                value="hello@neelgar.org"
-                href="mailto:hello@neelgar.org"
-              />
-              <ContactItem
-                icon={Phone}
-                label="Phone"
-                value="+91 12345 67890"
-                href="tel:+911234567890"
-              />
-              <ContactItem
-                icon={MapPin}
-                label="Office"
-                value="123 Community Lane, Bengaluru, Karnataka"
-              />
-            </div>
-
-            <div className="mt-12 pt-6 border-t">
-              <p className="text-xs text-text-muted">Developed by Saddam Khan</p>
-            </div>
           </div>
 
           {/* Right — form */}
@@ -193,16 +218,13 @@ function ContactItem({
           {label}
         </div>
         {href ? (
-          <a
-            href={href}
-            className="text-sm text-primary hover:underline"
-          >
+          <a href={href} className="text-sm text-primary hover:underline">
             {value}
           </a>
         ) : (
           <div className="text-sm text-text-primary leading-relaxed">{value}</div>
         )}
       </div>
-    </div >
+    </div>
   );
 }

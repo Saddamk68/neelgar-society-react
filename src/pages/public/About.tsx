@@ -1,5 +1,8 @@
 import React from "react";
 import { ShieldCheck, Heart, Users } from "lucide-react";
+import { SOCIETY } from "../../constants/society";
+
+const VALUE_ICONS = [Users, ShieldCheck, Heart];
 
 export default function About() {
   return (
@@ -9,37 +12,33 @@ export default function About() {
       <section className="bg-surface border-b">
         <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
           <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-widest uppercase mb-5">
-            About us
+            Est. {SOCIETY.established} — {SOCIETY.headquarters}
           </span>
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-text-primary">
-            Built for the<br />
-            <span className="text-primary">Neelgar community.</span>
+            About<br />
+            <span className="text-primary">{SOCIETY.name}.</span>
           </h1>
           <p className="mt-5 text-text-muted leading-relaxed max-w-xl">
-            A community-driven society working to keep families connected,
-            records organized and administration transparent — for everyone.
+            {SOCIETY.tagline}
           </p>
         </div>
       </section>
 
-      {/* Mission and Values */}
+      {/* Mission */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-16">
-
           <div>
             <div className="border-l-2 border-primary pl-4 mb-6">
               <h2 className="text-xl font-bold">Our mission</h2>
             </div>
             <p className="text-text-muted leading-relaxed">
-              To provide every member of Neelgar Society with a reliable,
-              transparent and easy-to-use platform for managing their community
-              information — from family records to society activities.
+              {SOCIETY.mission}
             </p>
             <p className="mt-4 text-text-muted leading-relaxed">
-              We believe good administration strengthens communities. When
-              records are accurate, roles are clear and information is
-              accessible, people can focus on what matters — their families
-              and their neighbours.
+              Founded in {SOCIETY.established} in {SOCIETY.headquarters},
+              the society has grown from a small local effort into a network
+              spanning 50+ towns and villages — each with its own active
+              committee working toward the same goal.
             </p>
           </div>
 
@@ -48,110 +47,117 @@ export default function About() {
               <h2 className="text-xl font-bold">Our values</h2>
             </div>
             <div className="flex flex-col gap-5">
-              <ValueItem
-                icon={Users}
-                title="Community first"
-                desc="Every decision is made with the community's best interest in mind — not technology for its own sake."
-              />
-              <ValueItem
-                icon={ShieldCheck}
-                title="Transparency"
-                desc="Open records and accountable administration at every level. Nothing hidden."
-              />
-              <ValueItem
-                icon={Heart}
-                title="Dignity and inclusion"
-                desc="Every member is treated with respect regardless of their role or standing."
-              />
+              {SOCIETY.values.map((v, i) => {
+                const Icon = VALUE_ICONS[i] ?? ShieldCheck;
+                return (
+                  <div key={v.title} className="flex items-start gap-4">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-text-primary">{v.title}</div>
+                      <div className="text-sm text-text-muted mt-1 leading-relaxed">{v.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* Activities */}
+      <section className="bg-surface border-t border-b py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-xl font-bold">Our activities</h2>
+            <p className="mt-1 text-text-muted">
+              The work we do across the community every year.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {SOCIETY.activities.map((a) => (
+              <div
+                key={a.title}
+                className="rounded-xl border p-6 flex flex-col gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 bg-background"
+              >
+                <h3 className="font-semibold text-text-primary">{a.title}</h3>
+                <p className="text-sm text-text-muted leading-relaxed">{a.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Timeline */}
-      <section className="bg-surface border-t border-b py-20">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="border-l-2 border-primary pl-4 mb-10">
-            <h2 className="text-xl font-bold">Our journey</h2>
-            <p className="mt-1 text-text-muted">How Neelgar Society has grown over the years.</p>
-          </div>
-          <div className="flex flex-col">
-            <TimelineItem year="2007" text="Society founded and first membership records established." last={false} />
-            <TimelineItem year="2012" text="Expanded to cover 500 families across the community." last={false} />
-            <TimelineItem year="2019" text="Launched digital record-keeping for member profiles." last={false} />
-            <TimelineItem year="2024" text="Introduced this management portal for full online administration." last={true} />
-          </div>
-        </div>
-      </section>
-
-      {/* Team */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-6">
           <div className="border-l-2 border-primary pl-4 mb-10">
-            <h2 className="text-xl font-bold">Leadership</h2>
-            <p className="mt-1 text-text-muted">The people who keep Neelgar Society running.</p>
+            <h2 className="text-xl font-bold">Our journey</h2>
+            <p className="mt-1 text-text-muted">
+              How {SOCIETY.name} has grown since {SOCIETY.established}.
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <PersonCard name="Rita Sharma" title="President" />
-            <PersonCard name="Arjun Patel" title="Secretary" />
-            <PersonCard name="Maya Rao" title="Treasurer" />
+          <div className="flex flex-col">
+            {SOCIETY.timeline.map((item, i) => (
+              <div key={item.year} className="flex gap-6">
+                <div className="flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full bg-primary shrink-0 mt-1" />
+                  {i < SOCIETY.timeline.length - 1 && (
+                    <div className="w-px flex-1 bg-slate-200 my-1" />
+                  )}
+                </div>
+                <div className="pb-8">
+                  <div className="text-sm font-bold text-primary">{item.year}</div>
+                  <div className="text-sm text-text-muted mt-0.5 leading-relaxed">{item.text}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-    </div>
-  );
-}
+      {/* Leadership */}
+      <section className="bg-surface border-t py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-xl font-bold">Central leadership</h2>
+            <p className="mt-1 text-text-muted">
+              The central committee that oversees all town and village branches.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {SOCIETY.leadership.map((person) => (
+              <div
+                key={person.title}
+                className="bg-background rounded-xl border p-5 flex flex-col items-center text-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              >
+                {/* Photo placeholder */}
+                <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
+                  <Users className="w-8 h-8 text-primary/40" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text-primary">{person.name}</div>
+                  <div className="text-sm text-primary font-medium mt-0.5">{person.title}</div>
+                  <div className="text-xs text-text-muted mt-1">{person.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-function ValueItem({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-primary" />
-      </div>
-      <div>
-        <div className="font-semibold text-text-primary">{title}</div>
-        <div className="text-sm text-text-muted mt-1 leading-relaxed">{desc}</div>
-      </div>
-    </div>
-  );
-}
+          {/* Committee note */}
+          <div className="mt-10 bg-primary/5 border border-primary/10 rounded-xl p-6">
+            <h3 className="font-semibold text-text-primary mb-2">Town and village committees</h3>
+            <p className="text-sm text-text-muted leading-relaxed">
+              Each town and village in our network has its own dedicated committee
+              with a local president and secretary. These committees are the backbone
+              of {SOCIETY.name}, handling day-to-day activities and connecting
+              members with the central leadership.
+            </p>
+          </div>
+        </div>
+      </section>
 
-function TimelineItem({ year, text, last }: { year: string; text: string; last: boolean }) {
-  return (
-    <div className="flex gap-6">
-      <div className="flex flex-col items-center">
-        <div className="w-3 h-3 rounded-full bg-primary shrink-0 mt-1" />
-        {!last && <div className="w-px flex-1 bg-slate-200 my-1" />}
-      </div>
-      <div className="pb-8">
-        <div className="text-sm font-bold text-primary">{year}</div>
-        <div className="text-sm text-text-muted mt-0.5 leading-relaxed">{text}</div>
-      </div>
-    </div>
-  );
-}
-
-function PersonCard({ name, title }: { name: string; title: string }) {
-  const initials = name.split(" ").map((n) => n[0]).join("");
-  return (
-    <div className="bg-surface rounded-xl border p-5 flex items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-        {initials}
-      </div>
-      <div>
-        <div className="font-semibold text-text-primary">{name}</div>
-        <div className="text-sm text-text-muted mt-0.5">{title}</div>
-      </div>
     </div>
   );
 }

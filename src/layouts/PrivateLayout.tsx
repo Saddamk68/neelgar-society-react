@@ -394,7 +394,7 @@ export default function PrivateLayout() {
         role="contentinfo"
         className="fixed bottom-0 right-0 left-0 lg:left-[240px] z-20 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
       >
-        © Neelgar Society 2025
+        © Neelgar Society 1992
       </footer>
 
       {/* ===== Scrollable content area ===== */}
