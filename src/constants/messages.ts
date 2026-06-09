@@ -3,7 +3,7 @@
 
 export const APP = {
   NAME: "Neelgar Society",
-  COPYRIGHT: "© Neelgar Society 2025",
+  COPYRIGHT: "© Neelgar Society 1992",
 };
 
 export const NAV = {

@@ -1,98 +1,162 @@
-// Replace your existing file at: src/pages/public/Home.tsx
-import React from 'react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../constants/routes";
+import { Users, BookOpen, ShieldCheck, ArrowRight, CheckCircle } from "lucide-react";
+import { SOCIETY } from "../../constants/society";
 
 export default function Home() {
   return (
-    <main id="home" className="bg-slate-50 text-slate-900">
-      {/* HERO */}
-      <section className="relative overflow-hidden bg-white">
-        <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
+    <div className="bg-background text-text-primary">
+
+      {/* Hero */}
+      <section className="bg-surface border-b">
+        <div className="max-w-5xl mx-auto px-6 py-20 md:py-28 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">
-              Empowering communities — one life at a time
+            <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-widest uppercase mb-5">
+              Est. {SOCIETY.established} — {SOCIETY.headquarters}
+            </span>
+            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-text-primary">
+              Reforming traditions.<br />
+              <span className="text-primary">Strengthening families.</span>
             </h1>
-            <p className="mt-4 text-slate-700 max-w-xl">
-              Practical programs in education, health and livelihoods that deliver measurable, lasting impact.
+            <p className="mt-5 text-text-muted leading-relaxed max-w-md">
+              {SOCIETY.mission}
             </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/donate" className="inline-flex items-center px-5 py-3 rounded-md bg-indigo-600 text-white shadow-sm hover:bg-indigo-700">
-                Donate
-              </a>
-              <a href="/volunteer" className="inline-flex items-center px-5 py-3 rounded-md border border-slate-200 text-slate-800 hover:bg-slate-100">
-                Volunteer
-              </a>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to={ROUTES.PUBLIC.LOGIN}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-semibold shadow-sm hover:opacity-90 transition"
+              >
+                Member login <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to={ROUTES.PUBLIC.ABOUT}
+                className="inline-flex items-center px-6 py-3 rounded-lg border border-slate-200 text-text-muted hover:text-text-primary hover:bg-slate-50 transition"
+              >
+                About us
+              </Link>
             </div>
           </div>
 
-          <div className="rounded-lg overflow-hidden shadow-lg">
-            <div className="w-full h-64 md:h-80 bg-slate-200 flex items-center justify-center text-slate-500">
-              {/* Replace with real image: /images/hero-community.jpg */}
-              <span>Hero image</span>
+          {/* Right — values */}
+          <div className="hidden md:flex flex-col gap-4">
+            {SOCIETY.values.map((v) => (
+              <div
+                key={v.title}
+                className="flex items-start gap-3 bg-primary/5 rounded-lg px-4 py-3 border border-primary/10"
+              >
+                <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-sm font-semibold text-text-primary">{v.title}</div>
+                  <div className="text-xs text-text-muted mt-0.5 leading-relaxed">{v.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats band */}
+      <section className="bg-primary">
+        <div className="max-w-5xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {SOCIETY.stats.map((s) => (
+            <div key={s.label}>
+              <div className="text-3xl font-extrabold text-white tracking-tight">{s.number}</div>
+              <div className="mt-1 text-sm text-white/70">{s.label}</div>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="py-10">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Stat label="People helped" value="12,450" />
-            <Stat label="Active projects" value="34" />
-            <Stat label="Years of service" value="18" />
-          </div>
-        </div>
-      </section>
-
-      {/* WHAT WE DO */}
-      <section id="programs" className="py-12 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-2xl font-bold">What we do</h2>
-          <p className="mt-2 text-slate-600 max-w-2xl">Programs focused on education, healthcare and livelihoods — designed with the community.</p>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card title="Education" desc="After-school coaching, scholarships and learning centers." />
-            <Card title="Healthcare" desc="Health camps, maternal & child care, awareness drives." />
-            <Card title="Livelihoods" desc="Skill training and micro-grants for small businesses." />
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURED STORY */}
-      <section className="py-12">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+      {/* Samuhik Vivah highlight */}
+      <section className="py-20 bg-surface border-b">
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h3 className="text-xl font-semibold">A story of change</h3>
-            <p className="mt-4 text-slate-700">Through our vocational training, Asha started a tailoring unit and now supports her family.</p>
-            <blockquote className="mt-4 border-l-4 border-emerald-100 pl-4 italic text-slate-800">“I can now earn for my children — thank you Neelgar.”</blockquote>
+            <div className="border-l-2 border-primary pl-4 mb-6">
+              <h2 className="text-2xl font-bold">Samuhik Vivah Samelan</h2>
+              <p className="mt-1 text-text-muted text-sm">Our flagship annual event</p>
+            </div>
+            <p className="text-text-muted leading-relaxed">
+              Every year, {SOCIETY.name} organizes the Samuhik Vivah Samelan — a mass
+              marriage ceremony that provides families a dignified, simple and
+              Islamic wedding free from wasteful customs and financial burden.
+            </p>
+            <p className="mt-4 text-text-muted leading-relaxed">
+              This event stands as the clearest expression of our mission —
+              proof that tradition and dignity do not require excess.
+            </p>
+            <Link
+              to={ROUTES.PUBLIC.ABOUT}
+              className="inline-flex items-center gap-2 mt-6 text-sm text-primary font-medium hover:underline"
+            >
+              Learn more about our work <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <div className="rounded overflow-hidden shadow bg-slate-100 h-56 flex items-center justify-center text-slate-500">
-            {/* Replace with /images/featured-asha.jpg */}
-            <span>Featured image</span>
+
+          {/* Placeholder image */}
+          <div className="rounded-xl bg-primary/5 border border-primary/10 h-64 flex flex-col items-center justify-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <p className="text-sm text-text-muted">Samuhik Vivah Samelan photo</p>
+            <p className="text-xs text-text-muted opacity-60">Replace with actual event image</p>
           </div>
         </div>
       </section>
-    </main>
-  );
-}
 
-/* Small presentational components (local, no external imports) */
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-sm text-center">
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="mt-2 text-sm text-slate-600">{label}</div>
+      {/* Activities */}
+      <section id="features" className="py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-2xl font-bold">What we do</h2>
+            <p className="mt-1 text-text-muted">
+              Our work spans welfare, reform and community building.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {SOCIETY.activities.map((a) => (
+              <div
+                key={a.title}
+                className="bg-surface rounded-xl border p-6 flex flex-col gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-semibold text-text-primary">{a.title}</h3>
+                <p className="text-sm text-text-muted leading-relaxed">{a.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Portal CTA */}
+      <section className="bg-surface border-t py-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-8">
+            <h2 className="text-2xl font-bold">Member portal</h2>
+            <p className="mt-1 text-text-muted">
+              Society administrators and members can log in to manage records,
+              families and society information.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to={ROUTES.PUBLIC.LOGIN}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-white font-semibold shadow-sm hover:opacity-90 transition"
+            >
+              Login <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to={ROUTES.PUBLIC.CONTACT}
+              className="inline-flex items-center px-6 py-3 rounded-lg border border-slate-200 text-text-muted hover:text-text-primary hover:bg-slate-50 transition"
+            >
+              Contact us
+            </Link>
+          </div>
+        </div>
+      </section>
+
     </div>
-  );
-}
-
-function Card({ title, desc }: { title: string; desc: string }) {
-  return (
-    <article className="p-6 bg-white rounded-lg shadow-sm">
-      <h4 className="font-semibold">{title}</h4>
-      <p className="mt-2 text-sm text-slate-600">{desc}</p>
-      <a href={`/programs/${title.toLowerCase()}`} className="mt-4 inline-block text-indigo-600 text-sm">Learn more →</a>
-    </article>
   );
 }
