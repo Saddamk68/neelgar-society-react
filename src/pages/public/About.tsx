@@ -1,62 +1,163 @@
+import React from "react";
+import { ShieldCheck, Heart, Users } from "lucide-react";
+import { SOCIETY } from "../../constants/society";
+
+const VALUE_ICONS = [Users, ShieldCheck, Heart];
+
 export default function About() {
   return (
-    <main id="about" className="bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto px-6 py-6">
-        <h1 className="text-3xl md:text-4xl font-bold">About Neelgar Society</h1>
-        <p className="mt-4 text-slate-700 max-w-2xl">
-          Founded in 2007, Neelgar Society works across education, health and livelihoods to empower communities.
-        </p>
+    <div className="bg-background text-text-primary">
 
-        <div className="mt-10 grid md:grid-cols-2 gap-8">
+      {/* Hero */}
+      <section className="bg-surface border-b">
+        <div className="max-w-5xl mx-auto px-6 py-20 md:py-28">
+          <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-widest uppercase mb-5">
+            Est. {SOCIETY.established} — {SOCIETY.headquarters}
+          </span>
+          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-text-primary">
+            About<br />
+            <span className="text-primary">{SOCIETY.name}.</span>
+          </h1>
+          <p className="mt-5 text-text-muted leading-relaxed max-w-xl">
+            {SOCIETY.tagline}
+          </p>
+        </div>
+      </section>
+
+      {/* Mission */}
+      <section className="py-20">
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-16">
           <div>
-            <h2 className="text-xl font-semibold">Our mission</h2>
-            <p className="mt-3 text-slate-600">To create sustainable opportunities and improve quality of life for families living in underserved areas.</p>
-
-            <h3 className="mt-6 font-semibold">Our values</h3>
-            <ul className="mt-3 space-y-2 text-slate-600 list-disc list-inside">
-              <li>Community-led solutions</li>
-              <li>Transparency & accountability</li>
-              <li>Dignity & inclusion</li>
-            </ul>
+            <div className="border-l-2 border-primary pl-4 mb-6">
+              <h2 className="text-xl font-bold">Our mission</h2>
+            </div>
+            <p className="text-text-muted leading-relaxed">
+              {SOCIETY.mission}
+            </p>
+            <p className="mt-4 text-text-muted leading-relaxed">
+              Founded in {SOCIETY.established} in {SOCIETY.headquarters},
+              the society has grown from a small local effort into a network
+              spanning 50+ towns and villages — each with its own active
+              committee working toward the same goal.
+            </p>
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold">Milestones</h2>
-            <ol className="mt-3 space-y-4 text-slate-600">
-              <li><strong>2007</strong> — Founded and launched first learning center.</li>
-              <li><strong>2012</strong> — First health camp; reached 5,000 beneficiaries.</li>
-              <li><strong>2019</strong> — Launched livelihoods program.</li>
-              <li><strong>2023</strong> — Reached 10,000 community members.</li>
-            </ol>
+            <div className="border-l-2 border-primary pl-4 mb-6">
+              <h2 className="text-xl font-bold">Our values</h2>
+            </div>
+            <div className="flex flex-col gap-5">
+              {SOCIETY.values.map((v, i) => {
+                const Icon = VALUE_ICONS[i] ?? ShieldCheck;
+                return (
+                  <div key={v.title} className="flex items-start gap-4">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-text-primary">{v.title}</div>
+                      <div className="text-sm text-text-muted mt-1 leading-relaxed">{v.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
+      </section>
 
-        <section className="mt-12">
-          <h2 className="text-2xl font-semibold">Our team</h2>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Person name="Rita Sharma" title="Founder & Executive Director" bio="Community leader with 20+ years experience." />
-            <Person name="Arjun Patel" title="Programs Lead" bio="Designs and runs on-the-ground programs." />
-            <Person name="Maya Rao" title="Finance & Operations" bio="Oversees grants and partnerships." />
+      {/* Activities */}
+      <section className="bg-surface border-t border-b py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-xl font-bold">Our activities</h2>
+            <p className="mt-1 text-text-muted">
+              The work we do across the community every year.
+            </p>
           </div>
-        </section>
-      </div>
-    </main>
-  );
-}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {SOCIETY.activities.map((a) => (
+              <div
+                key={a.title}
+                className="rounded-xl border p-6 flex flex-col gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 bg-background"
+              >
+                <h3 className="font-semibold text-text-primary">{a.title}</h3>
+                <p className="text-sm text-text-muted leading-relaxed">{a.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-function Person({ name, title, bio }: { name: string; title: string; bio: string }) {
-  return (
-    <div className="bg-white p-5 rounded-lg shadow flex items-start gap-4">
-      <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-semibold">{initials(name)}</div>
-      <div>
-        <div className="font-semibold">{name}</div>
-        <div className="text-sm text-slate-600">{title}</div>
-        <p className="mt-2 text-sm text-slate-600">{bio}</p>
-      </div>
+      {/* Timeline */}
+      <section className="py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-xl font-bold">Our journey</h2>
+            <p className="mt-1 text-text-muted">
+              How {SOCIETY.name} has grown since {SOCIETY.established}.
+            </p>
+          </div>
+          <div className="flex flex-col">
+            {SOCIETY.timeline.map((item, i) => (
+              <div key={item.year} className="flex gap-6">
+                <div className="flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full bg-primary shrink-0 mt-1" />
+                  {i < SOCIETY.timeline.length - 1 && (
+                    <div className="w-px flex-1 bg-slate-200 my-1" />
+                  )}
+                </div>
+                <div className="pb-8">
+                  <div className="text-sm font-bold text-primary">{item.year}</div>
+                  <div className="text-sm text-text-muted mt-0.5 leading-relaxed">{item.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Leadership */}
+      <section className="bg-surface border-t py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-10">
+            <h2 className="text-xl font-bold">Central leadership</h2>
+            <p className="mt-1 text-text-muted">
+              The central committee that oversees all town and village branches.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {SOCIETY.leadership.map((person) => (
+              <div
+                key={person.title}
+                className="bg-background rounded-xl border p-5 flex flex-col items-center text-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              >
+                {/* Photo placeholder */}
+                <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
+                  <Users className="w-8 h-8 text-primary/40" />
+                </div>
+                <div>
+                  <div className="font-semibold text-text-primary">{person.name}</div>
+                  <div className="text-sm text-primary font-medium mt-0.5">{person.title}</div>
+                  <div className="text-xs text-text-muted mt-1">{person.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Committee note */}
+          <div className="mt-10 bg-primary/5 border border-primary/10 rounded-xl p-6">
+            <h3 className="font-semibold text-text-primary mb-2">Town and village committees</h3>
+            <p className="text-sm text-text-muted leading-relaxed">
+              Each town and village in our network has its own dedicated committee
+              with a local president and secretary. These committees are the backbone
+              of {SOCIETY.name}, handling day-to-day activities and connecting
+              members with the central leadership.
+            </p>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
-}
-
-function initials(name: string) {
-  return name.split(' ').map(n => n[0]).slice(0,2).join('');
 }
