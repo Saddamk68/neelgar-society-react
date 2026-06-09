@@ -65,6 +65,7 @@ export default function PrivateLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
 
   const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
   if (isInitializing) {
@@ -251,6 +252,23 @@ export default function PrivateLayout() {
     <div className="h-screen overflow-hidden bg-background text-text-primary">
       <SkipLink />
 
+      {/* Phone warning banner */}
+      {!phoneBannerDismissed && (
+        <div className="fixed top-0 left-0 right-0 z-[60] md:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
+          <span className="mt-0.5 shrink-0">⚠️</span>
+          <span className="flex-1">
+            This portal is designed for tablet and desktop screens. Some features may not work well on a phone.
+          </span>
+          <button
+            onClick={() => setPhoneBannerDismissed(true)}
+            className="shrink-0 text-amber-600 hover:text-amber-800 font-medium transition"
+            aria-label="Dismiss warning"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ===== Desktop fixed sidebar ===== */}
       <aside
         className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3"
@@ -297,7 +315,21 @@ export default function PrivateLayout() {
         role="banner"
         className="fixed top-0 right-0 left-0 lg:left-[240px] z-20 h-16 bg-surface border-b flex items-center justify-between px-4"
       >
-        <Breadcrumbs /> {/* 🔹 centralized & reusable */}
+        {/* Hamburger — only visible below lg */}
+        <div className="flex items-center gap-3">
+          <button
+            className="lg:hidden p-2 rounded-md hover:bg-slate-100 transition"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
+            aria-controls="mobile-sidebar"
+            aria-expanded={mobileOpen}
+          >
+            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <Breadcrumbs />
+        </div> {/* 🔹 centralized & reusable */}
 
         <div className="relative">
           <button
@@ -362,7 +394,7 @@ export default function PrivateLayout() {
         role="contentinfo"
         className="fixed bottom-0 right-0 left-0 lg:left-[240px] z-20 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
       >
-        © Neelgar Society 2025
+        © Neelgar Society 1992
       </footer>
 
       {/* ===== Scrollable content area ===== */}
