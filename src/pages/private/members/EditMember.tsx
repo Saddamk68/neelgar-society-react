@@ -1034,6 +1034,7 @@ export default function EditMember() {
   const [deactivating, setDeactivating] = useState(false);
   const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
+  const [isDeceased, setIsDeceased] = useState(false);
 
   // ── Load member on mount ──────────────────────────────────────────────────
 
@@ -1044,6 +1045,7 @@ export default function EditMember() {
       .then((m) => {
         setOriginalMember(m);
         setHasPhoto(m.hasPhoto ?? false);
+        setIsDeceased(!!m.dod);
 
         // Map Member (PersonResponse) → MemberFormValues for the form.
         //
@@ -1329,18 +1331,34 @@ export default function EditMember() {
               )}
             </div>
 
-            {/* Date of Death — custom date picker with special handling */}
+            {/* Deceased toggle + conditional Date of Death */}
             <div>
-              <FieldLabel>Date of Death</FieldLabel>
-              <DatePicker
-                value={watch("dod") ?? ""}
-                onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
-                maxDate={new Date()}
-              />
-              {watch("dod") && (
-                <p className="text-xs text-amber-600 mt-1">
-                  This member will be marked as inactive.
-                </p>
+              <FieldLabel>Deceased</FieldLabel>
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  checked={isDeceased}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsDeceased(checked);
+                    if (!checked) setValue("dod", "", { shouldDirty: true, shouldValidate: true });
+                  }}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                <span className="text-sm text-slate-600">Mark this member as deceased</span>
+              </label>
+              {isDeceased && (
+                <div className="mt-2">
+                  <FieldLabel required>Date of Death</FieldLabel>
+                  <DatePicker
+                    value={watch("dod") ?? ""}
+                    onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
+                    maxDate={new Date()}
+                  />
+                  <p className="text-xs text-amber-600 mt-1">
+                    This member will be marked as inactive.
+                  </p>
+                </div>
               )}
             </div>
 
