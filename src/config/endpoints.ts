@@ -47,6 +47,7 @@ export const ENDPOINTS = {
     resetPassword: (id: number) => `/users/${id}/reset-password`,
     provision: () => `/users/provision`,
     unlock: (username: string) => `/users/${username}/unlock`,
+    lookupByMemberCode: (memberCode: string) => `/users/lookup/by-member-code/${memberCode}`,
   },
 
   roles: {
@@ -71,6 +72,21 @@ export const ENDPOINTS = {
     create: () => `/gotras`,
     update: (id: number) => `/gotras/${id}`,
     deactivate: (id: number) => `/gotras/${id}`,
+  },
+
+  geoUnits: {
+    byLevel: () => `/geo-units`,
+    children: (parentId: number) => `/geo-units/${parentId}/children`,
+    create: () => `/geo-units`,
+    deactivate: (id: number) => `/geo-units/${id}`,
+    ancestors: (id: number) => `/geo-units/${id}/ancestors`,
+  },
+
+  localAuthority: {
+    byGeoUnit: (geoUnitId: number) => `/local-authority/geo-unit/${geoUnitId}`,
+    assign: () => `/local-authority`,
+    revoke: (scopeId: number) => `/local-authority/${scopeId}`,
+    myLeadership: () => `/local-authority/my-leadership`,
   },
 
   relationships: {

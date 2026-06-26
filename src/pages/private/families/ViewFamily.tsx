@@ -165,7 +165,9 @@ export default function ViewFamily() {
                     <Section title="Family Information">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                             <Row label="Family Code" value={family.familyCode} />
-                            <Row label="Village" value={family.village} />
+                            <Row label="Village/Town" value={family.geoUnitName} />
+                            <Row label="District" value={family.districtName} />
+                            <Row label="State" value={family.stateName} />
                             <Row label="Clan Code" value={family.clanCode} />
                             <Row label="Clan Name" value={family.clanName} />
                             <Row label="Society" value={`${family.societyName} (${family.societyCode})`} />

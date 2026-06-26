@@ -29,11 +29,10 @@ export type Member = {
 };
 
 export type AddressData = {
-  village: string;
-  tahsil?: string;
-  district?: string;
-  state?: string;
-  country?: string;
+  geoUnitId: number;
+  geoUnitName?: string;
+  districtName?: string;
+  stateName?: string;
 };
 
 // Matches FamilyResponse from the REST API
@@ -47,6 +46,10 @@ export type Family = {
   headPersonCode?: string;
   headPersonName?: string;
   village?: string;
+  geoUnitId?: number;
+  geoUnitName?: string;
+  districtName?: string;
+  stateName?: string;
   clanCode?: string;
   clanName?: string;
   memberCount?: number;

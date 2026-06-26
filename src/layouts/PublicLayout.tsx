@@ -45,6 +45,14 @@ export default function PublicLayout() {
             {NAV.ABOUT}
           </NavLink>
           <NavLink
+            to={ROUTES.PUBLIC.LEADERSHIP}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted hover:text-text-primary transition"
+            }
+          >
+            {NAV.LEADERSHIP}
+          </NavLink>
+          <NavLink
             to={ROUTES.PUBLIC.CONTACT}
             className={({ isActive }) =>
               isActive ? "text-primary font-medium" : "text-text-muted hover:text-text-primary transition"
@@ -100,6 +108,15 @@ export default function PublicLayout() {
             }
           >
             {NAV.ABOUT}
+          </NavLink>
+          <NavLink
+            to={ROUTES.PUBLIC.LEADERSHIP}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted"
+            }
+          >
+            {NAV.LEADERSHIP}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.CONTACT}
