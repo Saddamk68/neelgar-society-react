@@ -16,7 +16,7 @@ import Tooltip from "@/components/Tooltip";
 
 const FAMILY_COLUMNS: ColumnConfig<Family>[] = [
     { key: "familyCode", title: "Family", weight: 30 },
-    { key: "village", title: "Village", weight: 18, truncate: true, tooltip: true, hideBelow: "sm" },
+    { key: "geoUnitName", title: "Village", weight: 18, truncate: true, tooltip: true, hideBelow: "sm" },
     { key: "clanCode", title: "Clan", weight: 18, truncate: true, tooltip: true, hideBelow: "sm" },
     { key: "memberCount", title: "Members", weight: 10, align: "center", hideBelow: "sm" },
     { key: "actions", title: "Actions", weight: 12, align: "center" },
@@ -117,7 +117,7 @@ export default function Families() {
             return (
                 f.familyCode.toLowerCase().includes(term) ||
                 (f.headPersonName ?? "").toLowerCase().includes(term) ||
-                (f.village ?? "").toLowerCase().includes(term) ||
+                (f.geoUnitName ?? "").toLowerCase().includes(term) ||
                 (f.clanName ?? "").toLowerCase().includes(term) ||
                 (f.clanCode ?? "").toLowerCase().includes(term)
             );

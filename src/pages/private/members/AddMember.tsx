@@ -19,6 +19,8 @@ import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
 import DatePicker from "../../../components/form/DatePicker";
 import GotraSelect from "@/features/gotras/components/GotraSelect";
+import GeoUnitCascadeSelect, { GeoSelection } from "@/features/geo-units/components/GeoUnitCascadeSelect";
+import { getAncestors } from "@/features/geo-units/services/geoUnitService";
 
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -84,36 +86,42 @@ function inputClass(hasError?: boolean) {
 
 function AddressFields({
   prefix,
-  register,
+  watch,
+  setValue,
   errors,
 }: {
   prefix: "currentAddress" | "parentalAddress";
-  register: any;
+  watch: any;
+  setValue: any;
   errors: any;
 }) {
-  const fields = [
-    { name: "village", label: "Village", required: prefix === "currentAddress" },
-    { name: "tahsil", label: "Tahsil", required: false },
-    { name: "district", label: "District", required: false },
-    { name: "state", label: "State", required: false },
-    { name: "country", label: "Country", required: false },
-  ];
+  const formGeoUnitId = watch(`${prefix}.geoUnitId`);
+  const [geo, setGeo] = useState<GeoSelection>({});
+  const [resolvedFor, setResolvedFor] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (formGeoUnitId && formGeoUnitId !== resolvedFor) {
+      getAncestors(formGeoUnitId)
+        .then((anc) => {
+          setGeo(anc);
+          setResolvedFor(formGeoUnitId);
+        })
+        .catch(() => {});
+    }
+  }, [formGeoUnitId]);
+
+  function handleGeoChange(next: GeoSelection) {
+    setGeo(next);
+    setValue(`${prefix}.geoUnitId`, next.villageTownId, { shouldValidate: true, shouldDirty: true });
+  }
+
+  const err = errors?.[prefix]?.geoUnitId?.message;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {fields.map((f) => {
-        const err = errors?.[prefix]?.[f.name]?.message;
-        return (
-          <div key={f.name}>
-            <FieldLabel required={f.required}>{f.label}</FieldLabel>
-            <input
-              {...register(`${prefix}.${f.name}`)}
-              className={inputClass(!!err)}
-            />
-            {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
-          </div>
-        );
-      })}
+    <div>
+      <FieldLabel required={prefix === "currentAddress"}>State / District / Village-Town</FieldLabel>
+      <GeoUnitCascadeSelect value={geo} onChange={handleGeoChange} />
+      {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
     </div>
   );
 }
@@ -134,7 +142,7 @@ export default function AddMember() {
   const [familySearch, setFamilySearch] = useState("");
   const [familyResults, setFamilyResults] = useState<Family[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
-  const [newVillage, setNewVillage] = useState("");
+  const [newGeo, setNewGeo] = useState<GeoSelection>({});
   const [familyLoading, setFamilyLoading] = useState(false);
 
   // Clan suggestions for new family creation
@@ -144,6 +152,9 @@ export default function AddMember() {
 
   // Parental address toggle
   const [showParentalAddress, setShowParentalAddress] = useState(false);
+
+  // Deceased toggle
+  const [isDeceased, setIsDeceased] = useState(false);
 
   // ── Step 1: Duplicate check form ────────────────────────────────────────────
   const dupForm = useForm<DuplicateCheckValues>({
@@ -165,7 +176,7 @@ export default function AddMember() {
       occupation: "",
       gotraId: undefined as unknown as number,   // ← use undefined so schema doesn't fail on initial render
       createAccount: false,
-      currentAddress: { village: "", tahsil: "", district: "", state: "", country: "" },
+      currentAddress: { geoUnitId: undefined as unknown as number },
     },
   });
 
@@ -240,8 +251,8 @@ export default function AddMember() {
   };
 
   const handleCreateFamily = async () => {
-    if (!newVillage.trim()) {
-      notify.error("Village is required to create a family");
+    if (!newGeo.villageTownId) {
+      notify.error("Village/Town is required to create a family");
       return;
     }
     if (!user?.societyId) {
@@ -252,7 +263,7 @@ export default function AddMember() {
     try {
       const created = await createFamily(
         user.societyId,
-        newVillage.trim(),
+        newGeo.villageTownId,
         user.username,
         newClanCode.trim() || undefined,
         newClanName.trim() || undefined,
@@ -340,18 +351,32 @@ export default function AddMember() {
                 />
               </div>
               <div>
-                <FieldLabel>Date of Death</FieldLabel>
-                <DatePicker
-                  value={watch("dod") ?? ""}
-                  onChange={(val) =>
-                    setValue("dod", val, { shouldDirty: true })
-                  }
-                  maxDate={new Date()}
-                />
-                {watch("dod") && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    This member will be marked as inactive.
-                  </p>
+                <FieldLabel>Deceased</FieldLabel>
+                <label className="flex items-center gap-2 cursor-pointer mt-1">
+                  <input
+                    type="checkbox"
+                    checked={isDeceased}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsDeceased(checked);
+                      if (!checked) setValue("dod", "", { shouldDirty: true, shouldValidate: true });
+                    }}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  <span className="text-sm text-slate-600">Mark this member as deceased</span>
+                </label>
+                {isDeceased && (
+                  <div className="mt-2">
+                    <FieldLabel required>Date of Death</FieldLabel>
+                    <DatePicker
+                      value={watch("dod") ?? ""}
+                      onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
+                      maxDate={new Date()}
+                    />
+                    <p className="text-xs text-amber-600 mt-1">
+                      This member will be marked as inactive.
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -489,14 +514,8 @@ export default function AddMember() {
           {familyMode === "new" && (
             <div className="space-y-3">
               <div>
-                <FieldLabel required>Village</FieldLabel>
-                <input
-                  type="text"
-                  placeholder="Enter village name…"
-                  value={newVillage}
-                  onChange={(e) => setNewVillage(e.target.value)}
-                  className={inputClass()}
-                />
+                <FieldLabel required>State / District / Village-Town</FieldLabel>
+                <GeoUnitCascadeSelect value={newGeo} onChange={setNewGeo} />
               </div>
 
               <div>
@@ -659,7 +678,7 @@ export default function AddMember() {
           {/* Current Address */}
           <section className="bg-white rounded-xl shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Current Address</h2>
-            <AddressFields prefix="currentAddress" register={register} errors={errors} />
+            <AddressFields prefix="currentAddress" errors={errors} watch={watch} setValue={setValue} />
           </section>
 
           {/* Parental Address (optional) */}
@@ -677,7 +696,7 @@ export default function AddMember() {
               </label>
             </div>
             {showParentalAddress ? (
-              <AddressFields prefix="parentalAddress" register={register} errors={errors} />
+              <AddressFields prefix="parentalAddress" errors={errors} watch={watch} setValue={setValue} />
             ) : (
               <p className="text-sm text-slate-400">
                 Optional — check the box above to add a parental/permanent address.

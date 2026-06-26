@@ -81,6 +81,8 @@ import DatePicker from "../../../components/form/DatePicker";
 import GotraSelect from "@/features/gotras/components/GotraSelect";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DeactivateHeadDialog from "@/components/DeactivateHeadDialog";
+import GeoUnitCascadeSelect, { GeoSelection } from "@/features/geo-units/components/GeoUnitCascadeSelect";
+import { getAncestors } from "@/features/geo-units/services/geoUnitService";
 
 
 function inputClass(hasError?: boolean) {
@@ -94,36 +96,42 @@ function inputClass(hasError?: boolean) {
 
 function AddressFields({
   prefix,
-  register,
+  watch,
+  setValue,
   errors,
 }: {
   prefix: "currentAddress" | "parentalAddress";
-  register: any;
+  watch: any;
+  setValue: any;
   errors: any;
 }) {
-  const fields = [
-    { name: "village", label: "Village", required: prefix === "currentAddress" },
-    { name: "tahsil", label: "Tahsil", required: false },
-    { name: "district", label: "District", required: false },
-    { name: "state", label: "State", required: false },
-    { name: "country", label: "Country", required: false },
-  ];
+  const formGeoUnitId = watch(`${prefix}.geoUnitId`);
+  const [geo, setGeo] = useState<GeoSelection>({});
+  const [resolvedFor, setResolvedFor] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (formGeoUnitId && formGeoUnitId !== resolvedFor) {
+      getAncestors(formGeoUnitId)
+        .then((anc) => {
+          setGeo(anc);
+          setResolvedFor(formGeoUnitId);
+        })
+        .catch(() => {});
+    }
+  }, [formGeoUnitId]);
+
+  function handleGeoChange(next: GeoSelection) {
+    setGeo(next);
+    setValue(`${prefix}.geoUnitId`, next.villageTownId, { shouldValidate: true, shouldDirty: true });
+  }
+
+  const err = errors?.[prefix]?.geoUnitId?.message;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {fields.map((f) => {
-        const err = errors?.[prefix]?.[f.name]?.message;
-        return (
-          <div key={f.name}>
-            <FieldLabel required={f.required}>{f.label}</FieldLabel>
-            <input
-              {...register(`${prefix}.${f.name}`)}
-              className={inputClass(!!err)}
-            />
-            {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
-          </div>
-        );
-      })}
+    <div>
+      <FieldLabel required={prefix === "currentAddress"}>State / District / Village-Town</FieldLabel>
+      <GeoUnitCascadeSelect value={geo} onChange={handleGeoChange} />
+      {err && <p className="text-xs text-red-500 mt-1">{err}</p>}
     </div>
   );
 }
@@ -221,7 +229,7 @@ function MemberSearchDialog({
 
 function CreatePersonForm({
   title,
-  defaultVillage,
+  defaultGeoUnitId,
   societyId,
   showFamilyOption,
   onSubmit,
@@ -229,7 +237,7 @@ function CreatePersonForm({
   loading,
 }: {
   title: string;
-  defaultVillage: string;
+  defaultGeoUnitId?: number;
   societyId: number;
   showFamilyOption?: boolean;
   onSubmit: (data: {
@@ -238,7 +246,7 @@ function CreatePersonForm({
     gender: "MALE" | "FEMALE" | "OTHER" | "";
     dob: string;
     gotraId: number;
-    village: string;
+    geoUnitId: number;
     familyMode: "current" | "new" | "existing";
     existingFamilyId?: number;
   }) => void;
@@ -250,7 +258,7 @@ function CreatePersonForm({
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
   const [dob, setDob] = useState("");
   const [gotra, setGotra] = useState("");
-  const [village, setVillage] = useState(defaultVillage);
+  const [geo, setGeo] = useState<GeoSelection>({});
   const [firstNameError, setFirstNameError] = useState("");
   const [gotraError, setGotraError] = useState("");
   const [villageError, setVillageError] = useState("");
@@ -260,6 +268,12 @@ function CreatePersonForm({
   const [familyResults, setFamilyResults] = useState<Family[]>([]);
   const [selectedExistingFamily, setSelectedExistingFamily] = useState<Family | null>(null);
   const [familySearching, setFamilySearching] = useState(false);
+
+  useEffect(() => {
+    if (defaultGeoUnitId) {
+      getAncestors(defaultGeoUnitId).then(setGeo).catch(() => {});
+    }
+  }, [defaultGeoUnitId]);
 
   function handleSubmit() {
     let valid = true;
@@ -275,15 +289,15 @@ function CreatePersonForm({
     } else {
       setGotraError("");
     }
-    if (!village.trim()) {
-      setVillageError("Village is required");
+    if (!geo.villageTownId) {
+      setVillageError("Village/Town is required");
       valid = false;
     } else {
       setVillageError("");
     }
     if (!valid) return;
     onSubmit({
-      firstName, lastName, gender, dob, gotraId: Number(gotra), village,
+      firstName, lastName, gender, dob, gotraId: Number(gotra), geoUnitId: geo.villageTownId!,
       familyMode,
       existingFamilyId: familyMode === "existing" ? selectedExistingFamily?.id : undefined,
     });
@@ -370,12 +384,8 @@ function CreatePersonForm({
           </div>
 
           <div>
-            <FieldLabel required>Village (for address)</FieldLabel>
-            <input
-              className={fieldCls(villageError)}
-              value={village}
-              onChange={(e) => setVillage(e.target.value)}
-            />
+            <FieldLabel required>State / District / Village-Town (for address)</FieldLabel>
+            <GeoUnitCascadeSelect value={geo} onChange={setGeo} />
             {villageError && <p className="text-xs text-red-500 mt-1">{villageError}</p>}
             <p className="text-xs text-slate-400 mt-1">
               You can update the full address later from the member's Edit screen.
@@ -570,7 +580,7 @@ function FamilyRelationshipsSection({
     gender: "MALE" | "FEMALE" | "OTHER" | "";
     dob: string;
     gotraId: number;
-    village: string;
+    geoUnitId: number;
     familyMode?: "current" | "new" | "existing";
     existingFamilyId?: number;
   }) {
@@ -582,7 +592,7 @@ function FamilyRelationshipsSection({
     if (dialog.role === "spouse") {
       if (data.familyMode === "new") {
         const { createFamily } = await import("../../../features/members/services/familyService");
-        const newFamily = await createFamily(currentMember.societyId, data.village, currentUsername);
+        const newFamily = await createFamily(currentMember.societyId, data.geoUnitId, currentUsername);
         familyId = newFamily.id;
       } else if (data.familyMode === "existing" && data.existingFamilyId) {
         familyId = data.existingFamilyId;
@@ -598,7 +608,7 @@ function FamilyRelationshipsSection({
       societyId: currentMember.societyId,
       gotraId: data.gotraId,
       familyId,
-      village: data.village,
+      geoUnitId: data.geoUnitId,
     };
 
     try {
@@ -707,8 +717,8 @@ function FamilyRelationshipsSection({
     );
   }
 
-  // Default village from the current member's address for pre-filling
-  const defaultVillage = currentMember?.currentAddress?.village ?? "";
+  // Default geo unit from the current member's address, for pre-filling
+  const defaultGeoUnitId = currentMember?.currentAddress?.geoUnitId;
 
   return (
     <>
@@ -926,7 +936,7 @@ function FamilyRelationshipsSection({
                   "Create & Link Child"
           }
           societyId={currentMember?.societyId ?? 0}
-          defaultVillage={defaultVillage}
+          defaultGeoUnitId={defaultGeoUnitId}
           showFamilyOption={dialog.role === "spouse"}
           onSubmit={handleCreateAndLink}
           onClose={() => setDialog(null)}
@@ -1024,6 +1034,7 @@ export default function EditMember() {
   const [deactivating, setDeactivating] = useState(false);
   const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
+  const [isDeceased, setIsDeceased] = useState(false);
 
   // ── Load member on mount ──────────────────────────────────────────────────
 
@@ -1034,6 +1045,7 @@ export default function EditMember() {
       .then((m) => {
         setOriginalMember(m);
         setHasPhoto(m.hasPhoto ?? false);
+        setIsDeceased(!!m.dod);
 
         // Map Member (PersonResponse) → MemberFormValues for the form.
         //
@@ -1064,20 +1076,10 @@ export default function EditMember() {
           createAccount: false,
           email: "",
           currentAddress: {
-            village: m.currentAddress?.village ?? "",
-            tahsil: m.currentAddress?.tahsil ?? "",
-            district: m.currentAddress?.district ?? "",
-            state: m.currentAddress?.state ?? "",
-            country: m.currentAddress?.country ?? "",
+            geoUnitId: m.currentAddress?.geoUnitId as number,
           },
-          parentalAddress: m.parentalAddress?.village
-            ? {
-              village: m.parentalAddress.village,
-              tahsil: m.parentalAddress.tahsil ?? "",
-              district: m.parentalAddress.district ?? "",
-              state: m.parentalAddress.state ?? "",
-              country: m.parentalAddress.country ?? "",
-            }
+          parentalAddress: m.parentalAddress?.geoUnitId
+            ? { geoUnitId: m.parentalAddress.geoUnitId }
             : undefined,
         };
 
@@ -1086,7 +1088,7 @@ export default function EditMember() {
         // Force maritalStatus to always be set so it appears in submit payload
         setValue("maritalStatus", m.maritalStatus ?? "SINGLE");
 
-        if (m.parentalAddress?.village) {
+        if (m.parentalAddress?.geoUnitId) {
           setShowParentalAddress(true);
         }
       })
@@ -1329,18 +1331,34 @@ export default function EditMember() {
               )}
             </div>
 
-            {/* Date of Death — custom date picker with special handling */}
+            {/* Deceased toggle + conditional Date of Death */}
             <div>
-              <FieldLabel>Date of Death</FieldLabel>
-              <DatePicker
-                value={watch("dod") ?? ""}
-                onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
-                maxDate={new Date()}
-              />
-              {watch("dod") && (
-                <p className="text-xs text-amber-600 mt-1">
-                  This member will be marked as inactive.
-                </p>
+              <FieldLabel>Deceased</FieldLabel>
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  checked={isDeceased}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setIsDeceased(checked);
+                    if (!checked) setValue("dod", "", { shouldDirty: true, shouldValidate: true });
+                  }}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                <span className="text-sm text-slate-600">Mark this member as deceased</span>
+              </label>
+              {isDeceased && (
+                <div className="mt-2">
+                  <FieldLabel required>Date of Death</FieldLabel>
+                  <DatePicker
+                    value={watch("dod") ?? ""}
+                    onChange={(val) => setValue("dod", val, { shouldDirty: true, shouldValidate: true })}
+                    maxDate={new Date()}
+                  />
+                  <p className="text-xs text-amber-600 mt-1">
+                    This member will be marked as inactive.
+                  </p>
+                </div>
               )}
             </div>
 
@@ -1382,8 +1400,9 @@ export default function EditMember() {
           </p>
           <AddressFields
             prefix="currentAddress"
-            register={register}
             errors={errors}
+            watch={watch}
+            setValue={setValue}
           />
         </section>
 
@@ -1404,8 +1423,9 @@ export default function EditMember() {
           {showParentalAddress ? (
             <AddressFields
               prefix="parentalAddress"
-              register={register}
               errors={errors}
+              watch={watch}
+              setValue={setValue}
             />
           ) : (
             <p className="text-sm text-slate-400">

@@ -69,7 +69,7 @@ export async function createAndLinkParent(
     societyId: number;
     gotraId: number;
     familyId: number;
-    village: string;
+    geoUnitId: number;
   },
   type: "FATHER" | "MOTHER",
   createdBy: string
@@ -89,11 +89,7 @@ export async function createAndLinkParent(
       occupation: "",
       maritalStatus: "MARRIED",
       currentAddress: {
-        village: newPersonData.village,
-        tahsil: "",
-        district: "",
-        state: "",
-        country: "",
+        geoUnitId: newPersonData.geoUnitId,
       },
       createAccount: false,
       email: "",
@@ -117,7 +113,7 @@ export async function createAndLinkSpouse(
     societyId: number;
     gotraId: number;
     familyId: number;
-    village: string;
+    geoUnitId: number;
   },
   startDate: string | undefined,
   createdBy: string
@@ -137,11 +133,7 @@ export async function createAndLinkSpouse(
       occupation: "",
       maritalStatus: "MARRIED",
       currentAddress: {
-        village: newPersonData.village,
-        tahsil: "",
-        district: "",
-        state: "",
-        country: "",
+        geoUnitId: newPersonData.geoUnitId,
       },
       createAccount: false,
       email: "",
@@ -166,7 +158,7 @@ export async function createAndLinkChild(
     societyId: number;
     gotraId: number;
     familyId: number;
-    village: string;
+    geoUnitId: number;
   },
   parentType: "FATHER" | "MOTHER",
   createdBy: string
@@ -186,11 +178,7 @@ export async function createAndLinkChild(
       occupation: "",
       maritalStatus: "SINGLE",
       currentAddress: {
-        village: newPersonData.village,
-        tahsil: "",
-        district: "",
-        state: "",
-        country: "",
+        geoUnitId: newPersonData.geoUnitId,
       },
       createAccount: false,
       email: "",
