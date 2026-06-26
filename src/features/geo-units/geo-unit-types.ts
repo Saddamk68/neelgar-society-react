@@ -1,5 +1,5 @@
 export type GeoLevel = "COUNTRY" | "STATE" | "DISTRICT" | "VILLAGE_TOWN";
-export type GeoUnitType = "VILLAGE" | "TOWN";
+export type GeoUnitType = "VILLAGE" | "TOWN" | "CITY";
 
 export type GeoUnit = {
     id: number;

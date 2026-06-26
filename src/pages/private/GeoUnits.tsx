@@ -124,7 +124,7 @@ export default function GeoUnits() {
                     >
                         <option value="STATE">State</option>
                         <option value="DISTRICT">District</option>
-                        <option value="VILLAGE_TOWN">Village / Town</option>
+                        <option value="VILLAGE_TOWN">Village / Town / City</option>
                     </select>
                 </div>
 
@@ -163,6 +163,7 @@ export default function GeoUnits() {
                         <select value={unitType} onChange={(e) => setUnitType(e.target.value as GeoUnitType)} className={inputClass()}>
                             <option value="VILLAGE">Village</option>
                             <option value="TOWN">Town</option>
+                            <option value="CITY">City</option>
                         </select>
                     </div>
                 )}
