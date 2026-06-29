@@ -67,14 +67,14 @@ export const MENU: MenuItem[] = [
   },
   {
     key: "geo-units",
-    label: "States / Districts / Villages",
+    label: "States / Districts / Towns",
     path: "/app/geo-units",
     required: [PERM.GEO_UNIT_MANAGE],
     icon: MapPin,
   },
   {
     key: "local-authority",
-    label: "Village Leadership",
+    label: "Local Leadership",
     path: "/app/local-authority",
     required: [PERM.USER_MANAGE],
     icon: Landmark,

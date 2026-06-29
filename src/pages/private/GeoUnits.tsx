@@ -24,6 +24,7 @@ export default function GeoUnits() {
     const [level, setLevel] = useState<GeoLevel>("STATE");
     const [parentStateId, setParentStateId] = useState<number | undefined>();
     const [parentDistrictId, setParentDistrictId] = useState<number | undefined>();
+    const [parentTehsilId, setParentTehsilId] = useState<number | undefined>();
     const [unitType, setUnitType] = useState<GeoUnitType>("VILLAGE");
     const [name, setName] = useState("");
     const [saving, setSaving] = useState(false);
@@ -36,13 +37,20 @@ export default function GeoUnits() {
     const { data: districts = [] } = useQuery({
         queryKey: ["geo-units", "children", parentStateId],
         queryFn: () => listChildren(parentStateId as number),
-        enabled: !!parentStateId && level === "VILLAGE_TOWN",
+        enabled: !!parentStateId && (level === "TEHSIL" || level === "VILLAGE_TOWN"),
+    });
+
+    const { data: tehsils = [] } = useQuery({
+        queryKey: ["geo-units", "children", parentDistrictId],
+        queryFn: () => listChildren(parentDistrictId as number),
+        enabled: !!parentDistrictId && level === "VILLAGE_TOWN",
     });
 
     // List for the "existing entries" panel — shows whatever level is selected
     const listParentId = level === "DISTRICT" ? parentStateId
-        : level === "VILLAGE_TOWN" ? parentDistrictId
-            : undefined;
+        : level === "TEHSIL" ? parentDistrictId
+            : level === "VILLAGE_TOWN" ? parentTehsilId
+                : undefined;
 
     const { data: existingItems = [], isLoading } = useQuery<GeoUnit[]>({
         queryKey: ["geo-units", "browse", level, listParentId],
@@ -64,9 +72,12 @@ export default function GeoUnits() {
         if (level === "DISTRICT") {
             if (!parentStateId) { notify.error("Select a state first"); return; }
             parentId = parentStateId;
-        } else if (level === "VILLAGE_TOWN") {
+        } else if (level === "TEHSIL") {
             if (!parentDistrictId) { notify.error("Select a state and district first"); return; }
             parentId = parentDistrictId;
+        } else if (level === "VILLAGE_TOWN") {
+            if (!parentTehsilId) { notify.error("Select a state, district and tehsil first"); return; }
+            parentId = parentTehsilId;
         }
 
         setSaving(true);
@@ -102,7 +113,7 @@ export default function GeoUnits() {
     return (
         <div className="max-w-3xl mx-auto space-y-6">
             <PageHeader
-                title="States, Districts & Villages/Towns"
+                title="States, Districts & Towns/Villages"
                 subtitle="Add or deactivate geo units used across member, family, and leadership forms."
                 backTo="back"
             />
@@ -119,21 +130,23 @@ export default function GeoUnits() {
                             setLevel(e.target.value as GeoLevel);
                             setParentStateId(undefined);
                             setParentDistrictId(undefined);
+                            setParentTehsilId(undefined);
                         }}
                         className={inputClass()}
                     >
                         <option value="STATE">State</option>
                         <option value="DISTRICT">District</option>
-                        <option value="VILLAGE_TOWN">Village / Town / City</option>
+                        <option value="TEHSIL">Tehsil</option>
+                        <option value="VILLAGE_TOWN">City / Town / Village</option>
                     </select>
                 </div>
 
-                {(level === "DISTRICT" || level === "VILLAGE_TOWN") && (
+                {(level === "DISTRICT" || level === "TEHSIL" || level === "VILLAGE_TOWN") && (
                     <div>
                         <FieldLabel required>State</FieldLabel>
                         <select
                             value={parentStateId ?? ""}
-                            onChange={(e) => { setParentStateId(Number(e.target.value) || undefined); setParentDistrictId(undefined); }}
+                            onChange={(e) => { setParentStateId(Number(e.target.value) || undefined); setParentDistrictId(undefined); setParentTehsilId(undefined); }}
                             className={inputClass()}
                         >
                             <option value="">Select state…</option>
@@ -142,17 +155,32 @@ export default function GeoUnits() {
                     </div>
                 )}
 
-                {level === "VILLAGE_TOWN" && (
+                {(level === "TEHSIL" || level === "VILLAGE_TOWN") && (
                     <div>
                         <FieldLabel required>District</FieldLabel>
                         <select
                             value={parentDistrictId ?? ""}
-                            onChange={(e) => setParentDistrictId(Number(e.target.value) || undefined)}
+                            onChange={(e) => { setParentDistrictId(Number(e.target.value) || undefined); setParentTehsilId(undefined); }}
                             disabled={!parentStateId}
                             className={inputClass()}
                         >
                             <option value="">Select district…</option>
                             {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                    </div>
+                )}
+
+                {level === "VILLAGE_TOWN" && (
+                    <div>
+                        <FieldLabel required>Tehsil</FieldLabel>
+                        <select
+                            value={parentTehsilId ?? ""}
+                            onChange={(e) => setParentTehsilId(Number(e.target.value) || undefined)}
+                            disabled={!parentDistrictId}
+                            className={inputClass()}
+                        >
+                            <option value="">Select tehsil…</option>
+                            {tehsils.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     </div>
                 )}
@@ -192,7 +220,7 @@ export default function GeoUnits() {
             {/* Existing list for the selected level/parent */}
             <section className="bg-white rounded-xl shadow p-6 space-y-3">
                 <h2 className="text-lg font-semibold">
-                    Existing {level === "STATE" ? "States" : level === "DISTRICT" ? "Districts" : "Villages/Towns"}
+                    Existing {level === "STATE" ? "States" : level === "DISTRICT" ? "Districts" : level === "TEHSIL" ? "Tehsils" : "Villages/Towns"}
                 </h2>
                 {(level !== "STATE" && !listParentId) ? (
                     <p className="text-sm text-slate-400">Select a parent above to see existing entries.</p>

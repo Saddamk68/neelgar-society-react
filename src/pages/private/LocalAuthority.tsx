@@ -88,7 +88,7 @@ export default function LocalAuthority() {
     return (
         <div className="max-w-3xl mx-auto space-y-6">
             <PageHeader
-                title="Village Leadership"
+                title="Local Leadership"
                 subtitle="Assign or revoke Village President / Secretary titles."
                 backTo="back"
             />
@@ -158,7 +158,7 @@ export default function LocalAuthority() {
                                 <p className="text-xs text-green-600 mt-2">
                                     ✓ Found: {lookedUpUser.personName ?? lookedUpUser.username} — current role: {lookedUpUser.role}
                                     {lookedUpUser.role !== "MEMBER" && (
-                                        <span className="text-red-500 ml-1">(must be plain MEMBER to assign a local title)</span>
+                                        <span className="text-red-500 ml-1">(Already has a local title)</span>
                                     )}
                                 </p>
                             )}

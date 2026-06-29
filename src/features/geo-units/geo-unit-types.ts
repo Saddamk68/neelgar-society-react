@@ -1,4 +1,4 @@
-export type GeoLevel = "COUNTRY" | "STATE" | "DISTRICT" | "VILLAGE_TOWN";
+export type GeoLevel = "COUNTRY" | "STATE" | "DISTRICT" | "TEHSIL" | "VILLAGE_TOWN";
 export type GeoUnitType = "VILLAGE" | "TOWN" | "CITY";
 
 export type GeoUnit = {
