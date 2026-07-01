@@ -28,13 +28,13 @@ export async function getFamiliesBySociety(
 export async function searchFamilies(
     societyId: number,
     headName?: string,
-    village?: string
+    villageOrGeoName?: string
 ): Promise<Family[]> {
     const res = await api.get(ENDPOINTS.families.search(), {
         params: {
             societyId,
             ...(headName ? { headName } : {}),
-            ...(village ? { village } : {}),
+            ...(villageOrGeoName ? { village: villageOrGeoName } : {}),
         },
     });
     return unwrap<Family[]>(res);
@@ -44,14 +44,14 @@ export async function searchFamilies(
 
 export async function createFamily(
     societyId: number,
-    village: string,
+    geoUnitId: number,
     createdBy: string,
     clanCode?: string,
     clanName?: string,
 ): Promise<Family> {
     const res = await api.post(
         ENDPOINTS.families.create(),
-        { societyId, village, clanCode, clanName },
+        { societyId, geoUnitId, clanCode, clanName },
         { headers: { "X-Created-By": createdBy } }
     );
     return unwrap<Family>(res);
@@ -81,7 +81,7 @@ export async function getFamilyMembers(
 export async function updateFamily(
     familyCode: string,
     societyId: number,
-    village: string,
+    geoUnitId: number,
     updatedBy: string,
     clanCode?: string,
     clanName?: string,
@@ -90,7 +90,7 @@ export async function updateFamily(
         ENDPOINTS.families.get(familyCode),
         {
             societyId,
-            village,
+            geoUnitId,
             clanCode: clanCode?.trim().toUpperCase() || undefined,
             clanName: clanName?.trim() || undefined,
         },

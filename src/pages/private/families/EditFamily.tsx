@@ -10,6 +10,8 @@ import { useAuth } from "../../../context/AuthContext";
 import { useNotify } from "../../../services/notifications";
 import { ROUTES } from "../../../constants/routes";
 import FieldLabel from "../../../components/form/FieldLabel";
+import GeoUnitCascadeSelect, { GeoSelection } from "@/features/geo-units/components/GeoUnitCascadeSelect";
+import { getAncestors } from "@/features/geo-units/services/geoUnitService";
 
 function inputClass(hasError?: boolean) {
     return [
@@ -28,11 +30,12 @@ export default function EditFamily() {
     const queryClient = useQueryClient();
 
     // ── Form state ────────────────────────────────────────────────────────────
-    const [village, setVillage] = useState("");
+    const [geo, setGeo] = useState<GeoSelection>({});
+    const [resolvedFor, setResolvedFor] = useState<number | undefined>(undefined);
     const [clanCode, setClanCode] = useState("");
     const [clanName, setClanName] = useState("");
     const [saving, setSaving] = useState(false);
-    const [errors, setErrors] = useState<{ village?: string; clan?: string }>({});
+    const [errors, setErrors] = useState<{ geoUnit?: string; clan?: string }>({});
 
     // ── Load family ───────────────────────────────────────────────────────────
     const { data: family, isLoading, isError } = useQuery<Family>({
@@ -42,12 +45,20 @@ export default function EditFamily() {
         staleTime: 1000 * 60 * 2,
     });
 
-    // Pre-fill form when family loads
+    // Pre-fill form when family loads — resolve full state/district/village chain
     useEffect(() => {
         if (family) {
-            setVillage(family.village ?? "");
             setClanCode(family.clanCode ?? "");
             setClanName(family.clanName ?? "");
+
+            if (family.geoUnitId && family.geoUnitId !== resolvedFor) {
+                getAncestors(family.geoUnitId)
+                    .then((anc) => {
+                        setGeo(anc);
+                        setResolvedFor(family.geoUnitId);
+                    })
+                    .catch(() => { });
+            }
         }
     }, [family]);
 
@@ -65,7 +76,7 @@ export default function EditFamily() {
     // ── Validation ────────────────────────────────────────────────────────────
     function validate(): boolean {
         const e: typeof errors = {};
-        if (!village.trim()) e.village = "Village is required";
+        if (!geo.villageTownId) e.geoUnit = "Village/Town is required";
         if (clanCode && !/^[A-Za-z0-9_-]+$/.test(clanCode)) {
             e.clan = "Clan code may only contain letters, numbers, hyphens and underscores";
         }
@@ -86,12 +97,11 @@ export default function EditFamily() {
             await updateFamily(
                 familyCode!,
                 family!.societyId,
-                village.trim(),
+                geo.villageTownId!,
                 user.username,
                 clanCode || undefined,
                 clanName || undefined,
             );
-            // Invalidate so Families list and ViewFamily both refresh
             queryClient.invalidateQueries({ queryKey: ["family", familyCode] });
             queryClient.invalidateQueries({ queryKey: ["families"] });
             notify.success("Family updated successfully!");
@@ -158,18 +168,12 @@ export default function EditFamily() {
             >
                 <h2 className="text-lg font-semibold">Family Details</h2>
 
-                {/* Village */}
+                {/* Village/Town (structured) */}
                 <div>
-                    <FieldLabel required>Village</FieldLabel>
-                    <input
-                        type="text"
-                        value={village}
-                        onChange={(e) => setVillage(e.target.value)}
-                        className={inputClass(!!errors.village)}
-                        placeholder="Enter village name…"
-                    />
-                    {errors.village && (
-                        <p className="text-xs text-red-500 mt-1">{errors.village}</p>
+                    <FieldLabel required>State / District / Village-Town</FieldLabel>
+                    <GeoUnitCascadeSelect value={geo} onChange={setGeo} />
+                    {errors.geoUnit && (
+                        <p className="text-xs text-red-500 mt-1">{errors.geoUnit}</p>
                     )}
                 </div>
 

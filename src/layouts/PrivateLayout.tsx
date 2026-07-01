@@ -257,7 +257,7 @@ export default function PrivateLayout() {
         <div className="fixed top-0 left-0 right-0 z-[60] md:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
           <span className="mt-0.5 shrink-0">⚠️</span>
           <span className="flex-1">
-            This portal is designed for tablet and desktop screens. Some features may not work well on a phone.
+            This portal is not designed for mobile devices. Some features may not work well on a phone.
           </span>
           <button
             onClick={() => setPhoneBannerDismissed(true)}

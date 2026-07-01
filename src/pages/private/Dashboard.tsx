@@ -9,6 +9,8 @@ import { Member } from "../../features/members/types";
 import { DashboardStats } from "../../features/dashboard/dashboardService";
 import { usePermission } from "../../hooks/usePermission";
 import { PERM } from "../../constants/permissions";
+import { MyLeadership } from "@/features/local-authority/local-authority-types";
+import { getMyLeadership } from "@/features/local-authority/services/localAuthorityService";
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -179,6 +181,8 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
         <p className="text-slate-500 text-sm mt-0.5">Your member profile</p>
       </div>
 
+      <VillageLeadershipCard />
+
       {/* Profile card */}
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-center justify-between mb-5">
@@ -219,6 +223,53 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
             View Full Profile
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function VillageLeadershipCard() {
+  const { data, isLoading } = useQuery<MyLeadership>({
+    queryKey: ["my-leadership"],
+    queryFn: getMyLeadership,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (isLoading) {
+    return <div className="bg-white rounded-xl shadow p-6 h-20 animate-pulse" />;
+  }
+
+  if (!data || !data.myGeoUnitName) {
+    return null; // no village assigned yet — don't show an empty/confusing card
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow p-6">
+      <h2 className="text-sm font-semibold text-slate-500 mb-3">
+        Your Local Leadership — {data.myGeoUnitName}
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {(["president", "secretary"] as const).map((key) => {
+          const officer = data[key];
+          return (
+            <div key={key} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                {key === "president" ? "P" : "S"}
+              </div>
+              <div>
+                <div className="text-xs text-slate-400">
+                  {key === "president" ? "President" : "Secretary"}
+                </div>
+                <div className="text-sm font-medium text-slate-800">
+                  {officer ? (officer.personName ?? officer.username) : "Not yet assigned"}
+                </div>
+                {officer && (
+                  <div className="text-xs text-slate-400">{officer.geoUnitName}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

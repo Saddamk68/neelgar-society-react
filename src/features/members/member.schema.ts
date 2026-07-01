@@ -3,11 +3,10 @@ import { z } from "zod";
 // ── Address block (reusable) ──────────────────────────────────────────────────
 
 export const addressSchema = z.object({
-  village: z.string().min(1, "Village is required").max(120),
-  tahsil: z.string().max(120).optional().or(z.literal("")),
-  district: z.string().max(120).optional().or(z.literal("")),
-  state: z.string().max(120).optional().or(z.literal("")),
-  country: z.string().max(120).optional().or(z.literal("")),
+  geoUnitId: z.coerce.number().optional().refine(
+    (v) => v !== undefined && !Number.isNaN(v) && v >= 1,
+    { message: "Village/Town is required" }
+  ),
 });
 
 export type AddressValues = z.infer<typeof addressSchema>;

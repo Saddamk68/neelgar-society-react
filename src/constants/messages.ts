@@ -12,6 +12,7 @@ export const NAV = {
   CONTACT: "Contact",
   LOGIN: "Login",
   DASHBOARD: "Dashboard",
+  LEADERSHIP: "Leadership",
 };
 
 export const PROFILE_MENU = {
