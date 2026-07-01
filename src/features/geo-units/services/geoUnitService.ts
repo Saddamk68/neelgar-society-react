@@ -7,13 +7,13 @@ function unwrap<T>(res: any): T {
     return res.data?.data ?? res.data;
 }
 
-export async function listByLevel(level: GeoLevel): Promise<GeoUnit[]> {
-    const res = await api.get(ENDPOINTS.geoUnits.byLevel(), { params: { level } });
+export async function listByLevel(level: GeoLevel, includeInactive = false): Promise<GeoUnit[]> {
+    const res = await api.get(ENDPOINTS.geoUnits.byLevel(), { params: { level, includeInactive } });
     return unwrap<GeoUnit[]>(res);
 }
 
-export async function listChildren(parentId: number): Promise<GeoUnit[]> {
-    const res = await api.get(ENDPOINTS.geoUnits.children(parentId));
+export async function listChildren(parentId: number, includeInactive = false): Promise<GeoUnit[]> {
+    const res = await api.get(ENDPOINTS.geoUnits.children(parentId), { params: { includeInactive } });
     return unwrap<GeoUnit[]>(res);
 }
 
@@ -36,6 +36,10 @@ export async function deactivateGeoUnit(id: number, updatedBy: string): Promise<
     await api.delete(ENDPOINTS.geoUnits.deactivate(id), {
         headers: { "X-Created-By": updatedBy },
     });
+}
+
+export async function reactivateGeoUnit(id: number, username: string): Promise<void> {
+    await api.patch(ENDPOINTS.geoUnits.reactivate(id), {}, { headers: { "X-Updated-By": username } });
 }
 
 export async function getAncestors(geoUnitId: number): Promise<GeoSelection> {

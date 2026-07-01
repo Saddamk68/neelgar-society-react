@@ -11,6 +11,7 @@ import {
     lookupUserByMemberCode,
 } from "@/features/local-authority/services/localAuthorityService";
 import { LocalAuthorityRole, UserLookup } from "@/features/local-authority/local-authority-types";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function inputClass() {
     return "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition border-slate-300 focus:ring-primary/40";
@@ -24,9 +25,10 @@ export default function LocalAuthority() {
     const [memberCode, setMemberCode] = useState("");
     const [lookedUpUser, setLookedUpUser] = useState<UserLookup | null>(null);
     const [role, setRole] = useState<LocalAuthorityRole>("VILLAGE_PRESIDENT");
-    const [isPublicVisible, setIsPublicVisible] = useState(false);
+    const [isPublicVisible, setIsPublicVisible] = useState(true);
     const [looking, setLooking] = useState(false);
     const [assigning, setAssigning] = useState(false);
+    const [revokeTarget, setRevokeTarget] = useState<number | null>(null);
 
     const geoUnitId = geo.villageTownId;
 
@@ -65,7 +67,7 @@ export default function LocalAuthority() {
             notify.success(`${role.replace("_", " ")} assigned to ${lookedUpUser.personName ?? lookedUpUser.username}`);
             setMemberCode("");
             setLookedUpUser(null);
-            setIsPublicVisible(false);
+            setIsPublicVisible(true);
             queryClient.invalidateQueries({ queryKey: ["local-authority", geoUnitId] });
         } catch (err: any) {
             notify.error(err.message || "Failed to assign local authority");
@@ -75,9 +77,9 @@ export default function LocalAuthority() {
     }
 
     async function handleRevoke(scopeId: number) {
-        if (!confirm("Revoke this title? The member will be demoted back to MEMBER.")) return;
         try {
             await revokeLocalAuthority(scopeId);
+            setRevokeTarget(null);
             notify.success("Local authority revoked");
             queryClient.invalidateQueries({ queryKey: ["local-authority", geoUnitId] });
         } catch (err: any) {
@@ -88,14 +90,14 @@ export default function LocalAuthority() {
     return (
         <div className="max-w-3xl mx-auto space-y-6">
             <PageHeader
-                title="Village Leadership"
+                title="Local Leadership"
                 subtitle="Assign or revoke Village President / Secretary titles."
                 backTo="back"
             />
 
             {/* Step 1: pick village */}
             <section className="bg-white rounded-xl shadow p-6 space-y-4">
-                <h2 className="text-lg font-semibold">1. Select Village/Town</h2>
+                <h2 className="text-lg font-semibold">1. Select City / Town / Village</h2>
                 <GeoUnitCascadeSelect value={geo} onChange={setGeo} />
             </section>
 
@@ -119,7 +121,7 @@ export default function LocalAuthority() {
                                         </div>
                                         <button
                                             type="button"
-                                            onClick={() => handleRevoke(o.id)}
+                                            onClick={() => setRevokeTarget(o.id)}
                                             className="px-3 py-1.5 rounded-md border border-red-300 text-red-600 text-xs hover:bg-red-50 transition"
                                         >
                                             Revoke
@@ -158,7 +160,7 @@ export default function LocalAuthority() {
                                 <p className="text-xs text-green-600 mt-2">
                                     ✓ Found: {lookedUpUser.personName ?? lookedUpUser.username} — current role: {lookedUpUser.role}
                                     {lookedUpUser.role !== "MEMBER" && (
-                                        <span className="text-red-500 ml-1">(must be plain MEMBER to assign a local title)</span>
+                                        <span className="text-red-500 ml-1">(Already has a local title)</span>
                                     )}
                                 </p>
                             )}
@@ -199,6 +201,18 @@ export default function LocalAuthority() {
                     </section>
                 </>
             )}
+
+            <ConfirmDialog
+                isOpen={revokeTarget !== null}
+                onClose={() => setRevokeTarget(null)}
+                onConfirm={() => revokeTarget !== null && handleRevoke(revokeTarget)}
+                variant="warning"
+                title="Revoke Local Title?"
+                message="This member will be demoted back to MEMBER and their local authority scope will be deactivated."
+                confirmLabel="Yes, Revoke"
+                cancelLabel="Keep Title"
+            />
+
         </div>
     );
 }

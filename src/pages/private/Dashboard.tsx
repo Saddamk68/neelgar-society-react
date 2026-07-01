@@ -246,7 +246,7 @@ function VillageLeadershipCard() {
   return (
     <div className="bg-white rounded-xl shadow p-6">
       <h2 className="text-sm font-semibold text-slate-500 mb-3">
-        Your Village Leadership — {data.myGeoUnitName}
+        Your Local Leadership — {data.myGeoUnitName}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {(["president", "secretary"] as const).map((key) => {

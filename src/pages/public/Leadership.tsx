@@ -22,9 +22,9 @@ export default function Leadership() {
                     <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-widest uppercase mb-5">
                         {SOCIETY.name}
                     </span>
-                    <h1 className="text-4xl font-extrabold tracking-tight">Village Leadership</h1>
+                    <h1 className="text-4xl font-extrabold tracking-tight">Local Leadership</h1>
                     <p className="mt-3 text-text-muted max-w-xl">
-                        President and Secretary for each village/town under {SOCIETY.name}.
+                        President and Secretary for each town and village under {SOCIETY.name}.
                     </p>
                 </div>
             </section>

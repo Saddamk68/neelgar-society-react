@@ -79,7 +79,14 @@ export const ENDPOINTS = {
     children: (parentId: number) => `/geo-units/${parentId}/children`,
     create: () => `/geo-units`,
     deactivate: (id: number) => `/geo-units/${id}`,
+    reactivate: (id: number) => `/geo-units/${id}/reactivate`,
     ancestors: (id: number) => `/geo-units/${id}/ancestors`,
+  },
+
+  geoImport: {
+    run: (dryRun: boolean) => `/admin/geo-import/run?dryRun=${dryRun}`,
+    status: (jobId: number) => `/admin/geo-import/status/${jobId}`,
+    cancel: (jobId: number) => `/admin/geo-import/cancel/${jobId}`,
   },
 
   localAuthority: {
