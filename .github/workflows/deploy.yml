@@ -28,6 +28,9 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_OAUTH2_BASE_URL: ${{ secrets.VITE_OAUTH2_BASE_URL }}
           VITE_OAUTH2_CLIENT_ID: ${{ secrets.VITE_OAUTH2_CLIENT_ID }}
+          VITE_OAUTH2_CLIENT_SECRET: ${{ secrets.VITE_OAUTH2_CLIENT_SECRET }}
+          VITE_MAX_UPLOAD_MB: ${{ secrets.VITE_MAX_UPLOAD_MB }}
+          VITE_NOTIFICATION_TIMEOUT_MS: ${{ secrets.VITE_NOTIFICATION_TIMEOUT_MS }}
         run: npm run build
 
       - name: Verify dist was created
@@ -53,6 +56,9 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_OAUTH2_BASE_URL: ${{ secrets.VITE_OAUTH2_BASE_URL }}
           VITE_OAUTH2_CLIENT_ID: ${{ secrets.VITE_OAUTH2_CLIENT_ID }}
+          VITE_OAUTH2_CLIENT_SECRET: ${{ secrets.VITE_OAUTH2_CLIENT_SECRET }}
+          VITE_MAX_UPLOAD_MB: ${{ secrets.VITE_MAX_UPLOAD_MB }}
+          VITE_NOTIFICATION_TIMEOUT_MS: ${{ secrets.VITE_NOTIFICATION_TIMEOUT_MS }}
         run: npm ci && npm run build
 
       - name: Verify dist

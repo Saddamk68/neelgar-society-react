@@ -27,6 +27,9 @@ import LogsPage from "@/pages/private/logs/LogsPage";
 import { usePermission } from "@/hooks/usePermission";
 import { PERM } from "@/constants/permissions";
 import Permissions from "@/pages/private/Permissions";
+import LocalAuthority from "@/pages/private/LocalAuthority";
+import Leadership from "@/pages/public/Leadership";
+import GeoUnits from "@/pages/private/GeoUnits";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -79,6 +82,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.PUBLIC.ABOUT} element={<About />} />
         <Route path={ROUTES.PUBLIC.CONTACT} element={<Contact />} />
         <Route path={ROUTES.PUBLIC.LOGIN} element={<Login />} />
+        <Route path={ROUTES.PUBLIC.LEADERSHIP} element={<Leadership />} />
       </Route>
 
       {/* Private */}
@@ -122,6 +126,12 @@ export default function AppRoutes() {
           <Route path="profile" element={<ViewProfile />} />
           <Route path="gotras" element={
             <RequirePermission perm={PERM.GOTRA_MANAGE}><Gotras /></RequirePermission>
+          } />
+          <Route path="geo-units" element={
+            <RequirePermission perm={PERM.GEO_UNIT_MANAGE}><GeoUnits /></RequirePermission>
+          } />
+          <Route path="local-authority" element={
+            <RequirePermission perm={PERM.USER_MANAGE}><LocalAuthority /></RequirePermission>
           } />
           <Route path="permissions" element={
             <RequirePermission perm={PERM.USER_MANAGE}>

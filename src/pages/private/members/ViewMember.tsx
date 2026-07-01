@@ -300,11 +300,9 @@ export default function ViewMember() {
           {member.currentAddress && (
             <Section title="Current Address">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                <Row label="Village" value={member.currentAddress?.village} />
-                <Row label="Tahsil" value={member.currentAddress?.tahsil} />
-                <Row label="District" value={member.currentAddress?.district} />
-                <Row label="State" value={member.currentAddress?.state} />
-                <Row label="Country" value={member.currentAddress?.country} />
+                <Row label="Village/Town" value={member.currentAddress?.geoUnitName} />
+                <Row label="District" value={member.currentAddress?.districtName} />
+                <Row label="State" value={member.currentAddress?.stateName} />
               </div>
             </Section>
           )}
@@ -313,11 +311,9 @@ export default function ViewMember() {
           {member.parentalAddress && (
             <Section title="Parental Address">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                <Row label="Village" value={member.parentalAddress?.village} />
-                <Row label="Tahsil" value={member.parentalAddress?.tahsil} />
-                <Row label="District" value={member.parentalAddress?.district} />
-                <Row label="State" value={member.parentalAddress?.state} />
-                <Row label="Country" value={member.parentalAddress?.country} />
+                <Row label="Village/Town" value={member.parentalAddress?.geoUnitName} />
+                <Row label="District" value={member.parentalAddress?.districtName} />
+                <Row label="State" value={member.parentalAddress?.stateName} />
               </div>
             </Section>
           )}

@@ -79,19 +79,11 @@ export async function createMember(
     maritalStatus: values.maritalStatus || undefined,
     gotraId: values.gotraId || undefined,
     currentAddress: {
-      village: values.currentAddress.village,
-      tahsil: values.currentAddress.tahsil || undefined,
-      district: values.currentAddress.district || undefined,
-      state: values.currentAddress.state || undefined,
-      country: values.currentAddress.country || undefined,
+      geoUnitId: values.currentAddress.geoUnitId,
     },
-    parentalAddress: values.parentalAddress?.village
+    parentalAddress: values.parentalAddress?.geoUnitId
       ? {
-        village: values.parentalAddress.village,
-        tahsil: values.parentalAddress.tahsil || undefined,
-        district: values.parentalAddress.district || undefined,
-        state: values.parentalAddress.state || undefined,
-        country: values.parentalAddress.country || undefined,
+        geoUnitId: values.parentalAddress.geoUnitId,
       }
       : undefined,
     createAccount: values.createAccount,
@@ -151,19 +143,11 @@ export async function updateMember(
     maritalStatus: values.maritalStatus || undefined,
     gotraId: values.gotraId > 0 ? values.gotraId : undefined,
     currentAddress: {
-      village: values.currentAddress.village,
-      tahsil: values.currentAddress.tahsil || undefined,
-      district: values.currentAddress.district || undefined,
-      state: values.currentAddress.state || undefined,
-      country: values.currentAddress.country || undefined,
+      geoUnitId: values.currentAddress.geoUnitId,
     },
-    parentalAddress: values.parentalAddress?.village
+    parentalAddress: values.parentalAddress?.geoUnitId
       ? {
-        village: values.parentalAddress.village,
-        tahsil: values.parentalAddress.tahsil || undefined,
-        district: values.parentalAddress.district || undefined,
-        state: values.parentalAddress.state || undefined,
-        country: values.parentalAddress.country || undefined,
+        geoUnitId: values.parentalAddress.geoUnitId,
       }
       : undefined,
     createAccount: false,  // not relevant on update

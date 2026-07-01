@@ -1,4 +1,4 @@
-import { Home, Users, FileText, User, BookOpen, Shield } from "lucide-react";
+import { Home, Users, FileText, User, BookOpen, Shield, MapPin, Landmark } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import { PERM } from "../constants/permissions";
 import type { Perm } from "../constants/permissions";
@@ -64,6 +64,20 @@ export const MENU: MenuItem[] = [
     path: "/app/gotras",
     required: [PERM.GOTRA_MANAGE],
     icon: BookOpen,
+  },
+  {
+    key: "geo-units",
+    label: "States / Districts / Towns",
+    path: "/app/geo-units",
+    required: [PERM.GEO_UNIT_MANAGE],
+    icon: MapPin,
+  },
+  {
+    key: "local-authority",
+    label: "Local Leadership",
+    path: "/app/local-authority",
+    required: [PERM.USER_MANAGE],
+    icon: Landmark,
   },
   {
     key: "permissions",

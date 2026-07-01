@@ -224,10 +224,14 @@ export default function PrintFamily() {
                     {!isLoading && family && (
                         <>
                             {/* Family summary row */}
-                            <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
+                            <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
                                 <div>
-                                    <div className="text-slate-400 text-xs mb-0.5">Village</div>
-                                    <div className="font-medium text-slate-700">{val(family.village)}</div>
+                                    <div className="text-slate-400 text-xs mb-0.5">Village/Town</div>
+                                    <div className="font-medium text-slate-700">{val(family.geoUnitName)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-slate-400 text-xs mb-0.5">District</div>
+                                    <div className="font-medium text-slate-700">{val(family.districtName)}</div>
                                 </div>
                                 <div>
                                     <div className="text-slate-400 text-xs mb-0.5">Clan</div>

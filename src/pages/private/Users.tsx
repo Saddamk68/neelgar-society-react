@@ -324,7 +324,7 @@ export default function Users() {
   const notify = useNotify();
   const queryClient = useQueryClient();
 
-  const [statusTab, setStatusTab] = useState<UserStatus | "">("");
+  const [statusTab, setStatusTab] = useState<UserStatus | "">("APPROVED");
   const [page, setPage] = useState(0);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [resetTarget, setResetTarget] = useState<UserRecord | null>(null);

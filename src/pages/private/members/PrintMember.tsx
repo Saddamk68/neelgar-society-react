@@ -104,14 +104,20 @@ function MemberBlock({
                     <span className="text-slate-400 w-24 shrink-0">Education</span>
                     <span>{val(member.education)}</span>
                 </div>
-                {address?.village && (
+                {address?.geoUnitName && (
                     <div className="flex gap-2">
                         <span className="text-slate-400 w-24 shrink-0">Town/Village</span>
                         <span>
-                            {[address.village]
+                            {[address.geoUnitName, address.districtName]
                                 .filter(Boolean)
                                 .join(", ")}
                         </span>
+                    </div>
+                )}
+                {address?.stateName && (
+                    <div className="flex gap-2">
+                        <span className="text-slate-400 w-24 shrink-0">State</span>
+                        <span>{address.stateName}</span>
                     </div>
                 )}
             </div>
