@@ -9,8 +9,11 @@ import {
     listChildren,
     createGeoUnit,
     deactivateGeoUnit,
+    reactivateGeoUnit,
 } from "@/features/geo-units/services/geoUnitService";
 import { GeoLevel, GeoUnit, GeoUnitType } from "@/features/geo-units/geo-unit-types";
+import GeoImportPanel from "@/features/geo-units/components/GeoImportPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function inputClass() {
     return "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition border-slate-300 focus:ring-primary/40";
@@ -28,6 +31,9 @@ export default function GeoUnits() {
     const [unitType, setUnitType] = useState<GeoUnitType>("VILLAGE");
     const [name, setName] = useState("");
     const [saving, setSaving] = useState(false);
+    const [showInactive, setShowInactive] = useState(false);
+    const [deactivateTarget, setDeactivateTarget] = useState<GeoUnit | null>(null);
+    const [reactivateTarget, setReactivateTarget] = useState<GeoUnit | null>(null);
 
     const { data: states = [] } = useQuery({
         queryKey: ["geo-units", "STATE"],
@@ -53,8 +59,10 @@ export default function GeoUnits() {
                 : undefined;
 
     const { data: existingItems = [], isLoading } = useQuery<GeoUnit[]>({
-        queryKey: ["geo-units", "browse", level, listParentId],
-        queryFn: () => level === "STATE" ? listByLevel("STATE") : listChildren(listParentId as number),
+        queryKey: ["geo-units", "browse", level, listParentId, showInactive],
+        queryFn: () => level === "STATE"
+            ? listByLevel("STATE", showInactive)
+            : listChildren(listParentId as number, showInactive),
         enabled: level === "STATE" || !!listParentId,
     });
 
@@ -100,13 +108,24 @@ export default function GeoUnits() {
     }
 
     async function handleDeactivate(item: GeoUnit) {
-        if (!confirm(`Deactivate "${item.name}"? It will no longer be selectable.`)) return;
         try {
             await deactivateGeoUnit(item.id, user?.username ?? "system");
+            setDeactivateTarget(null);
             notify.success(`${item.name} deactivated.`);
             qc.invalidateQueries({ queryKey: ["geo-units"] });
         } catch (err: any) {
             notify.error(err?.response?.data?.message || err?.message || "Failed to deactivate.");
+        }
+    }
+
+    async function handleReactivate(item: GeoUnit) {
+        try {
+            await reactivateGeoUnit(item.id, user?.username ?? "system");
+            setReactivateTarget(null);
+            notify.success(`${item.name} reactivated.`);
+            qc.invalidateQueries({ queryKey: ["geo-units"] });
+        } catch (err: any) {
+            notify.error(err?.response?.data?.message || err?.message || "Failed to reactivate.");
         }
     }
 
@@ -117,6 +136,8 @@ export default function GeoUnits() {
                 subtitle="Add or deactivate geo units used across member, family, and leadership forms."
                 backTo="back"
             />
+
+            <GeoImportPanel />
 
             {/* Add form */}
             <section className="bg-white rounded-xl shadow p-6 space-y-4">
@@ -219,9 +240,20 @@ export default function GeoUnits() {
 
             {/* Existing list for the selected level/parent */}
             <section className="bg-white rounded-xl shadow p-6 space-y-3">
-                <h2 className="text-lg font-semibold">
-                    Existing {level === "STATE" ? "States" : level === "DISTRICT" ? "Districts" : level === "TEHSIL" ? "Tehsils" : "Villages/Towns"}
-                </h2>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">
+                        Existing {level === "STATE" ? "States" : level === "DISTRICT" ? "Districts" : level === "TEHSIL" ? "Tehsils" : "Villages/Towns"}
+                    </h2>
+                    <label className="flex items-center gap-2 text-sm text-slate-500 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={showInactive}
+                            onChange={(e) => setShowInactive(e.target.checked)}
+                            className="rounded border-slate-300"
+                        />
+                        Show inactive
+                    </label>
+                </div>
                 {(level !== "STATE" && !listParentId) ? (
                     <p className="text-sm text-slate-400">Select a parent above to see existing entries.</p>
                 ) : isLoading ? (
@@ -232,19 +264,55 @@ export default function GeoUnits() {
                     <div className="divide-y">
                         {existingItems.map((item) => (
                             <div key={item.id} className="flex items-center justify-between py-2.5 text-sm">
-                                <span>{item.name}{item.unitType ? ` (${item.unitType})` : ""}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeactivate(item)}
-                                    className="px-3 py-1 rounded-md border border-red-300 text-red-600 text-xs hover:bg-red-50 transition"
-                                >
-                                    Deactivate
-                                </button>
+                                <span className={!item.isActive ? "text-slate-400 line-through" : ""}>
+                                    {item.name}{item.unitType ? ` (${item.unitType})` : ""}
+                                    {!item.isActive && <span className="ml-2 text-xs text-slate-400">(inactive)</span>}
+                                </span>
+                                {item.isActive ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setDeactivateTarget(item)}
+                                        className="px-3 py-1 rounded-md border border-red-300 text-red-600 text-xs hover:bg-red-50 transition"
+                                    >
+                                        Deactivate
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setReactivateTarget(item)}
+                                        className="px-3 py-1 rounded-md border border-green-300 text-green-700 text-xs hover:bg-green-50 transition"
+                                    >
+                                        Reactivate
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
                 )}
             </section>
+
+            <ConfirmDialog
+                isOpen={deactivateTarget !== null}
+                onClose={() => setDeactivateTarget(null)}
+                onConfirm={() => deactivateTarget && handleDeactivate(deactivateTarget)}
+                variant="danger"
+                title="Deactivate Geo Unit?"
+                message={`"${deactivateTarget?.name}" will be deactivated and will no longer appear in any selection dropdowns.`}
+                confirmLabel="Yes, Deactivate"
+                cancelLabel="Keep Active"
+            />
+
+            <ConfirmDialog
+                isOpen={reactivateTarget !== null}
+                onClose={() => setReactivateTarget(null)}
+                onConfirm={() => reactivateTarget && handleReactivate(reactivateTarget)}
+                variant="info"
+                title="Reactivate Geo Unit?"
+                message={`"${reactivateTarget?.name}" will be reactivated and will appear in selection dropdowns again.`}
+                confirmLabel="Yes, Reactivate"
+                cancelLabel="Cancel"
+            />
+
         </div>
     );
 }
