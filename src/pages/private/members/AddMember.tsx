@@ -649,7 +649,16 @@ export default function AddMember() {
               </div>
               <div>
                 <FieldLabel>Contact Number</FieldLabel>
-                <input {...register("contactNumber")} className={inputClass()} />
+                <input
+                  {...register("contactNumber", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
+                    },
+                  })}
+                  inputMode="numeric"
+                  maxLength={10}
+                  className={inputClass()}
+                />
               </div>
               <div>
                 <FieldLabel>Education</FieldLabel>
