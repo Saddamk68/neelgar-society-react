@@ -116,7 +116,7 @@ function AddressFields({
           setGeo(anc);
           setResolvedFor(formGeoUnitId);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [formGeoUnitId]);
 
@@ -271,7 +271,7 @@ function CreatePersonForm({
 
   useEffect(() => {
     if (defaultGeoUnitId) {
-      getAncestors(defaultGeoUnitId).then(setGeo).catch(() => {});
+      getAncestors(defaultGeoUnitId).then(setGeo).catch(() => { });
     }
   }, [defaultGeoUnitId]);
 
@@ -730,62 +730,63 @@ function FamilyRelationshipsSection({
 
         <div className="space-y-2">
           {/* Spouse */}
-          <div className="flex items-start justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
-            <div className="flex-1 min-w-0">
+          <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <div className="flex items-start justify-between gap-2">
               <p className="text-xs text-slate-400 mb-0.5">Spouse(s)</p>
-              {relationships?.spouses && relationships.spouses.length > 0 ? (
-                <div className="space-y-1">
-                  {relationships.spouses.map((s) => (
-                    <div key={s.person.memberCode} className="flex items-center justify-between">
-                      <div>
-                        <span className="text-sm font-medium text-slate-700">
-                          {s.person.firstName} {s.person.lastName ?? ""}
+              <div className="flex gap-2 shrink-0">
+                <button type="button" onClick={() => setDialog({ role: "spouse", mode: "search" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50">
+                  <Search className="w-3 h-3" />Link existing
+                </button>
+                <button type="button" onClick={() => setDialog({ role: "spouse", mode: "create" })}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                  <UserPlus className="w-3 h-3" />Create new
+                </button>
+              </div>
+            </div>
+
+            {relationships?.spouses && relationships.spouses.length > 0 ? (
+              <div className="space-y-1 mt-1">
+                {relationships.spouses.map((s) => (
+                  <div key={s.person.memberCode} className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-medium text-slate-700">
+                        {s.person.firstName} {s.person.lastName ?? ""}
+                      </span>
+                      <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
+                      {s.startDate && (
+                        <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
+                      )}
+                      {!s.isCurrent && s.endReason && (
+                        <span className="ml-2 text-xs text-slate-400 italic">
+                          ({s.endReason.replace(/_/g, " ").toLowerCase()})
                         </span>
-                        <span className="ml-2 text-xs text-slate-400">{s.person.memberCode}</span>
-                        {s.startDate && (
-                          <span className="ml-2 text-xs text-slate-400">since {s.startDate}</span>
-                        )}
-                        {!s.isCurrent && s.endReason && (
-                          <span className="ml-2 text-xs text-slate-400 italic">
-                            ({s.endReason.replace(/_/g, " ").toLowerCase()})
-                          </span>
-                        )}
-                        {!s.isCurrent && (
-                          <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
-                        )}
-                      </div>
-                      {s.isCurrent && (
-                        <button
-                          type="button"
-                          onClick={() => setEndMarriageDialog({
-                            relationshipId: s.relationshipId ?? 0,
-                            spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
-                          })}
-                          disabled={actionLoading}
-                          className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
-                        >
-                          End marriage
-                        </button>
+                      )}
+                      {!s.isCurrent && (
+                        <span className="ml-2 text-xs bg-slate-200 text-slate-500 rounded px-1">former</span>
                       )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400 italic">Not linked</p>
-              )}
-            </div>
-            <div className="flex gap-2 ml-3 shrink-0">
-              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "search" })}
-                disabled={actionLoading}
-                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50">
-                <Search className="w-3 h-3" />Link existing
-              </button>
-              <button type="button" onClick={() => setDialog({ role: "spouse", mode: "create" })}
-                disabled={actionLoading}
-                className="flex items-center gap-1 text-xs text-emerald-600 hover:underline disabled:opacity-50">
-                <UserPlus className="w-3 h-3" />Create new
-              </button>
-            </div>
+                    {s.isCurrent && (
+                      <button
+                        type="button"
+                        onClick={() => setEndMarriageDialog({
+                          relationshipId: s.relationshipId ?? 0,
+                          spouseName: `${s.person.firstName} ${s.person.lastName ?? ""}`
+                        })}
+                        disabled={actionLoading}
+                        className="text-xs text-red-500 hover:underline disabled:opacity-50 ml-2 shrink-0"
+                      >
+                        End marriage
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic mt-0.5">Not linked</p>
+            )}
           </div>
 
           {/* Father */}
