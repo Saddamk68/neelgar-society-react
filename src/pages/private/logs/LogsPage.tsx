@@ -28,8 +28,12 @@ function actionBadgeClass(action: AuditAction): string {
         return "bg-amber-100 text-amber-700";
     if (["MEMBER_DEACTIVATED", "FAMILY_DEACTIVATED", "USER_DEACTIVATED", "PHOTO_DELETED"].includes(action))
         return "bg-red-100 text-red-700";
-    if (["LOGIN", "LOGOUT", "LOGIN_FAILED"].includes(action))
+    if (action === "LOGIN")
         return "bg-blue-100 text-blue-700";
+    if (action === "LOGOUT")
+        return "bg-slate-200 text-slate-700";
+    if (action === "LOGIN_FAILED")
+        return "bg-orange-100 text-orange-700";
     return "bg-slate-100 text-slate-600";
 }
 

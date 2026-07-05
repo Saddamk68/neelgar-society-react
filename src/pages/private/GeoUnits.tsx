@@ -67,6 +67,8 @@ export default function GeoUnits() {
         enabled: level === "STATE" || !!listParentId,
     });
 
+    const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+
     function resetForm() {
         setName("");
         setUnitType("VILLAGE");
@@ -229,7 +231,13 @@ export default function GeoUnits() {
 
                 <button
                     type="button"
-                    onClick={handleCreate}
+                    onClick={() => {
+                        if (!name.trim()) {
+                            notify.error("Name is required");
+                            return;
+                        }
+                        setShowCreateConfirm(true);
+                    }}
                     disabled={saving}
                     className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
                 >
@@ -289,6 +297,17 @@ export default function GeoUnits() {
                     </div>
                 )}
             </section>
+
+            <ConfirmDialog
+                isOpen={showCreateConfirm}
+                onClose={() => setShowCreateConfirm(false)}
+                onConfirm={() => { setShowCreateConfirm(false); handleCreate(); }}
+                variant="info"
+                title="Create Geo Unit?"
+                message={`Create "${name.trim()}" as a new ${level === "STATE" ? "State" : level === "DISTRICT" ? "District" : level === "TEHSIL" ? "Tehsil" : "Village/Town"}? This will be added permanently and appear in address dropdowns app-wide.`}
+                confirmLabel="Yes, Create"
+                cancelLabel="Cancel"
+            />
 
             <ConfirmDialog
                 isOpen={deactivateTarget !== null}
