@@ -10,7 +10,7 @@ import {
     revokeLocalAuthority,
     lookupPersonByMemberCode,
 } from "@/features/local-authority/services/localAuthorityService";
-import { LocalAuthorityRole, PersonLookup } from "@/features/local-authority/local-authority-types";
+import { LocalAuthorityRole, PersonLookup, formatLocalAuthorityRole } from "@/features/local-authority/local-authority-types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Select from "@/components/form/Select";
 
@@ -25,7 +25,7 @@ export default function LocalAuthority() {
     const [geo, setGeo] = useState<GeoSelection>({});
     const [memberCode, setMemberCode] = useState("");
     const [lookedUpPerson, setLookedUpPerson] = useState<PersonLookup | null>(null);
-    const [role, setRole] = useState<LocalAuthorityRole>("VILLAGE_PRESIDENT");
+    const [role, setRole] = useState<LocalAuthorityRole>("LOCAL_PRESIDENT");
     const [isPublicVisible, setIsPublicVisible] = useState(true);
     const [looking, setLooking] = useState(false);
     const [assigning, setAssigning] = useState(false);
@@ -67,8 +67,8 @@ export default function LocalAuthority() {
             const result = await assignLocalAuthority(lookedUpPerson.personId, geoUnitId, role, isPublicVisible);
             notify.success(
                 result.accountAutoProvisioned
-                    ? `${role.replace("_", " ")} assigned to ${lookedUpPerson.personName}. A new login was created for them (username: ${lookedUpPerson.memberCode}).`
-                    : `${role.replace("_", " ")} assigned to ${lookedUpPerson.personName ?? lookedUpPerson.memberCode}`
+                    ? `${formatLocalAuthorityRole(role)} assigned to ${lookedUpPerson.personName}. A new login was created for them (username: ${lookedUpPerson.memberCode}).`
+                    : `${formatLocalAuthorityRole(role)} assigned to ${lookedUpPerson.personName ?? lookedUpPerson.memberCode}`
             );
             setMemberCode("");
             setLookedUpPerson(null);
@@ -121,7 +121,7 @@ export default function LocalAuthority() {
                                     <div key={o.id} className="flex items-center justify-between py-3 text-sm">
                                         <div>
                                             <span className="font-medium">{o.personName ?? o.username}</span>
-                                            <span className="text-slate-400 ml-2">({o.roleName.replace("_", " ")})</span>
+                                            <span className="text-slate-400 ml-2">({formatLocalAuthorityRole(o.roleName)})</span>
                                             <div className="text-xs text-slate-400">Since {o.validFrom}</div>
                                         </div>
                                         <button
@@ -186,8 +186,8 @@ export default function LocalAuthority() {
                                 value={role}
                                 onChange={(v) => setRole(v as LocalAuthorityRole)}
                                 options={[
-                                    { value: "VILLAGE_PRESIDENT", label: "Village President" },
-                                    { value: "VILLAGE_SECRETARY", label: "Village Secretary" },
+                                    { value: "LOCAL_PRESIDENT", label: "Local President" },
+                                    { value: "LOCAL_SECRETARY", label: "Local Secretary" },
                                 ]}
                             />
                         </div>
