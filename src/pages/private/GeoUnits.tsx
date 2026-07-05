@@ -14,6 +14,7 @@ import {
 import { GeoLevel, GeoUnit, GeoUnitType } from "@/features/geo-units/geo-unit-types";
 import GeoImportPanel from "@/features/geo-units/components/GeoImportPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Select from "@/components/form/Select";
 
 function inputClass() {
     return "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition border-slate-300 focus:ring-primary/40";
@@ -145,75 +146,73 @@ export default function GeoUnits() {
 
                 <div>
                     <FieldLabel required>Level</FieldLabel>
-                    <select
+                    <Select
                         value={level}
-                        onChange={(e) => {
-                            setLevel(e.target.value as GeoLevel);
+                        onChange={(v) => {
+                            setLevel(v as GeoLevel);
                             setParentStateId(undefined);
                             setParentDistrictId(undefined);
                             setParentTehsilId(undefined);
                         }}
-                        className={inputClass()}
-                    >
-                        <option value="STATE">State</option>
-                        <option value="DISTRICT">District</option>
-                        <option value="TEHSIL">Tehsil</option>
-                        <option value="VILLAGE_TOWN">City / Town / Village</option>
-                    </select>
+                        options={[
+                            { value: "STATE", label: "State" },
+                            { value: "DISTRICT", label: "District" },
+                            { value: "TEHSIL", label: "Tehsil" },
+                            { value: "VILLAGE_TOWN", label: "City / Town / Village" },
+                        ]}
+                    />
                 </div>
 
                 {(level === "DISTRICT" || level === "TEHSIL" || level === "VILLAGE_TOWN") && (
                     <div>
                         <FieldLabel required>State</FieldLabel>
-                        <select
+                        <Select
                             value={parentStateId ?? ""}
-                            onChange={(e) => { setParentStateId(Number(e.target.value) || undefined); setParentDistrictId(undefined); setParentTehsilId(undefined); }}
-                            className={inputClass()}
-                        >
-                            <option value="">Select state…</option>
-                            {states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
+                            onChange={(v) => { setParentStateId(Number(v) || undefined); setParentDistrictId(undefined); setParentTehsilId(undefined); }}
+                            placeholder="Select state…"
+                            options={states.map((s) => ({ value: s.id, label: s.name }))}
+                        />
                     </div>
                 )}
 
                 {(level === "TEHSIL" || level === "VILLAGE_TOWN") && (
                     <div>
                         <FieldLabel required>District</FieldLabel>
-                        <select
+                        <Select
                             value={parentDistrictId ?? ""}
-                            onChange={(e) => { setParentDistrictId(Number(e.target.value) || undefined); setParentTehsilId(undefined); }}
+                            onChange={(v) => { setParentDistrictId(Number(v) || undefined); setParentTehsilId(undefined); }}
                             disabled={!parentStateId}
-                            className={inputClass()}
-                        >
-                            <option value="">Select district…</option>
-                            {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
+                            placeholder="Select district…"
+                            options={districts.map((d) => ({ value: d.id, label: d.name }))}
+                        />
                     </div>
                 )}
 
                 {level === "VILLAGE_TOWN" && (
                     <div>
                         <FieldLabel required>Tehsil</FieldLabel>
-                        <select
+                        <Select
                             value={parentTehsilId ?? ""}
-                            onChange={(e) => setParentTehsilId(Number(e.target.value) || undefined)}
+                            onChange={(v) => setParentTehsilId(Number(v) || undefined)}
                             disabled={!parentDistrictId}
-                            className={inputClass()}
-                        >
-                            <option value="">Select tehsil…</option>
-                            {tehsils.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
+                            placeholder="Select tehsil…"
+                            options={tehsils.map((t) => ({ value: t.id, label: t.name }))}
+                        />
                     </div>
                 )}
 
                 {level === "VILLAGE_TOWN" && (
                     <div>
                         <FieldLabel required>Type</FieldLabel>
-                        <select value={unitType} onChange={(e) => setUnitType(e.target.value as GeoUnitType)} className={inputClass()}>
-                            <option value="VILLAGE">Village</option>
-                            <option value="TOWN">Town</option>
-                            <option value="CITY">City</option>
-                        </select>
+                        <Select
+                            value={unitType}
+                            onChange={(v) => setUnitType(v as GeoUnitType)}
+                            options={[
+                                { value: "VILLAGE", label: "Village" },
+                                { value: "TOWN", label: "Town" },
+                                { value: "CITY", label: "City" },
+                            ]}
+                        />
                     </div>
                 )}
 
