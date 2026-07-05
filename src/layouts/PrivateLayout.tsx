@@ -6,7 +6,7 @@ import { APP, PROFILE_MENU } from "../constants/messages";
 import { MENU } from "../config/menu";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 const SIDEBAR_W = 240; // px
@@ -239,9 +239,10 @@ export default function PrivateLayout() {
           </div>
         </div>
         <button
-          className="w-full text-left px-3 py-1.5 text-xs text-white/40 hover:text-red-400 transition-colors rounded-md hover:bg-white/5"
+          className="w-full flex items-center gap-1.5 text-left px-3 py-1.5 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-400/10 transition-colors rounded-md"
           onClick={() => setConfirmLogout(true)}
         >
+          <LogOut size={13} />
           Sign out
         </button>
       </div>
@@ -375,13 +376,14 @@ export default function PrivateLayout() {
                 {PROFILE_MENU.SETTINGS}
               </button>
               <button
-                className="w-full text-left px-4 py-2 text-sm text-danger hover:bg-slate-100 transition"
+                className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
                 role="menuitem"
                 onClick={() => {
                   setProfileOpen(false);
                   setConfirmLogout(true);
                 }}
               >
+                <LogOut size={15} />
                 {PROFILE_MENU.LOGOUT}
               </button>
             </div>
