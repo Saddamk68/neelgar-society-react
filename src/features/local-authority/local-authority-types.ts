@@ -11,14 +11,15 @@ export type LocalAuthority = {
     validFrom: string;
     validTo?: string;
     isActive: boolean;
+    accountAutoProvisioned?: boolean;
 };
 
-export type UserLookup = {
-    id: number;
-    username: string;
+export type PersonLookup = {
+    personId: number;
     memberCode: string;
     personName?: string;
-    role: string;
+    hasUserAccount: boolean;
+    currentRole: string | null;
 };
 
 export type MyLeadership = {
