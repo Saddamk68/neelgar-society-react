@@ -8,7 +8,7 @@
    class (text-*, p-*, gap-*, rounded-*, w-4/h-4 icon sizes, etc.) is
    rem-based by default, so they all shrink together from this one line. */
 html {
-  font-size: 90%;
+  font-size: 80%;
 }
 
 /* Global styles */
