@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global density adjustment — shrinks all rem-based Tailwind spacing/
+   typography/sizing app-wide (~10%), so 100% browser zoom matches the
+   visual density you were getting at 90% zoom. Every Tailwind utility
+   class (text-*, p-*, gap-*, rounded-*, w-4/h-4 icon sizes, etc.) is
+   rem-based by default, so they all shrink together from this one line. */
+html {
+  font-size: 90%;
+}
+
 /* Global styles */
 body {
   @apply bg-background text-text-primary;

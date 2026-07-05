@@ -20,6 +20,7 @@ export const PERM = {
   VIEW_LOGS: "VIEW_LOGS",
   GOTRA_MANAGE: "GOTRA_MANAGE",
   GEO_UNIT_MANAGE: "GEO_UNIT_MANAGE",
+  DB_BACKUP_MANAGE: "DB_BACKUP_MANAGE",
 } as const;
 
 export type Perm = typeof PERM[keyof typeof PERM];

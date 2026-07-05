@@ -21,6 +21,7 @@ import DatePicker from "../../../components/form/DatePicker";
 import GotraSelect from "@/features/gotras/components/GotraSelect";
 import GeoUnitCascadeSelect, { GeoSelection } from "@/features/geo-units/components/GeoUnitCascadeSelect";
 import { getAncestors } from "@/features/geo-units/services/geoUnitService";
+import Select from "@/components/form/Select";
 
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -618,12 +619,16 @@ export default function AddMember() {
               </div>
               <div>
                 <FieldLabel>Gender</FieldLabel>
-                <select {...register("gender")} className={inputClass()}>
-                  <option value="">Select</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
+                <Select
+                  value={watch("gender") ?? ""}
+                  onChange={(v) => setValue("gender", v as any, { shouldDirty: true })}
+                  options={[
+                    { value: "", label: "Select" },
+                    { value: "MALE", label: "Male" },
+                    { value: "FEMALE", label: "Female" },
+                    { value: "OTHER", label: "Other" },
+                  ]}
+                />
               </div>
               <div>
                 <FieldLabel>Date of Birth</FieldLabel>
@@ -649,7 +654,16 @@ export default function AddMember() {
               </div>
               <div>
                 <FieldLabel>Contact Number</FieldLabel>
-                <input {...register("contactNumber")} className={inputClass()} />
+                <input
+                  {...register("contactNumber", {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
+                    },
+                  })}
+                  inputMode="numeric"
+                  maxLength={10}
+                  className={inputClass()}
+                />
               </div>
               <div>
                 <FieldLabel>Education</FieldLabel>

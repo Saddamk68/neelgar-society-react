@@ -89,8 +89,14 @@ export const ENDPOINTS = {
     cancel: (jobId: number) => `/admin/geo-import/cancel/${jobId}`,
   },
 
+  backups: {
+    list: "/admin/backups",
+    trigger: "/admin/backups/trigger",
+  },
+
   localAuthority: {
     byGeoUnit: (geoUnitId: number) => `/local-authority/geo-unit/${geoUnitId}`,
+    lookupPerson: (memberCode: string) => `/local-authority/lookup-person/${memberCode}`,
     assign: () => `/local-authority`,
     revoke: (scopeId: number) => `/local-authority/${scopeId}`,
     myLeadership: () => `/local-authority/my-leadership`,

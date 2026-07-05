@@ -32,7 +32,12 @@ export const memberSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   dob: z.string().optional().or(z.literal("")),
   dod: z.string().optional().or(z.literal("")),
-  contactNumber: z.string().max(20).optional().or(z.literal("")),
+  contactNumber: z.string()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || /^[0-9]{10}$/.test(val), {
+      message: "Contact number must be exactly 10 digits",
+    }),
   education: z.string().max(120).optional().or(z.literal("")),
   occupation: z.string().max(120).optional().or(z.literal("")),
   maritalStatus: z

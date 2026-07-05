@@ -34,6 +34,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { PERM } from "@/constants/permissions";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Select from "@/components/form/Select";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -92,16 +93,14 @@ function RoleEditor({
 
   return (
     <div className="flex items-center gap-2">
-      <select
-        value={role}
-        onChange={(e) => setRole(e.target.value as Role)}
-        className="border rounded px-2 py-1 text-xs"
-        disabled={mutation.isPending}
-      >
-        {ALL_ROLES.map((r) => (
-          <option key={r} value={r}>{r}</option>
-        ))}
-      </select>
+      <div className="w-40">
+        <Select
+          value={role}
+          onChange={(v) => setRole(v as Role)}
+          options={ALL_ROLES.map((r) => ({ value: r, label: r }))}
+          disabled={mutation.isPending}
+        />
+      </div>
       <button
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending || role === user.role}

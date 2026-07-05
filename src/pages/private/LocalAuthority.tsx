@@ -8,10 +8,11 @@ import {
     getByGeoUnit,
     assignLocalAuthority,
     revokeLocalAuthority,
-    lookupUserByMemberCode,
+    lookupPersonByMemberCode,
 } from "@/features/local-authority/services/localAuthorityService";
-import { LocalAuthorityRole, UserLookup } from "@/features/local-authority/local-authority-types";
+import { LocalAuthorityRole, PersonLookup, formatLocalAuthorityRole } from "@/features/local-authority/local-authority-types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Select from "@/components/form/Select";
 
 function inputClass() {
     return "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition border-slate-300 focus:ring-primary/40";
@@ -23,8 +24,8 @@ export default function LocalAuthority() {
 
     const [geo, setGeo] = useState<GeoSelection>({});
     const [memberCode, setMemberCode] = useState("");
-    const [lookedUpUser, setLookedUpUser] = useState<UserLookup | null>(null);
-    const [role, setRole] = useState<LocalAuthorityRole>("VILLAGE_PRESIDENT");
+    const [lookedUpPerson, setLookedUpPerson] = useState<PersonLookup | null>(null);
+    const [role, setRole] = useState<LocalAuthorityRole>("LOCAL_PRESIDENT");
     const [isPublicVisible, setIsPublicVisible] = useState(true);
     const [looking, setLooking] = useState(false);
     const [assigning, setAssigning] = useState(false);
@@ -41,12 +42,12 @@ export default function LocalAuthority() {
     async function handleLookup() {
         if (!memberCode.trim()) return;
         setLooking(true);
-        setLookedUpUser(null);
+        setLookedUpPerson(null);
         try {
-            const user = await lookupUserByMemberCode(memberCode.trim());
-            setLookedUpUser(user);
+            const person = await lookupPersonByMemberCode(memberCode.trim());
+            setLookedUpPerson(person);
         } catch (err: any) {
-            notify.error(err.message || "No user account found for this member code");
+            notify.error(err.message || "No member found with this member code");
         } finally {
             setLooking(false);
         }
@@ -57,16 +58,20 @@ export default function LocalAuthority() {
             notify.error("Select a state, district, and village/town first");
             return;
         }
-        if (!lookedUpUser) {
+        if (!lookedUpPerson) {
             notify.error("Look up a member by their member code first");
             return;
         }
         setAssigning(true);
         try {
-            await assignLocalAuthority(lookedUpUser.id, geoUnitId, role, isPublicVisible);
-            notify.success(`${role.replace("_", " ")} assigned to ${lookedUpUser.personName ?? lookedUpUser.username}`);
+            const result = await assignLocalAuthority(lookedUpPerson.personId, geoUnitId, role, isPublicVisible);
+            notify.success(
+                result.accountAutoProvisioned
+                    ? `${formatLocalAuthorityRole(role)} assigned to ${lookedUpPerson.personName}. A new login was created for them (username: ${lookedUpPerson.memberCode}).`
+                    : `${formatLocalAuthorityRole(role)} assigned to ${lookedUpPerson.personName ?? lookedUpPerson.memberCode}`
+            );
             setMemberCode("");
-            setLookedUpUser(null);
+            setLookedUpPerson(null);
             setIsPublicVisible(true);
             queryClient.invalidateQueries({ queryKey: ["local-authority", geoUnitId] });
         } catch (err: any) {
@@ -116,7 +121,7 @@ export default function LocalAuthority() {
                                     <div key={o.id} className="flex items-center justify-between py-3 text-sm">
                                         <div>
                                             <span className="font-medium">{o.personName ?? o.username}</span>
-                                            <span className="text-slate-400 ml-2">({o.roleName.replace("_", " ")})</span>
+                                            <span className="text-slate-400 ml-2">({formatLocalAuthorityRole(o.roleName)})</span>
                                             <div className="text-xs text-slate-400">Since {o.validFrom}</div>
                                         </div>
                                         <button
@@ -142,7 +147,7 @@ export default function LocalAuthority() {
                                 <input
                                     type="text"
                                     value={memberCode}
-                                    onChange={(e) => { setMemberCode(e.target.value); setLookedUpUser(null); }}
+                                    onChange={(e) => { setMemberCode(e.target.value); setLookedUpPerson(null); }}
                                     onKeyDown={(e) => e.key === "Enter" && handleLookup()}
                                     placeholder="e.g. NEE2603-SK0792"
                                     className={inputClass()}
@@ -156,11 +161,20 @@ export default function LocalAuthority() {
                                     {looking ? "Looking up…" : "Look Up"}
                                 </button>
                             </div>
-                            {lookedUpUser && (
+                            {lookedUpPerson && (
                                 <p className="text-xs text-green-600 mt-2">
-                                    ✓ Found: {lookedUpUser.personName ?? lookedUpUser.username} — current role: {lookedUpUser.role}
-                                    {lookedUpUser.role !== "MEMBER" && (
-                                        <span className="text-red-500 ml-1">(Already has a local title)</span>
+                                    ✓ Found: {lookedUpPerson.personName ?? lookedUpPerson.memberCode}
+                                    {lookedUpPerson.hasUserAccount ? (
+                                        <>
+                                            {" "}— current role: {lookedUpPerson.currentRole}
+                                            {lookedUpPerson.currentRole !== "MEMBER" && (
+                                                <span className="text-red-500 ml-1">(Already has a local title)</span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span className="text-amber-600 ml-1">
+                                            (No login yet — one will be created automatically, username: {lookedUpPerson.memberCode})
+                                        </span>
                                     )}
                                 </p>
                             )}
@@ -168,14 +182,14 @@ export default function LocalAuthority() {
 
                         <div>
                             <FieldLabel required>Title</FieldLabel>
-                            <select
+                            <Select
                                 value={role}
-                                onChange={(e) => setRole(e.target.value as LocalAuthorityRole)}
-                                className={inputClass()}
-                            >
-                                <option value="VILLAGE_PRESIDENT">Village President</option>
-                                <option value="VILLAGE_SECRETARY">Village Secretary</option>
-                            </select>
+                                onChange={(v) => setRole(v as LocalAuthorityRole)}
+                                options={[
+                                    { value: "LOCAL_PRESIDENT", label: "Local President" },
+                                    { value: "LOCAL_SECRETARY", label: "Local Secretary" },
+                                ]}
+                            />
                         </div>
 
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -193,7 +207,7 @@ export default function LocalAuthority() {
                         <button
                             type="button"
                             onClick={handleAssign}
-                            disabled={assigning || !lookedUpUser}
+                            disabled={assigning || !lookedUpPerson}
                             className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
                         >
                             {assigning ? "Assigning…" : "Assign Title"}

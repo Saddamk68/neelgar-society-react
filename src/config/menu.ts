@@ -1,4 +1,4 @@
-import { Home, Users, FileText, User, BookOpen, Shield, MapPin, Landmark } from "lucide-react";
+import { Home, Users, FileText, User, BookOpen, Shield, MapPin, Landmark, Database } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import { PERM } from "../constants/permissions";
 import type { Perm } from "../constants/permissions";
@@ -57,6 +57,13 @@ export const MENU: MenuItem[] = [
     path: "/app/users",
     required: [PERM.USER_MANAGE],
     icon: User,
+  },
+  {
+    key: "backups",
+    label: "Database Backups",
+    path: "/app/backups",
+    required: [PERM.DB_BACKUP_MANAGE],
+    icon: Database,
   },
   {
     key: "gotras",

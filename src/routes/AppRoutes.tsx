@@ -30,6 +30,7 @@ import Permissions from "@/pages/private/Permissions";
 import LocalAuthority from "@/pages/private/LocalAuthority";
 import Leadership from "@/pages/public/Leadership";
 import GeoUnits from "@/pages/private/GeoUnits";
+import Backups from "@/pages/private/Backups";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -137,6 +138,9 @@ export default function AppRoutes() {
             <RequirePermission perm={PERM.USER_MANAGE}>
               <Permissions />
             </RequirePermission>
+          } />
+          <Route path="backups" element={
+            <RequirePermission perm={PERM.DB_BACKUP_MANAGE}><Backups /></RequirePermission>
           } />
         </Route>
       </Route>

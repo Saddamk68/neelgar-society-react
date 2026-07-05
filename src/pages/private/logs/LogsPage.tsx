@@ -4,6 +4,7 @@ import { Monitor, Smartphone, Tablet, Bot, HelpCircle, X, ChevronDown, ChevronUp
 import { listLogs, getLog } from "../../../features/logs/services/logService";
 import { AuditLog, AuditAction, AuditLogFilters, DeviceType } from "../../../features/logs/types";
 import { useNotify } from "../../../services/notifications";
+import Select from "@/components/form/Select";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -244,28 +245,28 @@ export default function LogsPage() {
 
             {/* Filters */}
             <div className="bg-white rounded-xl shadow p-3 flex flex-wrap gap-3 items-end">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 w-48">
                     <label className="text-xs text-slate-500">Action</label>
-                    <select
-                        className="border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 w-48"
+                    <Select
                         value={filters.action ?? ""}
-                        onChange={e => handleFilterChange("action", e.target.value)}
-                    >
-                        <option value="">All actions</option>
-                        {ACTION_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
+                        onChange={v => handleFilterChange("action", v)}
+                        options={[
+                            { value: "", label: "All actions" },
+                            ...ACTION_OPTIONS.map(a => ({ value: a, label: a })),
+                        ]}
+                    />
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 w-40">
                     <label className="text-xs text-slate-500">Entity type</label>
-                    <select
-                        className="border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 w-40"
+                    <Select
                         value={filters.entityType ?? ""}
-                        onChange={e => handleFilterChange("entityType", e.target.value)}
-                    >
-                        <option value="">All entities</option>
-                        {ENTITY_OPTIONS.map(e => <option key={e} value={e}>{e}</option>)}
-                    </select>
+                        onChange={v => handleFilterChange("entityType", v)}
+                        options={[
+                            { value: "", label: "All entities" },
+                            ...ENTITY_OPTIONS.map(e => ({ value: e, label: e })),
+                        ]}
+                    />
                 </div>
 
                 <div className="flex flex-col gap-1">
