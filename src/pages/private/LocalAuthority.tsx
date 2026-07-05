@@ -12,6 +12,7 @@ import {
 } from "@/features/local-authority/services/localAuthorityService";
 import { LocalAuthorityRole, UserLookup } from "@/features/local-authority/local-authority-types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import Select from "@/components/form/Select";
 
 function inputClass() {
     return "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition border-slate-300 focus:ring-primary/40";
@@ -168,14 +169,14 @@ export default function LocalAuthority() {
 
                         <div>
                             <FieldLabel required>Title</FieldLabel>
-                            <select
+                            <Select
                                 value={role}
-                                onChange={(e) => setRole(e.target.value as LocalAuthorityRole)}
-                                className={inputClass()}
-                            >
-                                <option value="VILLAGE_PRESIDENT">Village President</option>
-                                <option value="VILLAGE_SECRETARY">Village Secretary</option>
-                            </select>
+                                onChange={(v) => setRole(v as LocalAuthorityRole)}
+                                options={[
+                                    { value: "VILLAGE_PRESIDENT", label: "Village President" },
+                                    { value: "VILLAGE_SECRETARY", label: "Village Secretary" },
+                                ]}
+                            />
                         </div>
 
                         <label className="flex items-center gap-3 cursor-pointer">

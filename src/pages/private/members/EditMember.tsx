@@ -83,6 +83,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import DeactivateHeadDialog from "@/components/DeactivateHeadDialog";
 import GeoUnitCascadeSelect, { GeoSelection } from "@/features/geo-units/components/GeoUnitCascadeSelect";
 import { getAncestors } from "@/features/geo-units/services/geoUnitService";
+import Select from "@/components/form/Select";
 
 
 function inputClass(hasError?: boolean) {
@@ -966,16 +967,19 @@ function FamilyRelationshipsSection({
               </div>
               <div>
                 <FieldLabel required>Reason</FieldLabel>
-                <select value={endReason} onChange={e => setEndReason(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-                  <option value="">Select reason…</option>
-                  <option value="DEATH_OF_SPOUSE">Death of spouse</option>
-                  <option value="DIVORCE">Divorce</option>
-                  <option value="KHULA">Khula</option>
-                  <option value="SEPARATED">Separated</option>
-                  <option value="COURT_DISPUTE">Court dispute</option>
-                  <option value="OTHER">Other</option>
-                </select>
+                <Select
+                  value={endReason}
+                  onChange={setEndReason}
+                  placeholder="Select reason…"
+                  options={[
+                    { value: "DEATH_OF_SPOUSE", label: "Death of spouse" },
+                    { value: "DIVORCE", label: "Divorce" },
+                    { value: "KHULA", label: "Khula" },
+                    { value: "SEPARATED", label: "Separated" },
+                    { value: "COURT_DISPUTE", label: "Court dispute" },
+                    { value: "OTHER", label: "Other" },
+                  ]}
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-5">
@@ -1293,27 +1297,33 @@ export default function EditMember() {
 
             <div>
               <FieldLabel>Gender</FieldLabel>
-              <select {...register("gender")} className={inputClass()}>
-                <option value="">Select</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
+              <Select
+                value={watch("gender") ?? ""}
+                onChange={(v) => setValue("gender", v as any, { shouldDirty: true })}
+                options={[
+                  { value: "", label: "Select" },
+                  { value: "MALE", label: "Male" },
+                  { value: "FEMALE", label: "Female" },
+                  { value: "OTHER", label: "Other" },
+                ]}
+              />
             </div>
 
             {/* Marital Status */}
             <div>
               <FieldLabel>Marital Status</FieldLabel>
-              <select
-                {...register("maritalStatus")}
-                className={inputClass(!!errors.maritalStatus)}
-              >
-                <option value="" disabled>Select status</option>
-                <option value="SINGLE">Single</option>
-                <option value="MARRIED">Married</option>
-                <option value="DIVORCED">Divorced</option>
-                <option value="WIDOWED">Widowed</option>
-              </select>
+              <Select
+                value={watch("maritalStatus") ?? ""}
+                onChange={(v) => setValue("maritalStatus", v as any, { shouldValidate: true, shouldDirty: true })}
+                hasError={!!errors.maritalStatus}
+                placeholder="Select status"
+                options={[
+                  { value: "SINGLE", label: "Single" },
+                  { value: "MARRIED", label: "Married" },
+                  { value: "DIVORCED", label: "Divorced" },
+                  { value: "WIDOWED", label: "Widowed" },
+                ]}
+              />
             </div>
 
             {/* Date of Birth — custom date picker */}
