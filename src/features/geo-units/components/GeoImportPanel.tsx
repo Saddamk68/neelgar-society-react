@@ -12,11 +12,11 @@ const POLL_INTERVAL_MS = 3000;
 
 function StatusBadge({ status }: { status: GeoImportJobResponse["status"] }) {
     const cfg = {
-        PENDING:   "bg-yellow-100 text-yellow-700",
-        RUNNING:   "bg-blue-100 text-blue-700",
+        PENDING: "bg-yellow-100 text-yellow-700",
+        RUNNING: "bg-blue-100 text-blue-700",
         COMPLETED: "bg-green-100 text-green-700",
-        CANCELED:  "bg-slate-100 text-slate-600",
-        FAILED:    "bg-red-100 text-red-700",
+        CANCELED: "bg-slate-100 text-slate-600",
+        FAILED: "bg-red-100 text-red-700",
     }[status];
     return (
         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${cfg}`}>
@@ -88,6 +88,7 @@ export default function GeoImportPanel() {
     const [activeJob, setActiveJob] = useState<GeoImportJobResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [showCommitConfirm, setShowCommitConfirm] = useState(false);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const isRunning = activeJob?.status === "PENDING" || activeJob?.status === "RUNNING";
@@ -171,7 +172,7 @@ export default function GeoImportPanel() {
 
                 <button
                     type="button"
-                    onClick={() => handleRun(false)}
+                    onClick={() => setShowCommitConfirm(true)}
                     disabled={isRunning || loading}
                     className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
@@ -225,7 +226,7 @@ export default function GeoImportPanel() {
                     <ReportSummary job={activeJob} />
                 </div>
             )}
-            
+
             <ConfirmDialog
                 isOpen={showCancelConfirm}
                 onClose={() => setShowCancelConfirm(false)}
@@ -236,7 +237,18 @@ export default function GeoImportPanel() {
                 confirmLabel="Yes, Cancel Job"
                 cancelLabel="Keep Running"
             />
-            
+
+            <ConfirmDialog
+                isOpen={showCommitConfirm}
+                onClose={() => setShowCommitConfirm(false)}
+                onConfirm={() => { setShowCommitConfirm(false); handleRun(false); }}
+                variant="warning"
+                title="Commit Import?"
+                message="This will write State/District/Tehsil/Village data from the staging files directly into the database. Make sure you've already reviewed a dry-run report — this action is not a preview."
+                confirmLabel="Yes, Commit Import"
+                cancelLabel="Cancel"
+            />
+
         </section>
     );
 }

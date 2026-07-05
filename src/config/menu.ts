@@ -59,25 +59,11 @@ export const MENU: MenuItem[] = [
     icon: User,
   },
   {
-    key: "backups",
-    label: "Database Backups",
-    path: "/app/backups",
-    required: [PERM.DB_BACKUP_MANAGE],
-    icon: Database,
-  },
-  {
     key: "gotras",
     label: "Gotras",
     path: "/app/gotras",
     required: [PERM.GOTRA_MANAGE],
     icon: BookOpen,
-  },
-  {
-    key: "geo-units",
-    label: "States / Districts / Towns",
-    path: "/app/geo-units",
-    required: [PERM.GEO_UNIT_MANAGE],
-    icon: MapPin,
   },
   {
     key: "local-authority",
@@ -92,6 +78,20 @@ export const MENU: MenuItem[] = [
     path: "/app/permissions",
     required: [PERM.USER_MANAGE],
     icon: Shield,
+  },
+  {
+    key: "backups",
+    label: "Database Backups",
+    path: "/app/backups",
+    required: [PERM.DB_BACKUP_MANAGE],
+    icon: Database,
+  },
+  {
+    key: "geo-units",
+    label: "States / Districts / Towns",
+    path: "/app/geo-units",
+    required: [PERM.GEO_UNIT_MANAGE],
+    icon: MapPin,
   },
 
 ];
