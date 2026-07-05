@@ -17,5 +17,6 @@ export const ROUTES = {
     GOTRAS: "/app/gotras",
     GEO_UNITS: "/app/geo-units",
     LOCAL_AUTHORITY: "/app/local-authority",
+    BACKUPS: "/app/backups",
   },
 };
