@@ -18,7 +18,7 @@ const FAMILY_COLUMNS: ColumnConfig<Family>[] = [
     { key: "familyCode", title: "Family", weight: 24 },
     { key: "geoUnitName", title: "Residence", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
     { key: "clanCode", title: "Clan", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
-    { key: "headPersonContact", title: "Head Contact", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
+    { key: "headPersonContact", title: "PHONE", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
     { key: "memberCount", title: "Members", weight: 10, align: "center", hideBelow: "sm" },
     { key: "actions", title: "Actions", weight: 12, align: "center" },
 ];
