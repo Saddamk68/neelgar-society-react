@@ -93,20 +93,20 @@ export default function ImportMembers() {
         <div className="max-w-3xl mx-auto space-y-6">
 
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-start gap-3">
+                <button
+                    onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
+                    className="mt-1 p-1.5 rounded-md hover:bg-slate-100 transition text-slate-500 hover:text-slate-800"
+                    aria-label="Go back"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div>
                     <h1 className="text-2xl font-semibold">Import Members</h1>
                     <p className="text-slate-500 text-sm mt-0.5">
                         Bulk import members from an Excel file.
                     </p>
                 </div>
-                <button
-                    onClick={() => navigate(ROUTES.PRIVATE.MEMBERS)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                </button>
             </div>
 
             {/* Instructions */}

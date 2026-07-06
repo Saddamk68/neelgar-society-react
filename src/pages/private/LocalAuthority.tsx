@@ -97,7 +97,6 @@ export default function LocalAuthority() {
             <PageHeader
                 title="Local Leadership"
                 subtitle="Assign or revoke Village President / Secretary titles."
-                backTo="back"
             />
 
             {/* Step 1: pick village */}
