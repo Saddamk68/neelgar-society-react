@@ -15,9 +15,10 @@ import Tooltip from "@/components/Tooltip";
 // ── Column definitions ────────────────────────────────────────────────────────
 
 const FAMILY_COLUMNS: ColumnConfig<Family>[] = [
-    { key: "familyCode", title: "Family", weight: 30 },
-    { key: "geoUnitName", title: "Village", weight: 18, truncate: true, tooltip: true, hideBelow: "sm" },
-    { key: "clanCode", title: "Clan", weight: 18, truncate: true, tooltip: true, hideBelow: "sm" },
+    { key: "familyCode", title: "Family", weight: 24 },
+    { key: "geoUnitName", title: "Residence", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
+    { key: "clanCode", title: "Clan", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
+    { key: "headPersonContact", title: "Head Contact", weight: 16, truncate: true, tooltip: true, hideBelow: "sm" },
     { key: "memberCount", title: "Members", weight: 10, align: "center", hideBelow: "sm" },
     { key: "actions", title: "Actions", weight: 12, align: "center" },
 ];
@@ -40,7 +41,7 @@ function FamilyMembersRow({ familyCode, includeInactive }: { familyCode: string;
     if (isLoading) {
         return (
             <tr>
-                <td colSpan={5} className="px-4 py-3 bg-slate-50 text-sm text-slate-400">
+                <td colSpan={5} className="px-4 py-3 bg-slate-50">
                     Loading members…
                 </td>
             </tr>
@@ -112,16 +113,18 @@ export default function Families() {
 
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
-        return allFamilies.filter((f) => {
-            if (!term) return true;
-            return (
-                f.familyCode.toLowerCase().includes(term) ||
-                (f.headPersonName ?? "").toLowerCase().includes(term) ||
-                (f.geoUnitName ?? "").toLowerCase().includes(term) ||
-                (f.clanName ?? "").toLowerCase().includes(term) ||
-                (f.clanCode ?? "").toLowerCase().includes(term)
-            );
-        });
+        return allFamilies
+            .filter((f) => {
+                if (!term) return true;
+                return (
+                    f.familyCode.toLowerCase().includes(term) ||
+                    (f.headPersonName ?? "").toLowerCase().includes(term) ||
+                    (f.geoUnitName ?? "").toLowerCase().includes(term) ||
+                    (f.clanName ?? "").toLowerCase().includes(term) ||
+                    (f.clanCode ?? "").toLowerCase().includes(term)
+                );
+            })
+            .sort((a, b) => (a.headPersonName ?? "").localeCompare(b.headPersonName ?? ""));
     }, [allFamilies, activeTab, search]);
 
     // ── Tab change ────────────────────────────────────────────────────────────
@@ -181,12 +184,9 @@ export default function Families() {
             );
         }
 
-        if (col.key === "memberCount") {
-            return (
-                <span className="inline-block text-xs bg-slate-100 text-slate-600 rounded-full px-2 py-0.5 font-medium">
-                    {row.memberCount ?? 0}
-                </span>
-            );
+        if (col.key === "headPersonContact") {
+            if (!row.headPersonContact) return <span className="text-slate-300 text-xs">—</span>;
+            return <span className="text-sm text-slate-600">{row.headPersonContact}</span>;
         }
 
         if (col.key === "actions") {

@@ -15,6 +15,7 @@ export type Member = {
   contactNumber?: string;
   education?: string;
   occupation?: string;
+  residenceName?: string;
   maritalStatus?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
   currentAddress?: AddressData;
   parentalAddress?: AddressData;
@@ -45,6 +46,7 @@ export type Family = {
   headPersonId?: number;
   headPersonCode?: string;
   headPersonName?: string;
+  headPersonContact?: string;
   village?: string;
   geoUnitId?: number;
   geoUnitName?: string;
