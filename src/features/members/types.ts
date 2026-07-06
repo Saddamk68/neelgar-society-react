@@ -9,6 +9,7 @@ export type Member = {
   societyName?: string;
   firstName: string;
   lastName?: string;
+  fatherName?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
   dob?: string;
   dod?: string;
