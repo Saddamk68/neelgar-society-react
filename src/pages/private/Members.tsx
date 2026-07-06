@@ -130,6 +130,11 @@ export default function Members() {
   // ── Cell renderer ───────────────────────────────────────────────────────────
 
   const renderCell = (row: Member, col: ColumnConfig<Member>) => {
+    if (col.key === "dob") {
+      if (!row.dob) return <span className="text-slate-300 text-xs">—</span>;
+      return <span className="text-sm text-slate-600">{new Date(row.dob).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>;
+    }
+
     if (col.key === "memberCode") {
       return (
         <div className="flex items-center gap-2.5">
