@@ -8,6 +8,7 @@ import { Member } from "../../../features/members/types";
 import { ROUTES } from "../../../constants/routes";
 import MemberAvatar from "../../../components/MemberAvatar";
 import FamilyConnections from "@/components/FamilyConnections";
+import PageHeader from "@/components/layout/PageHeader";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -197,61 +198,49 @@ export default function PrintMember() {
     }
 
     return (
-        <>
+        <div className="max-w-2xl mx-auto">
             {/* ── Screen-only controls (hidden on print) ───────────────────────── */}
-            <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
+            <div className="print:hidden mb-4">
+                <PageHeader
+                    title="Print Preview"
+                    subtitle={member ? `${member.firstName} ${member.lastName ?? ""}`.trim() : undefined}
+                    backTo="back"
+                    actions={
+                        <>
+                            <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
+                                <div
+                                    onClick={() => setIncludeFamily((v) => !v)}
+                                    className={[
+                                        "relative w-10 h-5 rounded-full transition-colors cursor-pointer",
+                                        includeFamily ? "bg-primary" : "bg-slate-300",
+                                    ].join(" ")}
+                                >
+                                    <div
+                                        className={[
+                                            "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                                            includeFamily ? "translate-x-5" : "translate-x-0.5",
+                                        ].join(" ")}
+                                    />
+                                </div>
+                                Include all family members
+                            </label>
 
-                {/* Left — back button */}
-                <button
-                    type="button"
-                    onClick={() => navigate(
-                        member
-                            ? `${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`
-                            : ROUTES.PRIVATE.MEMBERS
-                    )}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                </button>
-
-                {/* Centre — title */}
-                <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
-
-                {/* Right — toggle + print */}
-                <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-600 select-none">
-                        <div
-                            onClick={() => setIncludeFamily((v) => !v)}
-                            className={[
-                                "relative w-10 h-5 rounded-full transition-colors cursor-pointer",
-                                includeFamily ? "bg-primary" : "bg-slate-300",
-                            ].join(" ")}
-                        >
-                            <div
-                                className={[
-                                    "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
-                                    includeFamily ? "translate-x-5" : "translate-x-0.5",
-                                ].join(" ")}
-                            />
-                        </div>
-                        Include all family members
-                    </label>
-
-                    <button
-                        type="button"
-                        onClick={() => window.print()}
-                        disabled={isLoading}
-                        className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
-                    >
-                        <Printer className="w-4 h-4" />
-                        {isLoading ? "Loading…" : "Print"}
-                    </button>
-                </div>
+                            <button
+                                type="button"
+                                onClick={() => window.print()}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
+                            >
+                                <Printer className="w-4 h-4" />
+                                {isLoading ? "Loading…" : "Print"}
+                            </button>
+                        </>
+                    }
+                />
             </div>
 
             {/* ── Printable content ─────────────────────────────────────────────── */}
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
+            <div className="bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
                 <div className="p-6 print:p-4">
 
                     {/* Letterhead */}
@@ -371,6 +360,6 @@ export default function PrintMember() {
                     )}
                 </div>
             </div>
-        </>
+        </div>
     );
 }

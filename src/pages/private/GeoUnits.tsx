@@ -137,7 +137,6 @@ export default function GeoUnits() {
             <PageHeader
                 title="States, Districts & Towns/Villages"
                 subtitle="Add or deactivate geo units used across member, family, and leadership forms."
-                backTo="back"
             />
 
             <GeoImportPanel />

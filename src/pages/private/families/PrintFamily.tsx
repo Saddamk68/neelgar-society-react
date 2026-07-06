@@ -5,6 +5,7 @@ import MemberAvatar from "@/components/MemberAvatar";
 import { Family, Member } from "@/features/members/types";
 import { getFamily, getFamilyMembers } from "@/features/members/services/familyService";
 import { ROUTES } from "@/constants/routes";
+import PageHeader from "@/components/layout/PageHeader";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -147,41 +148,29 @@ export default function PrintFamily() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <>
+        <div className="max-w-2xl mx-auto">
             {/* Screen-only controls */}
-            <div className="print:hidden mb-6 flex items-center justify-between flex-wrap gap-3">
-
-                {/* Left — back button */}
-                <button
-                    type="button"
-                    onClick={() => navigate(
-                        family
-                            ? `${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/view`
-                            : ROUTES.PRIVATE.FAMILIES
-                    )}
-                    className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                </button>
-
-                {/* Centre — title */}
-                <h1 className="text-lg font-semibold text-slate-800">Print Preview</h1>
-
-                {/* Right — print button */}
-                <button
-                    type="button"
-                    onClick={() => window.print()}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
-                >
-                    <Printer className="w-4 h-4" />
-                    {isLoading ? "Loading…" : "Print"}
-                </button>
+            <div className="print:hidden mb-4">
+                <PageHeader
+                    title="Print Preview"
+                    subtitle={family ? `${family.familyCode} · ${family.headPersonName ?? "No head assigned"}` : undefined}
+                    backTo="back"
+                    actions={
+                        <button
+                            type="button"
+                            onClick={() => window.print()}
+                            disabled={isLoading}
+                            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-60 transition"
+                        >
+                            <Printer className="w-4 h-4" />
+                            {isLoading ? "Loading…" : "Print"}
+                        </button>
+                    }
+                />
             </div>
 
             {/* Printable content */}
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
+            <div className="bg-white rounded-xl shadow print:shadow-none print:rounded-none print:max-w-full">
                 <div className="p-6 print:p-4">
 
                     {/* Letterhead */}
@@ -281,6 +270,6 @@ export default function PrintFamily() {
 
                 </div>
             </div>
-        </>
+        </div>
     );
 }

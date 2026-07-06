@@ -7,7 +7,6 @@ export default function Backups() {
             <PageHeader
                 title="Database Backups"
                 subtitle="Trigger a manual backup or review recent automatic backups."
-                backTo="back"
             />
             <BackupPanel />
         </div>
