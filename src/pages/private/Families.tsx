@@ -113,16 +113,18 @@ export default function Families() {
 
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
-        return allFamilies.filter((f) => {
-            if (!term) return true;
-            return (
-                f.familyCode.toLowerCase().includes(term) ||
-                (f.headPersonName ?? "").toLowerCase().includes(term) ||
-                (f.geoUnitName ?? "").toLowerCase().includes(term) ||
-                (f.clanName ?? "").toLowerCase().includes(term) ||
-                (f.clanCode ?? "").toLowerCase().includes(term)
-            );
-        });
+        return allFamilies
+            .filter((f) => {
+                if (!term) return true;
+                return (
+                    f.familyCode.toLowerCase().includes(term) ||
+                    (f.headPersonName ?? "").toLowerCase().includes(term) ||
+                    (f.geoUnitName ?? "").toLowerCase().includes(term) ||
+                    (f.clanName ?? "").toLowerCase().includes(term) ||
+                    (f.clanCode ?? "").toLowerCase().includes(term)
+                );
+            })
+            .sort((a, b) => (a.headPersonName ?? "").localeCompare(b.headPersonName ?? ""));
     }, [allFamilies, activeTab, search]);
 
     // ── Tab change ────────────────────────────────────────────────────────────
