@@ -1,3 +1,4 @@
+import logoSm from "../assets/logo/neelgar-society-logo-sm.png";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
@@ -123,9 +124,11 @@ export default function PrivateLayout() {
       {/* ── Brand header ── */}
       <div className="px-2 py-3 mb-2 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            N
-          </div>
+          <img
+            src={logoSm}
+            alt={`${APP.NAME} logo`}
+            className="w-14 h-14 rounded-full flex-shrink-0 object-cover"
+          />
           <div>
             <p className="text-sm font-bold text-white leading-tight">{APP.NAME}</p>
             <p className="text-[10px] text-white/40">Management Portal</p>
