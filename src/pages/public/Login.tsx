@@ -1,3 +1,4 @@
+import logoMd from "../../assets/logo/neelgar-society-logo-md.png";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -58,7 +59,8 @@ export default function Login() {
       <div className="w-full max-w-sm bg-surface rounded-xl shadow p-8">
 
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <img src={logoMd} alt="Neelgar Society" className="w-45 h-45 object-cover" />
           <h2 className="text-xl font-semibold">Welcome back</h2>
           <p className="text-text-muted text-sm mt-1">
             Sign in to your Neelgar Society account
