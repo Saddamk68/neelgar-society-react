@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import logoSm from "../assets/logo/neelgar-society-logo-sm.png";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { APP, NAV } from "../constants/messages";
 import SkipLink from "../components/SkipLink";
@@ -19,9 +20,10 @@ export default function PublicLayout() {
         {/* Brand */}
         <Link
           to={ROUTES.PUBLIC.HOME}
-          className="font-bold text-primary tracking-wide text-lg"
+          className="flex items-center gap-2 font-bold text-primary tracking-wide text-lg"
           aria-label={`${APP.NAME} home`}
         >
+          <img src={logoSm} alt="" className="w-14 h-14 object-cover" />
           {APP.NAME}
         </Link>
 
