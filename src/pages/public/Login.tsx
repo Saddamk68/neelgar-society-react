@@ -1,4 +1,4 @@
-import logoMd from "../../assets/logo/neelgar-society-logo-md.png";
+import logo from "../../assets/logo/neelgar-society-logo.png";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -60,8 +60,8 @@ export default function Login() {
 
         {/* Header */}
         <div className="mb-6 flex flex-col items-center text-center">
-          <img src={logoMd} alt="Neelgar Society" className="w-45 h-45 object-cover" />
-          <h2 className="text-xl font-semibold">Welcome back</h2>
+          <img src={logo} alt="Neelgar Society" className="w-25 h-25 object-cover" />
+          <h2 className="text-xl font-semibold mt-4">Welcome back</h2>
           <p className="text-text-muted text-sm mt-1">
             Sign in to your Neelgar Society account
           </p>
