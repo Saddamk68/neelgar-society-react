@@ -368,7 +368,7 @@ export default function PrivateLayout() {
               >
                 {PROFILE_MENU.VIEW_PROFILE}
               </button>
-              <button
+              {/* <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
                 role="menuitem"
                 onClick={() => {
@@ -377,7 +377,7 @@ export default function PrivateLayout() {
                 }}
               >
                 {PROFILE_MENU.SETTINGS}
-              </button>
+              </button> */}
               <button
                 className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
                 role="menuitem"
@@ -387,7 +387,7 @@ export default function PrivateLayout() {
                 }}
               >
                 <LogOut size={15} />
-                {PROFILE_MENU.LOGOUT}
+                {PROFILE_MENU.SIGNOOUT}
               </button>
             </div>
           )}
