@@ -93,7 +93,7 @@ export default function LocalAuthority() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
             <PageHeader
                 title="Local Leadership"
                 subtitle="Assign or revoke Village President / Secretary titles."
