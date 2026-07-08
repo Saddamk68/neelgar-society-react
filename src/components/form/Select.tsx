@@ -13,15 +13,16 @@
  * the page, never gets clipped, and flips above the trigger
  * automatically if there isn't enough room below.
  *
- * Keyboard behavior matches native <select>:
+ * Search: opening the panel shows a text input (auto-focused) that
+ * filters options by label (case-insensitive substring match).
+ * Keyboard behavior matches native <select> otherwise:
  *  - ArrowDown/ArrowUp: open the panel (if closed) or move the
- *    highlighted option; opening always starts highlighted on the
- *    current value and scrolls it into view, same as a real <select>.
- *  - Enter / Space: confirm the highlighted option.
+ *    highlighted option among the filtered results.
+ *  - Enter: confirm the highlighted option.
  *  - Escape: close without changing anything.
- *  - Typing letters: type-ahead jumps to the next option whose label
- *    starts with what you've typed (resets after a short pause),
- *    exactly like native <select> keyboard search.
+ *  - Typing while closed: type-ahead jumps to the next option whose
+ *    label starts with what you've typed (resets after a short pause).
+ *  - Typing while open: filters the list via the search box.
  *
  * Usage:
  *   <Select
@@ -69,9 +70,11 @@ export default function Select({
     const [open, setOpen] = useState(false);
     const [coords, setCoords] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const triggerRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
     const typeaheadRef = useRef<{ buffer: string; timeout: ReturnType<typeof setTimeout> | null }>({
         buffer: "",
@@ -81,6 +84,18 @@ export default function Select({
     const selectedIndex = options.findIndex((o) => String(o.value) === String(value));
     const selected = selectedIndex >= 0 ? options[selectedIndex] : undefined;
     const isDisabled = disabled || loading;
+
+    // ── Filtered options (search) ────────────────────────────────────────────
+
+    const filteredOptions = searchTerm.trim()
+        ? options.filter((o) => o.label.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+        : options;
+
+    // Reset highlight to top of results whenever the search term changes.
+    useEffect(() => {
+        if (open) setHighlightedIndex(filteredOptions.length > 0 ? 0 : -1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
 
     // ── Positioning (portal escapes overflow-clipped ancestors) ─────────────
 
@@ -112,34 +127,50 @@ export default function Select({
         }
         window.addEventListener("scroll", handle, true);
         window.addEventListener("resize", handle);
+        window.visualViewport?.addEventListener("resize", handle);
+        window.visualViewport?.addEventListener("scroll", handle);
         return () => {
             window.removeEventListener("scroll", handle, true);
             window.removeEventListener("resize", handle);
+            window.visualViewport?.removeEventListener("resize", handle);
+            window.visualViewport?.removeEventListener("scroll", handle);
         };
     }, [open]);
+
+    // Focus the search input as soon as the panel opens. Using
+    // useLayoutEffect (not useEffect+rAF) matters here: it fires
+    // synchronously in the same tick as the tap/click that opened the
+    // panel, which is what lets iOS/Android reliably treat this as
+    // part of the user gesture and pop the on-screen keyboard on
+    // tablets/phones — a focus() deferred by even one frame is often
+    // silently ignored on iOS Safari.
+    useLayoutEffect(() => {
+        if (open && coords) searchInputRef.current?.focus();
+    }, [open, coords]);
 
     // ── Open/close helpers ───────────────────────────────────────────────────
 
     function openPanel(startIndex?: number) {
         if (isDisabled) return;
+        setSearchTerm("");
         setHighlightedIndex(startIndex !== undefined ? startIndex : selectedIndex >= 0 ? selectedIndex : 0);
         setOpen(true);
     }
 
     function closePanel() {
         setOpen(false);
+        setSearchTerm("");
     }
 
     function commitIndex(index: number) {
-        const opt = options[index];
+        const opt = filteredOptions[index];
         if (!opt) return;
         onChange(String(opt.value));
         closePanel();
+        triggerRef.current?.focus();
     }
 
-    // Scroll the highlighted option into view whenever it changes —
-    // this is what makes opening the panel show the current selection
-    // (like native <select> starting keyboard focus on the current value).
+    // Scroll the highlighted option into view whenever it changes.
     useEffect(() => {
         if (!open || !coords) return;
         const el = optionRefs.current[highlightedIndex];
@@ -162,7 +193,7 @@ export default function Select({
         return () => document.removeEventListener("mousedown", handler);
     }, [open]);
 
-    // ── Type-ahead search (used both open and closed) ───────────────────────
+    // ── Type-ahead search (used only while the trigger is closed) ────────────
 
     function handleTypeahead(char: string) {
         const ta = typeaheadRef.current;
@@ -172,81 +203,56 @@ export default function Select({
             ta.buffer = "";
         }, TYPEAHEAD_RESET_MS);
 
-        const searchFrom = open ? highlightedIndex : selectedIndex;
-        const startAt = searchFrom >= 0 ? searchFrom : -1;
-
-        // Search forward from just after the current position first (so
-        // repeated presses of the same letter cycle through matches),
-        // then wrap around the whole list.
+        const startAt = selectedIndex >= 0 ? selectedIndex : -1;
         const ordered = [
             ...options.slice(startAt + 1),
             ...options.slice(0, startAt + 1),
         ];
         const match = ordered.find((o) => o.label.toLowerCase().startsWith(ta.buffer));
         if (!match) return;
-        const matchIndex = options.indexOf(match);
-
-        if (open) {
-            setHighlightedIndex(matchIndex);
-        } else {
-            onChange(String(match.value));
-        }
+        onChange(String(match.value));
     }
 
-    // ── Keyboard handling ────────────────────────────────────────────────────
+    // ── Keyboard handling — trigger (only relevant while panel is closed) ────
 
     function handleTriggerKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
         if (isDisabled) return;
 
-        if (!open) {
-            if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                openPanel();
-                return;
-            }
-            if (e.key.length === 1 && /\S/.test(e.key)) {
-                e.preventDefault();
-                handleTypeahead(e.key);
-            }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openPanel();
             return;
         }
+        if (e.key.length === 1 && /\S/.test(e.key)) {
+            e.preventDefault();
+            handleTypeahead(e.key);
+        }
+    }
 
-        // Panel is open — arrow/enter/escape/typeahead all handled here too,
-        // so keyboard works whether or not focus visually moved into the panel.
+    // ── Keyboard handling — search input (while panel is open) ──────────────
+
+    function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
         switch (e.key) {
             case "ArrowDown":
                 e.preventDefault();
-                setHighlightedIndex((i) => Math.min(i + 1, options.length - 1));
+                setHighlightedIndex((i) => Math.min(i + 1, filteredOptions.length - 1));
                 break;
             case "ArrowUp":
                 e.preventDefault();
                 setHighlightedIndex((i) => Math.max(i - 1, 0));
                 break;
-            case "Home":
-                e.preventDefault();
-                setHighlightedIndex(0);
-                break;
-            case "End":
-                e.preventDefault();
-                setHighlightedIndex(options.length - 1);
-                break;
             case "Enter":
-            case " ":
                 e.preventDefault();
                 commitIndex(highlightedIndex);
                 break;
             case "Escape":
                 e.preventDefault();
                 closePanel();
+                triggerRef.current?.focus();
                 break;
             case "Tab":
                 closePanel();
                 break;
-            default:
-                if (e.key.length === 1 && /\S/.test(e.key)) {
-                    e.preventDefault();
-                    handleTypeahead(e.key);
-                }
         }
     }
 
@@ -291,11 +297,26 @@ export default function Select({
                             width: coords.width,
                         }}
                     >
+                        {/* Search box */}
+                        <div className="px-3 py-2.5 border-b border-slate-100">
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
+                                placeholder="Search…"
+                                className="w-full text-base outline-none placeholder:text-slate-400 px-2 py-1"
+                            />
+                        </div>
+
                         <div className="max-h-64 overflow-y-auto py-1">
-                            {options.length === 0 ? (
-                                <p className="px-3 py-2 text-sm text-slate-400">No options</p>
+                            {filteredOptions.length === 0 ? (
+                                <p className="px-3 py-2 text-sm text-slate-400">
+                                    {searchTerm ? "No matches" : "No options"}
+                                </p>
                             ) : (
-                                options.map((opt, index) => (
+                                filteredOptions.map((opt, index) => (
                                     <button
                                         key={opt.value}
                                         ref={(el) => { optionRefs.current[index] = el; }}
@@ -303,7 +324,7 @@ export default function Select({
                                         onMouseEnter={() => setHighlightedIndex(index)}
                                         onClick={() => commitIndex(index)}
                                         className={[
-                                            "w-full text-left px-3 py-2 text-sm transition-colors",
+                                            "w-full text-left px-3 py-2.5 text-sm transition-colors",
                                             String(opt.value) === String(value)
                                                 ? "bg-primary text-white font-medium"
                                                 : index === highlightedIndex
