@@ -18,8 +18,8 @@ export const NAV = {
 export const PROFILE_MENU = {
   ROLE_PREFIX: "Role: ",
   VIEW_PROFILE: "View Profile",
-  SETTINGS: "Settings",
-  LOGOUT: "Logout",
+  // SETTINGS: "Settings",
+  SIGNOOUT: "Sign Out",
 };
 
 export const PUBLIC = {
