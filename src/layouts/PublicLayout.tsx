@@ -1,4 +1,4 @@
-import logoSm from "../assets/logo/neelgar-society-logo-sm.png";
+import logo from "../assets/logo/neelgar-society-logo.png";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { APP, NAV } from "../constants/messages";
@@ -23,7 +23,7 @@ export default function PublicLayout() {
           className="flex items-center gap-2 font-bold text-primary tracking-wide text-lg"
           aria-label={`${APP.NAME} home`}
         >
-          <img src={logoSm} alt="" className="w-14 h-14 object-cover" />
+          <img src={logo} alt="" className="w-10 h-10 object-cover" />
           {APP.NAME}
         </Link>
 
