@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ROUTES } from "../../constants/routes";
 import { Users, BookOpen, ShieldCheck, ArrowRight, CheckCircle } from "lucide-react";
 import { SOCIETY } from "../../constants/society";
+import UpcomingEventsWidget from "@/features/events/components/UpcomingEventsWidget";
 
 export default function Home() {
   return (
@@ -101,6 +102,19 @@ export default function Home() {
             <p className="text-sm text-text-muted">Samuhik Vivah Samelan photo</p>
             <p className="text-xs text-text-muted opacity-60">Replace with actual event image</p>
           </div>
+        </div>
+      </section>
+
+      {/* Upcoming Events */}
+      <section className="py-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="border-l-2 border-primary pl-4 mb-8">
+            <h2 className="text-2xl font-bold">Upcoming Events</h2>
+            <p className="mt-1 text-text-muted">
+              Meetings, camps and the next Samuhik Vivah Samelan.
+            </p>
+          </div>
+          <UpcomingEventsWidget limit={5} calendarRoute={ROUTES.PUBLIC.EVENTS} />
         </div>
       </section>
 

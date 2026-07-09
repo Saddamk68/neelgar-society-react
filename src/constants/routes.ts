@@ -5,6 +5,7 @@ export const ROUTES = {
     CONTACT: "/contact",
     LOGIN: "/login",
     LEADERSHIP: "/leadership",
+    EVENTS: "/events",
   },
   PRIVATE_BASE: "/app",
   PRIVATE: {
@@ -18,5 +19,6 @@ export const ROUTES = {
     GEO_UNITS: "/app/geo-units",
     LOCAL_AUTHORITY: "/app/local-authority",
     BACKUPS: "/app/backups",
+    EVENTS: "/app/events",
   },
 };
