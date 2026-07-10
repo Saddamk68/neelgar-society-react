@@ -22,3 +22,17 @@ export function majorHolidayLabel(hijriMonth?: number, hijriDay?: number, apiNam
     if (!isMajorHoliday(hijriMonth, hijriDay)) return undefined;
     return apiName || MAJOR_HIJRI_DATES.find((d) => d.month === hijriMonth && d.day === hijriDay)?.label;
 }
+
+// Akhri Jumma (last Friday of Ramadan) has no fixed day-number — it shifts
+// every year depending on which day Ramadan starts and how many Fridays
+// fall within it. Find it by scanning the fetched month's Hijri data for
+// Ramadan (month 9) Fridays and picking the one with the highest day number.
+export function findAkhriJummaDate(
+    hijriDays: { gregorianDate: string; hijriMonth: number; hijriDay: number }[]
+): string | undefined {
+    const ramadanFridays = hijriDays.filter(
+        (h) => h.hijriMonth === 9 && new Date(h.gregorianDate).getDay() === 5
+    );
+    if (ramadanFridays.length === 0) return undefined;
+    return ramadanFridays.reduce((latest, cur) => (cur.hijriDay > latest.hijriDay ? cur : latest)).gregorianDate;
+}

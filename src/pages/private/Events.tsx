@@ -80,8 +80,8 @@ export default function Events() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
-        <div className="lg:col-span-3 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <div className="lg:col-span-2 space-y-4">
           <HolidaySyncPanel />
           <div className="bg-white rounded-xl shadow overflow-hidden">
             {isLoading && <div className="p-6 text-sm text-slate-400">Loading events…</div>}
@@ -163,7 +163,7 @@ export default function Events() {
           </div>
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 lg:sticky lg:top-4">
           <EventCalendar />
         </div>
       </div>
