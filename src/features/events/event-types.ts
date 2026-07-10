@@ -27,6 +27,7 @@ export type SocietyEvent = {
     endDateTime?: string;
     bannerImageUrl?: string;
     status: EventStatus;
+    urgent: boolean;
     societyId: number;
     createdAt?: string;
     createdBy?: string;

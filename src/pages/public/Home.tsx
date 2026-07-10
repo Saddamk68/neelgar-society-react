@@ -4,6 +4,7 @@ import { ROUTES } from "../../constants/routes";
 import { Users, BookOpen, ShieldCheck, ArrowRight, CheckCircle } from "lucide-react";
 import { SOCIETY } from "../../constants/society";
 import UpcomingEventsWidget from "@/features/events/components/UpcomingEventsWidget";
+import NoticesBanner from "@/features/notices/components/NoticesBanner";
 
 export default function Home() {
   return (
@@ -114,6 +115,7 @@ export default function Home() {
               Meetings, camps and the next Samuhik Vivah Samelan.
             </p>
           </div>
+          <NoticesBanner />
           <UpcomingEventsWidget limit={5} calendarRoute={ROUTES.PUBLIC.EVENTS} />
         </div>
       </section>

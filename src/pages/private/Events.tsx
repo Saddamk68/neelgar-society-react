@@ -9,6 +9,7 @@ import { useNotify } from "@/services/notifications";
 import PageHeader from "@/components/layout/PageHeader";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { ROUTES } from "@/constants/routes";
+import HolidaySyncPanel from "@/features/events/components/HolidaySyncPanel";
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
@@ -77,6 +78,8 @@ export default function Events() {
           </button>
         }
       />
+
+      <HolidaySyncPanel />
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         {isLoading && <div className="p-6 text-sm text-slate-400">Loading events…</div>}

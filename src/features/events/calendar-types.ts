@@ -9,7 +9,7 @@ export type HijriDay = {
     holidayName?: string;
 };
 
-export type PublicEvent = Pick<SocietyEvent, "id" | "title" | "eventType" | "description" | "venue" | "startDateTime" | "endDateTime" | "bannerImageUrl">;
+export type PublicEvent = Pick<SocietyEvent, "id" | "title" | "eventType" | "description" | "venue" | "startDateTime" | "endDateTime" | "bannerImageUrl" | "urgent">;
 
 export type CalendarMonth = {
     month: number;

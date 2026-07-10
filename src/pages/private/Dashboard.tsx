@@ -12,6 +12,7 @@ import { PERM } from "../../constants/permissions";
 import { MyLeadership } from "@/features/local-authority/local-authority-types";
 import { getMyLeadership } from "@/features/local-authority/services/localAuthorityService";
 import UpcomingEventsWidget from "@/features/events/components/UpcomingEventsWidget";
+import NoticesBanner from "@/features/notices/components/NoticesBanner";
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,7 @@ function AdminDashboard({ stats }: { stats: DashboardStats }) {
         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
           Upcoming Events
         </h2>
+        <NoticesBanner />      
         <UpcomingEventsWidget limit={5} calendarRoute={ROUTES.PRIVATE.EVENTS} />
       </div>
 
@@ -192,7 +194,7 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
       </div>
 
       <VillageLeadershipCard />
-      
+      <NoticesBanner />      
       <UpcomingEventsWidget limit={5} calendarRoute={ROUTES.PUBLIC.EVENTS} />
 
       {/* Profile card */}
