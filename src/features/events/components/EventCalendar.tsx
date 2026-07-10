@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
 import { getPublicCalendarMonth } from "../services/publicCalendarService";
 import { PublicEvent, HijriDay } from "../calendar-types";
 import Select from "@/components/form/Select";
+import { isMajorHoliday, majorHolidayLabel } from "../major-holidays";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -63,7 +64,7 @@ export default function EventCalendar() {
   // Holidays for the visible month, sorted by date
   const monthHolidays = useMemo(() => {
     return (data?.hijriDays ?? [])
-      .filter((h) => !!h.holidayName)
+      .filter((h) => isMajorHoliday(h.hijriMonth, h.hijriDay))
       .sort((a, b) => a.gregorianDate.localeCompare(b.gregorianDate));
   }, [data]);
 
@@ -148,6 +149,7 @@ export default function EventCalendar() {
               const key = ymd(date);
               const dayEvents = eventsByDate.get(key) ?? [];
               const hijri = hijriByDate.get(key);
+              const isMajor = isMajorHoliday(hijri?.hijriMonth, hijri?.hijriDay);
               const isToday = key === ymd(today);
               const isSelected = key === selectedDate;
               const hasUrgent = dayEvents.some((e) => e.urgent);
@@ -160,24 +162,21 @@ export default function EventCalendar() {
                     "relative aspect-square rounded-lg border text-left p-1.5 flex flex-col justify-between transition",
                     isSelected ? "border-primary ring-2 ring-primary/30" : "border-slate-100 hover:border-slate-300",
                     isToday ? "bg-primary/5" : "",
-                    hijri?.holidayName ? "bg-green-50" : "",
+                    isMajor ? "bg-green-100" : "",
                   ].join(" ")}
                 >
-                  {hijri?.holidayName && (
+                  {isMajor && (
                     <span
-                      className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-green-500"
-                      title={hijri.holidayName}
+                      className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-green-600"
+                      title={majorHolidayLabel(hijri?.hijriMonth, hijri?.hijriDay, hijri?.holidayName)}
                     />
                   )}
-
                   <span className="text-sm font-medium text-slate-800">{date.getDate()}</span>
-
                   {hijri && (
                     <span className="text-[10px] text-slate-400 leading-none">
                       {hijri.hijriDay} {hijri.hijriMonthName?.slice(0, 3)}
                     </span>
                   )}
-
                   <div className="flex gap-0.5 flex-wrap items-center">
                     {dayEvents.slice(0, 3).map((e) => (
                       <span
@@ -197,7 +196,7 @@ export default function EventCalendar() {
           <div className="flex items-center gap-4 mt-4 pt-3 border-t text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" /> Event</span>
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> Urgent</span>
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> Holiday</span>
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-600 inline-block" /> Holiday</span>
           </div>
 
           {/* Holidays this month — pale green strip */}
@@ -208,12 +207,11 @@ export default function EventCalendar() {
               </h3>
               <div className="space-y-1.5">
                 {monthHolidays.slice(0, 4).map((h) => (
-                  <div
-                    key={h.gregorianDate}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-green-50 border border-green-100"
-                  >
-                    <span className="text-sm font-medium text-green-800">{h.holidayName}</span>
-                    <span className="text-xs text-green-600">{formatFullDate(h.gregorianDate)}</span>
+                  <div key={h.gregorianDate} className="flex items-center justify-between px-3 py-2 rounded-lg bg-green-100 border border-green-200">
+                    <span className="text-sm font-medium text-green-900">
+                      {majorHolidayLabel(h.hijriMonth, h.hijriDay, h.holidayName)}
+                    </span>
+                    <span className="text-xs text-green-700">{formatFullDate(h.gregorianDate)}</span>
                   </div>
                 ))}
                 {monthHolidays.length > 4 && (
@@ -232,9 +230,9 @@ export default function EventCalendar() {
               {selectedHijri && (
                 <p className="text-xs text-slate-500">
                   {selectedHijri.hijriDay} {selectedHijri.hijriMonthName} {selectedHijri.hijriYear} AH
-                  {selectedHijri.holidayName && (
-                    <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px]">
-                      {selectedHijri.holidayName}
+                  {isMajorHoliday(selectedHijri.hijriMonth, selectedHijri.hijriDay) && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[11px]">
+                      {majorHolidayLabel(selectedHijri.hijriMonth, selectedHijri.hijriDay, selectedHijri.holidayName)}
                     </span>
                   )}
                 </p>
