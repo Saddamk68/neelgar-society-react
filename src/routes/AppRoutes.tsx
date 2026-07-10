@@ -6,6 +6,7 @@ import Home from "../pages/public/Home";
 import About from "../pages/public/About";
 import Contact from "../pages/public/Contact";
 import Login from "../pages/public/Login";
+import EventsCalendar from "@/pages/public/EventsCalendar";
 import Dashboard from "../pages/private/Dashboard";
 import Members from "../pages/private/Members";
 import Users from "../pages/private/Users";
@@ -31,6 +32,9 @@ import LocalAuthority from "@/pages/private/LocalAuthority";
 import Leadership from "@/pages/public/Leadership";
 import GeoUnits from "@/pages/private/GeoUnits";
 import Backups from "@/pages/private/Backups";
+import Events from "@/pages/private/Events";
+import AddEvent from "@/pages/private/events/AddEvent";
+import EditEvent from "@/pages/private/events/EditEvent";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -84,6 +88,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.PUBLIC.CONTACT} element={<Contact />} />
         <Route path={ROUTES.PUBLIC.LOGIN} element={<Login />} />
         <Route path={ROUTES.PUBLIC.LEADERSHIP} element={<Leadership />} />
+        <Route path={ROUTES.PUBLIC.EVENTS} element={<EventsCalendar />} />
       </Route>
 
       {/* Private */}
@@ -141,6 +146,15 @@ export default function AppRoutes() {
           } />
           <Route path="backups" element={
             <RequirePermission perm={PERM.DB_BACKUP_MANAGE}><Backups /></RequirePermission>
+          } />
+          <Route path="events" element={
+            <RequirePermission perm={PERM.EVENT_MANAGE}><Events /></RequirePermission>
+          } />
+          <Route path="events/new" element={
+            <RequirePermission perm={PERM.EVENT_MANAGE}><AddEvent /></RequirePermission>
+          } />
+          <Route path="events/:id/edit" element={
+            <RequirePermission perm={PERM.EVENT_MANAGE}><EditEvent /></RequirePermission>
           } />
         </Route>
       </Route>

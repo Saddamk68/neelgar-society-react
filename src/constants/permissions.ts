@@ -21,6 +21,7 @@ export const PERM = {
   GOTRA_MANAGE: "GOTRA_MANAGE",
   GEO_UNIT_MANAGE: "GEO_UNIT_MANAGE",
   DB_BACKUP_MANAGE: "DB_BACKUP_MANAGE",
+  EVENT_MANAGE: "EVENT_MANAGE",
 } as const;
 
 export type Perm = typeof PERM[keyof typeof PERM];
