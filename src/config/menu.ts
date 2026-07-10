@@ -1,4 +1,15 @@
-import { Home, Users, FileText, User, BookOpen, Shield, MapPin, Landmark, Database } from "lucide-react";
+import {
+  Home,
+  Users,
+  FileText,
+  User,
+  BookOpen,
+  Shield,
+  MapPin,
+  Landmark,
+  Database,
+  CalendarDays
+} from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import { PERM } from "../constants/permissions";
 import type { Perm } from "../constants/permissions";
@@ -44,12 +55,12 @@ export const MENU: MenuItem[] = [
     ],
   },
   {
-    key: "logs",
-    label: PRIVATE.LOGS_TITLE,
-    path: "/app/logs",
+    key: "events",
+    label: "Events",
+    path: "/app/events",
     section: "ADMINISTRATION",
-    required: [PERM.VIEW_LOGS],
-    icon: FileText,
+    required: [PERM.EVENT_MANAGE],
+    icon: CalendarDays,
   },
   {
     key: "users",
@@ -57,6 +68,13 @@ export const MENU: MenuItem[] = [
     path: "/app/users",
     required: [PERM.USER_MANAGE],
     icon: User,
+  },
+  {
+    key: "logs",
+    label: PRIVATE.LOGS_TITLE,
+    path: "/app/logs",
+    required: [PERM.VIEW_LOGS],
+    icon: FileText,
   },
   {
     key: "gotras",

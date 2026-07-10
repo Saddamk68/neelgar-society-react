@@ -55,6 +55,14 @@ export default function PublicLayout() {
             {NAV.LEADERSHIP}
           </NavLink>
           <NavLink
+            to={ROUTES.PUBLIC.EVENTS}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted hover:text-text-primary transition"
+            }
+          >
+            {NAV.EVENTS}
+          </NavLink>
+          <NavLink
             to={ROUTES.PUBLIC.CONTACT}
             className={({ isActive }) =>
               isActive ? "text-primary font-medium" : "text-text-muted hover:text-text-primary transition"
@@ -119,6 +127,15 @@ export default function PublicLayout() {
             }
           >
             {NAV.LEADERSHIP}
+          </NavLink>
+          <NavLink
+            to={ROUTES.PUBLIC.EVENTS}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted"
+            }
+          >
+            {NAV.EVENTS}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.CONTACT}

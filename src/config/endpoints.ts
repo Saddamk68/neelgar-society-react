@@ -102,6 +102,15 @@ export const ENDPOINTS = {
     myLeadership: () => `/local-authority/my-leadership`,
   },
 
+  events: {
+    list: () => `/events`,
+    create: () => `/events`,
+    update: (id: number) => `/events/${id}`,
+    publish: (id: number) => `/events/${id}/publish`,
+    cancel: (id: number) => `/events/${id}/cancel`,
+    delete: (id: number) => `/events/${id}`,
+  },
+
   relationships: {
     // GET /relationships/person/{memberCode} — full summary (father, mother, spouse, children, siblings)
     forPerson: (memberCode: string) => `/relationships/person/${memberCode}`,

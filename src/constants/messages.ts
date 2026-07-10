@@ -13,6 +13,7 @@ export const NAV = {
   LOGIN: "Login",
   DASHBOARD: "Dashboard",
   LEADERSHIP: "Leadership",
+  EVENTS: "Events",
 };
 
 export const PROFILE_MENU = {
