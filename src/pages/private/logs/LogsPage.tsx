@@ -235,7 +235,7 @@ export default function LogsPage() {
     const hasFilters = Object.values(filters).some(Boolean);
 
     return (
-        <div className="space-y-4 flex flex-col h-[calc(98vh-8rem)]">
+        <div className="space-y-4">
 
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -330,7 +330,7 @@ export default function LogsPage() {
             )}
 
             {!isLoading && !isError && data && (
-                <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
+                <div className="bg-white rounded-xl shadow overflow-hidden flex flex-col">
                     <div className="overflow-x-auto flex-1">
                         <table className="w-full text-sm">
                             <thead>

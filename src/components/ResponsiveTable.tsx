@@ -1,6 +1,5 @@
-// src/components/ResponsiveTable.tsx
 import React, { useEffect, useRef, useState } from "react";
-import Tooltip from "./Tooltip"; // your tooltip component
+import Tooltip from "./Tooltip";
 
 export type ColumnConfig<T = any> = {
   key: keyof T | string;
@@ -36,6 +35,33 @@ function parsePx(w?: string) {
   if (!w) return 0;
   const match = String(w).match(/^(\d+)\s*px$/);
   return match ? Number(match[1]) : 0;
+}
+
+// Tailwind default breakpoints
+const BREAKPOINTS: Record<"sm" | "md" | "lg", number> = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+};
+
+/** Tracks current window width so we can drop hidden columns from the DOM
+ *  entirely (instead of just CSS-hiding cells), which keeps table-fixed
+ *  column widths accurate. */
+function useWindowWidth() {
+  const [width, setWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1280
+  );
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}
+
+function isColumnVisible(col: { hideBelow?: "sm" | "md" | "lg" }, width: number) {
+  if (!col.hideBelow) return true;
+  return width >= BREAKPOINTS[col.hideBelow];
 }
 
 /**
@@ -117,22 +143,27 @@ export default function ResponsiveTable<T>({
   expandedRowKey,
   renderExpandedRow,
 }: ResponsiveTableProps<T>) {
-  // Prefer 'weight' if present; otherwise fallback to px widths or equal distribution
-  const hasWeights = columns.some((c) => typeof c.weight === "number" && c.weight > 0);
+  const width = useWindowWidth();
+
+  // Only columns that should actually render at this width —
+  // this is what fixes the blank reserved-space bug.
+  const visibleColumns = columns.filter((c) => isColumnVisible(c, width));
+
+  const hasWeights = visibleColumns.some((c) => typeof c.weight === "number" && c.weight > 0);
 
   let colPercents: string[] = [];
 
   if (hasWeights) {
-    const totalWeight = columns.reduce((s, c) => s + (c.weight ?? 0), 0) || columns.length;
-    colPercents = columns.map((c) => `${Math.round(((c.weight ?? 0) / totalWeight) * 10000) / 100}%`);
+    const totalWeight = visibleColumns.reduce((s, c) => s + (c.weight ?? 0), 0) || visibleColumns.length;
+    colPercents = visibleColumns.map((c) => `${Math.round(((c.weight ?? 0) / totalWeight) * 10000) / 100}%`);
   } else {
-    const numericWidths = columns.map((c) => parsePx(c.width));
+    const numericWidths = visibleColumns.map((c) => parsePx(c.width));
     const totalPx = numericWidths.reduce((s, v) => s + v, 0);
     if (totalPx > 0) {
-      colPercents = numericWidths.map((px) => (px > 0 ? `${(px / totalPx) * 100}%` : `${(1 / columns.length) * 100}%`));
+      colPercents = numericWidths.map((px) => (px > 0 ? `${(px / totalPx) * 100}%` : `${(1 / visibleColumns.length) * 100}%`));
     } else {
-      const per = 100 / columns.length;
-      colPercents = columns.map(() => `${per}%`);
+      const per = 100 / visibleColumns.length;
+      colPercents = visibleColumns.map(() => `${per}%`);
     }
   }
 
@@ -141,152 +172,139 @@ export default function ResponsiveTable<T>({
     onSort(String(col.key));
   };
 
-  const getResponsiveClass = (col: ColumnConfig<T>) => {
-    if (!col.hideBelow) return "table-cell";
-    const map: Record<string, string> = {
-      sm: "hidden sm:table-cell",
-      md: "hidden md:table-cell",
-      lg: "hidden lg:table-cell",
-    };
-    return map[col.hideBelow] ?? "table-cell";
-  };
-
   const getThAlign = (col: ColumnConfig<T>) => (col.align === "center" ? "text-center" : "text-left");
 
   return (
     <div className={`overflow-x-auto ${className ?? ""}`}>
-      <div className="h-full max-h-[65vh] overflow-y-auto">
-        <table className="table-fixed w-full text-sm border-collapse">
-          <colgroup>
-            {columns.map((col, i) => (
-              <col key={String(col.key)} style={{ width: colPercents[i] }} />
-            ))}
-          </colgroup>
+      <table className="table-fixed w-full text-sm border-collapse">
+        <colgroup>
+          {visibleColumns.map((col, i) => (
+            <col key={String(col.key)} style={{ width: colPercents[i] }} />
+          ))}
+        </colgroup>
 
-          <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
-            <tr>
-              {columns.map((col) => {
-                const isActive = sortConfig?.key === String(col.key);
+        <thead className="sticky top-0 z-10 bg-gray-200 shadow-sm">
+          <tr>
+            {visibleColumns.map((col) => {
+              const isActive = sortConfig?.key === String(col.key);
 
-                const headerTitle = (
-                  <div
-                    style={{
-                      minWidth: 0,
-                      maxWidth: "100%",
-                      whiteSpace: "normal",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {col.title}
-                  </div>
-                );
+              const headerTitle = (
+                <div
+                  style={{
+                    minWidth: 0,
+                    maxWidth: "100%",
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {col.title}
+                </div>
+              );
 
-                return (
-                  <th
-                    key={String(col.key)}
-                    scope="col"
-                    className={`py-3 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide border-b ${getThAlign(col)
-                      } ${getResponsiveClass(col)} ${col.sortable ? "cursor-pointer select-none" : ""}`}
-                    style={{
-                      width: col.width ?? undefined,
-                      minWidth: 0,
-                      maxWidth: "100%",
-                    }}
-                    onClick={() => handleHeaderClick(col)}
-                  >
-                    {col.headerRenderer ? (
-                      col.headerRenderer() // ⭐ CUSTOM HEADER CELL CONTENT
-                    ) : (
-                      <span
-                        className="inline-flex items-center gap-1"
-                        style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
-                      >
-                        {headerTitle}
-                        {col.sortable && isActive && (
-                          <span className="ml-0.5 text-xs" aria-hidden>
-                            {sortConfig?.direction === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-
-          <tbody>
-            {data.length > 0 ? (
-              data.map((row, rIdx) => {
-                const key = rowKey ? String(rowKey(row)) : String((row as any).id ?? rIdx);
-                const isExpanded = expandedRowKey != null && String(expandedRowKey) === key;
-
-                return (
-                  <React.Fragment key={key}>
-                    <tr
-                      className={`${rIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-primary/5 transition-colors`}
+              return (
+                <th
+                  key={String(col.key)}
+                  scope="col"
+                  className={`py-3 px-4 font-bold text-gray-800 text-sm uppercase tracking-wide border-b ${getThAlign(col)
+                    } ${col.sortable ? "cursor-pointer select-none" : ""}`}
+                  style={{
+                    width: col.width ?? undefined,
+                    minWidth: 0,
+                    maxWidth: "100%",
+                  }}
+                  onClick={() => handleHeaderClick(col)}
+                >
+                  {col.headerRenderer ? (
+                    col.headerRenderer()
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1"
+                      style={{ minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
                     >
-                      {columns.map((col) => {
-                        const respClass = getResponsiveClass(col);
-                        const alignStyle = { textAlign: col.align === "center" ? "center" : "left" } as React.CSSProperties;
+                      {headerTitle}
+                      {col.sortable && isActive && (
+                        <span className="ml-0.5 text-xs" aria-hidden>
+                          {sortConfig?.direction === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
 
-                        if (renderCell) {
-                          const rendered = renderCell(row, col);
-                          if (rendered !== undefined && rendered !== null) {
-                            return (
-                              <td
-                                key={String(col.key)}
-                                className={`py-2 px-4 border-b ${respClass}`}
-                                style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
-                              >
-                                <div style={{ minWidth: 0 }}>{rendered}</div>
-                              </td>
-                            );
-                          }
-                        }
+        <tbody>
+          {data.length > 0 ? (
+            data.map((row, rIdx) => {
+              const key = rowKey ? String(rowKey(row)) : String((row as any).id ?? rIdx);
+              const isExpanded = expandedRowKey != null && String(expandedRowKey) === key;
 
-                        const raw = (row as any)[col.key];
+              return (
+                <React.Fragment key={key}>
+                  <tr
+                    className={`${rIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-primary/5 transition-colors`}
+                  >
+                    {visibleColumns.map((col) => {
+                      const alignStyle = { textAlign: col.align === "center" ? "center" : "left" } as React.CSSProperties;
 
-                        if (col.truncate || col.tooltip) {
+                      if (renderCell) {
+                        const rendered = renderCell(row, col);
+                        if (rendered !== undefined && rendered !== null) {
                           return (
                             <td
                               key={String(col.key)}
-                              className={`py-2 px-4 border-b ${respClass}`}
+                              className="py-2 px-4 border-b"
                               style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
                             >
-                              <div style={{ minWidth: 0 }}>
-                                <Truncatable text={raw ?? "-"} tooltipOnOverflow={Boolean(col.tooltip)} offset={18} />
-                              </div>
+                              <div style={{ minWidth: 0 }}>{rendered}</div>
                             </td>
                           );
                         }
+                      }
 
+                      const raw = (row as any)[col.key];
+
+                      if (col.truncate || col.tooltip) {
                         return (
                           <td
                             key={String(col.key)}
-                            className={`py-2 px-4 border-b ${respClass}`}
+                            className="py-2 px-4 border-b"
                             style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
                           >
-                            <div style={{ minWidth: 0 }}>{raw ?? "-"}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <Truncatable text={raw ?? "-"} tooltipOnOverflow={Boolean(col.tooltip)} offset={18} />
+                            </div>
                           </td>
                         );
-                      })}
-                    </tr>
+                      }
 
-                    {isExpanded && renderExpandedRow && renderExpandedRow(row)}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={columns.length} className="py-6 text-center text-text-muted">
-                  No records found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                      return (
+                        <td
+                          key={String(col.key)}
+                          className="py-2 px-4 border-b"
+                          style={{ ...alignStyle, minWidth: 0, overflow: "hidden" }}
+                        >
+                          <div style={{ minWidth: 0 }}>{raw ?? "-"}</div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  {isExpanded && renderExpandedRow && renderExpandedRow(row)}
+                </React.Fragment>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan={visibleColumns.length} className="py-6 text-center text-text-muted">
+                No records found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
