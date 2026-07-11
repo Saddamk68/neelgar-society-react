@@ -11,8 +11,6 @@ import { ChevronDown, LogOut } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 const SIDEBAR_W = 240; // px
-const HEADER_H = 64;   // h-16
-const FOOTER_H = 40;   // h-10
 
 // ── Collapsible group helper ─────────────────────────────────────
 function GroupItem({
@@ -253,27 +251,9 @@ export default function PrivateLayout() {
   );
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-text-primary">
+    <div className="h-screen overflow-hidden bg-background text-text-primary flex">
       <SkipLink />
 
-      {/* Phone warning banner */}
-      {!phoneBannerDismissed && (
-        <div className="fixed top-0 left-0 right-0 z-[60] md:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
-          <span className="mt-0.5 shrink-0">⚠️</span>
-          <span className="flex-1">
-            This portal is not designed for mobile devices. Some features may not work well on a phone.
-          </span>
-          <button
-            onClick={() => setPhoneBannerDismissed(true)}
-            className="shrink-0 text-amber-600 hover:text-amber-800 font-medium transition"
-            aria-label="Dismiss warning"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* ===== Desktop fixed sidebar ===== */}
       <aside
         className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3"
         style={{ width: SIDEBAR_W }}
@@ -282,7 +262,6 @@ export default function PrivateLayout() {
         {SidebarContent}
       </aside>
 
-      {/* ===== Mobile overlay & drawer ===== */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -314,105 +293,107 @@ export default function PrivateLayout() {
         {SidebarContent}
       </aside>
 
-      {/* ===== Fixed header ===== */}
-      <header
-        role="banner"
-        className="fixed top-0 right-0 left-0 lg:left-[240px] z-20 h-16 bg-surface border-b flex items-center justify-between px-4"
-      >
-        {/* Hamburger — only visible below lg */}
-        <div className="flex items-center gap-3">
-          <button
-            className="lg:hidden p-2 rounded-md hover:bg-slate-100 transition"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open navigation"
-            aria-controls="mobile-sidebar"
-            aria-expanded={mobileOpen}
-          >
-            <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <Breadcrumbs />
-        </div> {/* 🔹 centralized & reusable */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:pl-[240px]">
 
-        <div className="relative">
-          <button
-            onClick={() => setProfileOpen((v) => !v)}
-            className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
-            title="Open profile menu"
-            aria-haspopup="menu"
-            aria-expanded={profileOpen}
-          >
-            <span className="sr-only">Open profile menu</span>
-            U
-          </button>
-
-          {profileOpen && (
-            <div
-              className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
-              onMouseLeave={() => setProfileOpen(false)}
-              role="menu"
-              aria-label="Profile menu"
+        {!phoneBannerDismissed && (
+          <div className="shrink-0 lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
+            <span className="mt-0.5 shrink-0">⚠️</span>
+            <span className="flex-1">
+              This portal is not designed for mobile devices. Some features may not work well on a phone.
+            </span>
+            <button
+              onClick={() => setPhoneBannerDismissed(true)}
+              className="shrink-0 text-amber-600 hover:text-amber-800 font-medium transition"
+              aria-label="Dismiss warning"
             >
-              <div className="px-4 py-2 text-xs text-text-muted">
-                {PROFILE_MENU.ROLE_PREFIX}
-                {role}
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <header
+          role="banner"
+          className="shrink-0 h-16 bg-surface border-b flex items-center justify-between px-4"
+        >
+          <div className="flex items-center gap-3">
+            <button
+              className="lg:hidden p-2 rounded-md hover:bg-slate-100 transition"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation"
+              aria-controls="mobile-sidebar"
+              aria-expanded={mobileOpen}
+            >
+              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <Breadcrumbs />
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => setProfileOpen((v) => !v)}
+              className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
+              title="Open profile menu"
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+            >
+              <span className="sr-only">Open profile menu</span>
+              U
+            </button>
+
+            {profileOpen && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+                onMouseLeave={() => setProfileOpen(false)}
+                role="menu"
+                aria-label="Profile menu"
+              >
+                <div className="px-4 py-2 text-xs text-text-muted">
+                  {PROFILE_MENU.ROLE_PREFIX}
+                  {role}
+                </div>
+                <button
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    navigate(ROUTES.PRIVATE.PROFILE);
+                  }}
+                >
+                  {PROFILE_MENU.VIEW_PROFILE}
+                </button>
+                <button
+                  className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setConfirmLogout(true);
+                  }}
+                >
+                  <LogOut size={15} />
+                  {PROFILE_MENU.SIGNOOUT}
+                </button>
               </div>
-              <button
-                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                role="menuitem"
-                onClick={() => {
-                  setProfileOpen(false);
-                  navigate(ROUTES.PRIVATE.PROFILE);
-                }}
-              >
-                {PROFILE_MENU.VIEW_PROFILE}
-              </button>
-              {/* <button
-                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                role="menuitem"
-                onClick={() => {
-                  setProfileOpen(false);
-                  navigate(ROUTES.PRIVATE.DASHBOARD); // TODO: change to /settings later
-                }}
-              >
-                {PROFILE_MENU.SETTINGS}
-              </button> */}
-              <button
-                className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
-                role="menuitem"
-                onClick={() => {
-                  setProfileOpen(false);
-                  setConfirmLogout(true);
-                }}
-              >
-                <LogOut size={15} />
-                {PROFILE_MENU.SIGNOOUT}
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+        </header>
 
-      {/* ===== Fixed footer ===== */}
-      <footer
-        role="contentinfo"
-        className="fixed bottom-0 right-0 left-0 lg:left-[240px] z-20 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
-      >
-        © Neelgar Society 1992
-      </footer>
-
-      {/* ===== Scrollable content area ===== */}
-      <main
-        id="main-content"
-        role="main"
-        className="absolute overflow-auto app-scroll p-4"
-        style={{ top: `${HEADER_H}px`, bottom: `${FOOTER_H}px`, left: 0, right: 0 }}
-      >
-        <div className="lg:pl-[240px]">
+        <main
+          id="main-content"
+          role="main"
+          className="flex-1 overflow-auto app-scroll p-4"
+        >
           <Outlet />
-        </div>
-      </main>
+        </main>
+
+        <footer
+          role="contentinfo"
+          className="shrink-0 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
+        >
+          © Neelgar Society 1992
+        </footer>
+      </div>
 
       <ConfirmDialog
         isOpen={confirmLogout}
