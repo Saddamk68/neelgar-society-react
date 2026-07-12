@@ -222,7 +222,7 @@ export default function Families() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="space-y-4 flex flex-col h-[calc(98vh-8rem)]">
+        <div className="space-y-4">
 
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -279,7 +279,7 @@ export default function Families() {
 
             {/* Table */}
             {!isLoading && !isError && (
-                <div className="flex-1 bg-white rounded-xl shadow overflow-hidden flex flex-col">
+                <div className="bg-white rounded-xl shadow overflow-hidden flex flex-col">
                     <ResponsiveTable<Family>
                         columns={FAMILY_COLUMNS}
                         data={filtered}
