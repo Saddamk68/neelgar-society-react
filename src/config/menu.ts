@@ -8,7 +8,8 @@ import {
   MapPin,
   Landmark,
   Database,
-  CalendarDays
+  CalendarDays,
+  ClipboardCheck
 } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import { PERM } from "../constants/permissions";
@@ -41,16 +42,23 @@ export const MENU: MenuItem[] = [
     icon: Users,
     children: [
       {
-        key: "members",
-        label: "Members",
-        path: "/app/members",
-        required: [PERM.MEMBER_VIEW],
+        key: "member-applications",
+        label: "Applications",
+        path: "/app/member-applications",
+        required: [PERM.MEMBER_APPLICATION_REVIEW],
+        icon: ClipboardCheck,
       },
       {
         key: "families",
         label: "Families",
         path: "/app/families",
         required: [PERM.FAMILY_VIEW],
+      },
+      {
+        key: "members",
+        label: "Members",
+        path: "/app/members",
+        required: [PERM.MEMBER_VIEW],
       },
     ],
   },

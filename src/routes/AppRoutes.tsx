@@ -35,6 +35,11 @@ import Backups from "@/pages/private/Backups";
 import Events from "@/pages/private/Events";
 import AddEvent from "@/pages/private/events/AddEvent";
 import EditEvent from "@/pages/private/events/EditEvent";
+import MembershipApplication from "@/pages/public/MembershipApplication";
+import ApplicationStatus from "@/pages/public/ApplicationStatus";
+import Membership from "@/pages/public/Membership";
+import MemberApplications from "@/pages/private/MemberApplications";
+import MemberApplicationDetail from "@/pages/private/member-applications/MemberApplicationDetail";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -89,6 +94,9 @@ export default function AppRoutes() {
         <Route path={ROUTES.PUBLIC.LOGIN} element={<Login />} />
         <Route path={ROUTES.PUBLIC.LEADERSHIP} element={<Leadership />} />
         <Route path={ROUTES.PUBLIC.EVENTS} element={<EventsCalendar />} />
+        <Route path={ROUTES.PUBLIC.MEMBERSHIP_APPLICATION} element={<MembershipApplication />} />
+        <Route path={ROUTES.PUBLIC.APPLICATION_STATUS} element={<ApplicationStatus />} />
+        <Route path={ROUTES.PUBLIC.MEMBERSHIP} element={<Membership />} />
       </Route>
 
       {/* Private */}
@@ -122,6 +130,12 @@ export default function AppRoutes() {
           <Route path="families/:familyCode/print" element={<PrintFamily />} />
           <Route path="logs" element={
             <RequirePermission perm={PERM.VIEW_LOGS}><LogsPage /></RequirePermission>
+          } />
+          <Route path="member-applications" element={
+            <RequirePermission perm={PERM.MEMBER_APPLICATION_REVIEW}><MemberApplications /></RequirePermission>
+          } />
+          <Route path="member-applications/:id" element={
+            <RequirePermission perm={PERM.MEMBER_APPLICATION_REVIEW}><MemberApplicationDetail /></RequirePermission>
           } />
           <Route
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
