@@ -125,3 +125,8 @@ export async function markMobileVerified(id: number): Promise<MemberApplicationD
     const res = await api.patch(ENDPOINTS.memberApplications.markMobileVerified(id), {});
     return unwrap<MemberApplicationDetail>(res);
 }
+
+export async function getApplicationCounts(): Promise<Record<ApplicationStatus, number>> {
+  const res = await api.get(ENDPOINTS.memberApplications.counts());
+  return unwrap<Record<ApplicationStatus, number>>(res);
+}

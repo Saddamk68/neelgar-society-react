@@ -30,3 +30,32 @@ export interface MemberApplicationStatusResponse {
     rejectionReason?: string;
     approvedMemberCode?: string;
 }
+
+export interface MemberApplicationEditableDetails {
+  referenceCode: string;
+  firstName: string;
+  lastName: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  dob: string;
+  maritalStatus: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+  gotraId: number;
+  contactNumber?: string;
+  geoUnitId: number;
+  claimedFamilyCode?: string;
+  relationshipClaim?: string;
+  reviewNotes?: string;
+}
+
+export interface MemberApplicationResubmitPayload {
+  firstName: string;
+  lastName: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  dob: string;
+  maritalStatus: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+  gotraId: number;
+  contactNumber?: string;
+  geoUnitId: number;
+  claimedFamilyCode?: string;
+  relationshipClaim?: string;
+  otpVerificationToken: string;
+}

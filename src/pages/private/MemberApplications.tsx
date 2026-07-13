@@ -6,6 +6,7 @@ import {
     listApplications,
     ApplicationStatus,
     MemberApplicationSummary,
+    getApplicationCounts,
 } from "@/features/member-applications/services/memberApplicationService";
 import ResponsiveTable, { ColumnConfig } from "@/components/ResponsiveTable";
 import Tooltip from "@/components/Tooltip";
@@ -29,6 +30,12 @@ export default function MemberApplications() {
     const { data, isLoading, isError } = useQuery({
         queryKey: ["member-applications", status, page],
         queryFn: () => listApplications(status, page, size),
+    });
+
+    const { data: counts } = useQuery({
+        queryKey: ["member-application-counts"],
+        queryFn: getApplicationCounts,
+        refetchInterval: 30000, // keep counts reasonably fresh across tabs
     });
 
     useEffect(() => {
@@ -125,6 +132,16 @@ export default function MemberApplications() {
                         ].join(" ")}
                     >
                         {tab.label}
+                        {!!counts?.[tab.status] && (
+                            <span
+                                className={[
+                                    "ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold",
+                                    status === tab.status ? "bg-primary text-white" : "bg-slate-200 text-slate-600",
+                                ].join(" ")}
+                            >
+                                {counts[tab.status]}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>

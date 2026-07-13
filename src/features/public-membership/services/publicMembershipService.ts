@@ -1,5 +1,7 @@
 import { ENV } from "@/config/env";
 import {
+    MemberApplicationEditableDetails,
+    MemberApplicationResubmitPayload,
     MemberApplicationStatusResponse,
     MemberApplicationSubmitPayload,
 } from "../public-membership-types";
@@ -55,6 +57,33 @@ export async function getApplicationStatus(
 ): Promise<MemberApplicationStatusResponse> {
     const res = await fetch(
         `${PUBLIC_API_BASE}/public/member-applications/status/${encodeURIComponent(referenceCode)}`
+    );
+    return handle<MemberApplicationStatusResponse>(res);
+}
+
+export async function getEditableDetails(
+    referenceCode: string,
+    email: string,
+    otpVerificationToken: string
+): Promise<MemberApplicationEditableDetails> {
+    const params = new URLSearchParams({ email, otpVerificationToken });
+    const res = await fetch(
+        `${PUBLIC_API_BASE}/public/member-applications/${encodeURIComponent(referenceCode)}/editable-details?${params}`
+    );
+    return handle<MemberApplicationEditableDetails>(res);
+}
+
+export async function resubmitApplication(
+    referenceCode: string,
+    payload: MemberApplicationResubmitPayload
+): Promise<MemberApplicationStatusResponse> {
+    const res = await fetch(
+        `${PUBLIC_API_BASE}/public/member-applications/${encodeURIComponent(referenceCode)}/resubmit`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        }
     );
     return handle<MemberApplicationStatusResponse>(res);
 }

@@ -113,6 +113,7 @@ export const ENDPOINTS = {
 
   memberApplications: {
     list: () => `/member-applications`,
+    counts: () => `/member-applications/counts`,
     get: (id: number) => `/member-applications/${id}`,
     approve: (id: number) => `/member-applications/${id}/approve`,
     reject: (id: number) => `/member-applications/${id}/reject`,

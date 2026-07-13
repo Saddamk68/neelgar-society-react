@@ -14,7 +14,7 @@ export const NAV = {
   DASHBOARD: "Dashboard",
   LEADERSHIP: "Leadership",
   EVENTS: "Events",
-  MEMBERSHIP: "Join / Track Application",
+  MEMBERSHIP: "Join",
 };
 
 export const PROFILE_MENU = {
