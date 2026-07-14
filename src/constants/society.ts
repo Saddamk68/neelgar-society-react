@@ -1,3 +1,5 @@
+export const DEFAULT_SOCIETY_ID = 10000001;
+
 export const SOCIETY = {
     name: "Neelgar Society",
     established: "1992",

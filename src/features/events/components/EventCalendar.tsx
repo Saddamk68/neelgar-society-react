@@ -16,7 +16,7 @@ const MONTH_OPTIONS = MONTHS.map((m, i) => ({ value: i + 1, label: m }));
 
 function yearOptions(current: number) {
   const options = [];
-  for (let y = current - 3; y <= current + 5; y++) {
+  for (let y = current - 20; y <= current + 20; y++) {
     options.push({ value: y, label: String(y) });
   }
   return options;
@@ -175,7 +175,8 @@ export default function EventCalendar() {
                   className={[
                     "relative aspect-square rounded-lg border text-left p-1.5 flex flex-col justify-between transition",
                     isSelected ? "border-primary ring-2 ring-primary/30" : "border-slate-100 hover:border-slate-300",
-                    isToday ? "bg-primary/5" : "",
+                    isToday ? "ring-2 ring-primary bg-primary/5" : "",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-primary",
                     isGreenDay ? "bg-green-100" : "",
                   ].join(" ")}
                 >
@@ -218,6 +219,7 @@ export default function EventCalendar() {
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> Urgent</span>
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-600 inline-block" /> Holiday / Friday</span>
             <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Other Observance</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full ring-2 ring-primary inline-block" /> Today</span>
           </div>
 
           {/* Selected day detail */}
