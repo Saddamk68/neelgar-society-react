@@ -113,7 +113,7 @@ export default function ApplicationStatus() {
         setSendingOtp(true);
         try {
             await sendOtp(email.trim());
-            notify.success("OTP sent to your email");
+            notify.success("Verification code sent to your email");
             setStage("otp");
         } catch (err: any) {
             notify.error(err.message || "Failed to send OTP");

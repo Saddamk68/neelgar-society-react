@@ -141,7 +141,7 @@ export default function MembershipApplication() {
             setOtp("");
             setOtpErrorMessage("");
             cooldown.start();
-            notify.success("OTP sent to your email");
+            notify.success("Verification code sent to your email");
         } catch (err: any) {
             setEmailError(err.message || "Failed to send OTP");
         } finally {
