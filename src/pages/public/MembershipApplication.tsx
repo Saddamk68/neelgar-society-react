@@ -83,7 +83,9 @@ export default function MembershipApplication() {
 
     const [step, setStep] = useState<Step>(1);
     const [emailInput, setEmailInput] = useState("");
+    const [emailError, setEmailError] = useState("");
     const [otpSent, setOtpSent] = useState(false);
+    const [otpErrorMessage, setOtpErrorMessage] = useState("");
     const [verifiedEmail, setVerifiedEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [otpErrorSignal, setOtpErrorSignal] = useState(0);
@@ -127,19 +129,21 @@ export default function MembershipApplication() {
 
     async function handleSendOtp(emailValue: string) {
         if (!emailValue.trim()) {
-            notify.error("Please enter your email address");
+            setEmailError("Please enter your email address");
             return;
         }
+        setEmailError("");
         setSendingOtp(true);
         try {
             await sendOtp(emailValue.trim());
             setVerifiedEmail(emailValue.trim());
             setOtpSent(true);
             setOtp("");
+            setOtpErrorMessage("");
             cooldown.start();
             notify.success("OTP sent to your email");
         } catch (err: any) {
-            notify.error(err.message || "Failed to send OTP");
+            setEmailError(err.message || "Failed to send OTP");
         } finally {
             setSendingOtp(false);
         }
@@ -153,7 +157,7 @@ export default function MembershipApplication() {
             notify.success("Email verified");
             setStep(2);
         } catch (err: any) {
-            notify.error(err.message || "Invalid OTP");
+            setOtpErrorMessage(err.message || "Incorrect code. Please try again.");
             setOtpErrorSignal((n) => n + 1);
         } finally {
             setVerifyingOtp(false);
@@ -213,14 +217,20 @@ export default function MembershipApplication() {
                             {!otpSent ? (
                                 <div className="space-y-4">
                                     <div>
-                                        <FieldLabel required>Email Address</FieldLabel>
-                                        <input
-                                            type="email"
-                                            className={inputClass()}
-                                            placeholder="you@example.com"
-                                            value={emailInput}
-                                            onChange={(e) => setEmailInput(e.target.value)}
-                                        />
+                                        <div>
+                                            <FieldLabel required>Email Address</FieldLabel>
+                                            <input
+                                                type="email"
+                                                className={inputClass(!!emailError)}
+                                                placeholder="you@example.com"
+                                                value={emailInput}
+                                                onChange={(e) => {
+                                                    setEmailInput(e.target.value);
+                                                    if (emailError) setEmailError("");
+                                                }}
+                                            />
+                                            {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+                                        </div>
                                     </div>
                                     <button
                                         type="button"
@@ -242,6 +252,7 @@ export default function MembershipApplication() {
                                         onChange={setOtp}
                                         onComplete={handleVerifyOtp}
                                         errorSignal={otpErrorSignal}
+                                        errorMessage={otpErrorMessage}
                                         disabled={verifyingOtp}
                                     />
 

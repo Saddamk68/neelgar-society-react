@@ -17,7 +17,7 @@ function unwrap<T>(json: any): T {
 async function handle<T>(res: Response): Promise<T> {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new Error(json?.message || "Request failed");
+        throw new Error(json?.error || json?.message || "Request failed");
     }
     return unwrap<T>(json);
 }
