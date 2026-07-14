@@ -11,8 +11,6 @@ import PublicGeoUnitCascadeSelect, {
 } from "@/features/public-membership/components/PublicGeoUnitCascadeSelect";
 import PublicGotraSelect from "@/features/public-membership/components/PublicGotraSelect";
 import {
-    emailSchema,
-    otpSchema,
     applicationDetailsSchema,
     EmailValues,
     OtpValues,
@@ -26,6 +24,8 @@ import {
 import { useNotify } from "@/services/notifications";
 import { ROUTES } from "@/constants/routes";
 import { DEFAULT_SOCIETY_ID } from "@/constants/society";
+import { useResendCooldown } from "@/features/public-membership/hooks/useResendCooldown";
+import OtpInputBoxes from "@/features/public-membership/components/OtpInputBoxes";
 
 type Step = 1 | 2 | 3;
 
@@ -82,17 +82,18 @@ export default function MembershipApplication() {
     const navigate = useNavigate();
 
     const [step, setStep] = useState<Step>(1);
+    const [emailInput, setEmailInput] = useState("");
     const [otpSent, setOtpSent] = useState(false);
     const [verifiedEmail, setVerifiedEmail] = useState("");
+    const [otp, setOtp] = useState("");
+    const [otpErrorSignal, setOtpErrorSignal] = useState(0);
     const [verificationToken, setVerificationToken] = useState("");
     const [referenceCode, setReferenceCode] = useState("");
     const [sendingOtp, setSendingOtp] = useState(false);
     const [verifyingOtp, setVerifyingOtp] = useState(false);
     const [geo, setGeo] = useState<GeoSelection>({});
 
-    // ── Step 1 forms: email + otp ────────────────────────────────────────────
-    const emailForm = useForm<EmailValues>({ resolver: zodResolver(emailSchema), mode: "onBlur" });
-    const otpForm = useForm<OtpValues>({ resolver: zodResolver(otpSchema), mode: "onBlur" });
+    const cooldown = useResendCooldown(verifiedEmail || emailInput, 60);
 
     // ── Step 2 form: application details ─────────────────────────────────────
     const detailsForm = useForm<ApplicationDetailsValues>({
@@ -124,12 +125,18 @@ export default function MembershipApplication() {
 
     // ── Step 1 handlers ───────────────────────────────────────────────────────
 
-    async function handleSendOtp(data: EmailValues) {
+    async function handleSendOtp(emailValue: string) {
+        if (!emailValue.trim()) {
+            notify.error("Please enter your email address");
+            return;
+        }
         setSendingOtp(true);
         try {
-            await sendOtp(data.email);
-            setVerifiedEmail(data.email);
+            await sendOtp(emailValue.trim());
+            setVerifiedEmail(emailValue.trim());
             setOtpSent(true);
+            setOtp("");
+            cooldown.start();
             notify.success("OTP sent to your email");
         } catch (err: any) {
             notify.error(err.message || "Failed to send OTP");
@@ -138,15 +145,16 @@ export default function MembershipApplication() {
         }
     }
 
-    async function handleVerifyOtp(data: OtpValues) {
+    async function handleVerifyOtp(otpValue: string) {
         setVerifyingOtp(true);
         try {
-            const token = await verifyOtp(verifiedEmail, data.otp);
+            const token = await verifyOtp(verifiedEmail, otpValue);
             setVerificationToken(token);
             notify.success("Email verified");
             setStep(2);
         } catch (err: any) {
             notify.error(err.message || "Invalid OTP");
+            setOtpErrorSignal((n) => n + 1);
         } finally {
             setVerifyingOtp(false);
         }
@@ -203,64 +211,55 @@ export default function MembershipApplication() {
                     {step === 1 && (
                         <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
                             {!otpSent ? (
-                                <form onSubmit={emailForm.handleSubmit(handleSendOtp)} className="space-y-4">
+                                <div className="space-y-4">
                                     <div>
                                         <FieldLabel required>Email Address</FieldLabel>
                                         <input
                                             type="email"
-                                            className={inputClass(!!emailForm.formState.errors.email)}
+                                            className={inputClass()}
                                             placeholder="you@example.com"
-                                            {...emailForm.register("email")}
+                                            value={emailInput}
+                                            onChange={(e) => setEmailInput(e.target.value)}
                                         />
-                                        {emailForm.formState.errors.email && (
-                                            <p className="text-xs text-red-500 mt-1">{emailForm.formState.errors.email.message}</p>
-                                        )}
                                     </div>
                                     <button
-                                        type="submit"
+                                        type="button"
+                                        onClick={() => handleSendOtp(emailInput)}
                                         disabled={sendingOtp}
                                         className="px-5 py-2.5 rounded-md bg-primary text-white text-sm font-semibold disabled:opacity-50"
                                     >
                                         {sendingOtp ? "Sending…" : "Send Verification Code"}
                                     </button>
-                                </form>
+                                </div>
                             ) : (
-                                <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-4">
-                                    <p className="text-sm text-text-muted">
+                                <div className="space-y-5">
+                                    <p className="text-sm text-text-muted text-center">
                                         A 6-digit code was sent to <span className="font-semibold">{verifiedEmail}</span>.
                                     </p>
-                                    <div>
-                                        <FieldLabel required>Verification Code</FieldLabel>
-                                        <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            maxLength={6}
-                                            className={inputClass(!!otpForm.formState.errors.otp)}
-                                            placeholder="123456"
-                                            {...otpForm.register("otp")}
-                                        />
-                                        {otpForm.formState.errors.otp && (
-                                            <p className="text-xs text-red-500 mt-1">{otpForm.formState.errors.otp.message}</p>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            type="submit"
-                                            disabled={verifyingOtp}
-                                            className="px-5 py-2.5 rounded-md bg-primary text-white text-sm font-semibold disabled:opacity-50"
-                                        >
-                                            {verifyingOtp ? "Verifying…" : "Verify Code"}
-                                        </button>
+
+                                    <OtpInputBoxes
+                                        value={otp}
+                                        onChange={setOtp}
+                                        onComplete={handleVerifyOtp}
+                                        errorSignal={otpErrorSignal}
+                                        disabled={verifyingOtp}
+                                    />
+
+                                    <p className="text-center text-xs text-text-muted">
+                                        {verifyingOtp ? "Verifying…" : "Code auto-verifies once all 6 digits are entered"}
+                                    </p>
+
+                                    <div className="flex justify-center">
                                         <button
                                             type="button"
-                                            onClick={() => handleSendOtp({ email: verifiedEmail })}
-                                            disabled={sendingOtp}
-                                            className="text-sm text-primary font-medium hover:underline"
+                                            onClick={() => handleSendOtp(verifiedEmail)}
+                                            disabled={sendingOtp || cooldown.isActive}
+                                            className="text-sm text-primary font-medium hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
                                         >
-                                            Resend code
+                                            {cooldown.isActive ? `Resend code in ${cooldown.remainingSeconds}s` : "Resend code"}
                                         </button>
                                     </div>
-                                </form>
+                                </div>
                             )}
                         </div>
                     )}

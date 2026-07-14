@@ -25,6 +25,8 @@ import {
 } from "@/features/public-membership/services/publicMembershipService";
 import { MemberApplicationStatusResponse } from "@/features/public-membership/public-membership-types";
 import { useNotify } from "@/services/notifications";
+import { useResendCooldown } from "@/features/public-membership/hooks/useResendCooldown";
+import OtpInputBoxes from "@/features/public-membership/components/OtpInputBoxes";
 
 function inputClass(hasError?: boolean) {
     return [
@@ -60,7 +62,9 @@ export default function ApplicationStatus() {
     const [sendingOtp, setSendingOtp] = useState(false);
     const [geo, setGeo] = useState<GeoSelection>({});
 
-    const otpForm = useForm<OtpValues>({ resolver: zodResolver(otpSchema), mode: "onBlur" });
+    const [otp, setOtp] = useState("");
+    const [otpErrorSignal, setOtpErrorSignal] = useState(0);
+    const cooldown = useResendCooldown(email, 60);
     const detailsForm = useForm<ApplicationDetailsValues>({
         resolver: zodResolver(applicationDetailsSchema) as any,
         mode: "onBlur",
@@ -118,9 +122,9 @@ export default function ApplicationStatus() {
         }
     }
 
-    async function handleVerifyForResubmit(data: OtpValues) {
+    async function handleVerifyForResubmit(otpValue: string) {
         try {
-            const token = await verifyOtp(email.trim(), data.otp);
+            const token = await verifyOtp(email.trim(), otpValue);
             setVerificationToken(token);
 
             const details = await getEditableDetails(referenceCode.trim(), email.trim(), token);
@@ -185,30 +189,46 @@ export default function ApplicationStatus() {
 
             <section className="py-12">
                 <div className="max-w-2xl mx-auto px-6">
-                    <form onSubmit={handleSearch} className="bg-white border border-slate-200 rounded-xl p-6 flex gap-3 items-end">
-                        <div className="flex-1">
-                            <FieldLabel required>Reference Code</FieldLabel>
-                            <input
-                                className={inputClass()}
-                                placeholder="APP-2026-4F7A9C"
-                                value={referenceCode}
-                                onChange={(e) => setReferenceCode(e.target.value.toUpperCase())}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-5 py-2.5 rounded-md bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
-                        >
-                            <Search className="w-4 h-4" />
-                            {loading ? "Checking…" : "Check Status"}
-                        </button>
-                    </form>
+                    {!result && (
+                        <form onSubmit={handleSearch} className="bg-white border border-slate-200 rounded-xl p-6 flex gap-3 items-end">
+                            <div className="flex-1">
+                                <FieldLabel required>Reference Code</FieldLabel>
+                                <input
+                                    className={inputClass()}
+                                    placeholder="APP-2026-4F7A9C"
+                                    value={referenceCode}
+                                    onChange={(e) => setReferenceCode(e.target.value.toUpperCase())}
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-5 py-2.5 rounded-md bg-primary text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <Search className="w-4 h-4" />
+                                {loading ? "Checking…" : "Check Status"}
+                            </button>
+                        </form>
+                    )}
 
                     {searched && !loading && !result && (
                         <div className="mt-6 bg-white border border-slate-200 rounded-xl p-6 text-center text-text-muted">
                             No application found for this reference code. Please check and try again.
                         </div>
+                    )}
+
+                    {result && (
+                        <button
+                            onClick={() => {
+                                setResult(null);
+                                setSearched(false);
+                                setReferenceCode("");
+                                setStage("closed");
+                            }}
+                            className="text-sm text-primary font-medium hover:underline mb-4"
+                        >
+                            ← Search a different application
+                        </button>
                     )}
 
                     {result && statusInfo && (
@@ -296,28 +316,33 @@ export default function ApplicationStatus() {
 
                             {/* ── Resubmit: step 2, OTP ── */}
                             {stage === "otp" && (
-                                <form onSubmit={otpForm.handleSubmit(handleVerifyForResubmit)} className="border-t pt-5 space-y-3">
-                                    <p className="text-sm text-text-muted">
+                                <div className="border-t pt-5 space-y-4">
+                                    <p className="text-sm text-text-muted text-center">
                                         A 6-digit code was sent to <span className="font-semibold">{email}</span>.
                                     </p>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={6}
-                                        className={inputClass(!!otpForm.formState.errors.otp)}
-                                        placeholder="123456"
-                                        {...otpForm.register("otp")}
+
+                                    <OtpInputBoxes
+                                        value={otp}
+                                        onChange={setOtp}
+                                        onComplete={handleVerifyForResubmit}
+                                        errorSignal={otpErrorSignal}
                                     />
-                                    {otpForm.formState.errors.otp && (
-                                        <p className="text-xs text-red-500">{otpForm.formState.errors.otp.message}</p>
-                                    )}
-                                    <button
-                                        type="submit"
-                                        className="px-5 py-2.5 rounded-md bg-primary text-white text-sm font-semibold"
-                                    >
-                                        Verify & Continue
-                                    </button>
-                                </form>
+
+                                    <p className="text-center text-xs text-text-muted">
+                                        Code auto-verifies once all 6 digits are entered
+                                    </p>
+
+                                    <div className="flex justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={handleSendOtpForResubmit}
+                                            disabled={sendingOtp || cooldown.isActive}
+                                            className="text-sm text-primary font-medium hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
+                                        >
+                                            {cooldown.isActive ? `Resend code in ${cooldown.remainingSeconds}s` : "Resend code"}
+                                        </button>
+                                    </div>
+                                </div>
                             )}
 
                             {/* ── Resubmit: step 3, editable form ── */}
