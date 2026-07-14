@@ -16,7 +16,7 @@ const MONTH_OPTIONS = MONTHS.map((m, i) => ({ value: i + 1, label: m }));
 
 function yearOptions(current: number) {
   const options = [];
-  for (let y = current - 3; y <= current + 5; y++) {
+  for (let y = current - 20; y <= current + 20; y++) {
     options.push({ value: y, label: String(y) });
   }
   return options;
