@@ -6,8 +6,13 @@ export const ROUTES = {
     LOGIN: "/login",
     LEADERSHIP: "/leadership",
     EVENTS: "/events",
+    MEMBERSHIP_APPLICATION: "/membership-application",
+    APPLICATION_STATUS: "/application-status",
+    MEMBERSHIP: "/membership",
   },
+
   PRIVATE_BASE: "/app",
+  
   PRIVATE: {
     DASHBOARD: "/app/dashboard",
     MEMBERS: "/app/members",
@@ -20,5 +25,6 @@ export const ROUTES = {
     LOCAL_AUTHORITY: "/app/local-authority",
     BACKUPS: "/app/backups",
     EVENTS: "/app/events",
+    MEMBER_APPLICATIONS: "/app/member-applications",
   },
 };

@@ -111,6 +111,16 @@ export const ENDPOINTS = {
     delete: (id: number) => `/events/${id}`,
   },
 
+  memberApplications: {
+    list: () => `/member-applications`,
+    counts: () => `/member-applications/counts`,
+    get: (id: number) => `/member-applications/${id}`,
+    approve: (id: number) => `/member-applications/${id}/approve`,
+    reject: (id: number) => `/member-applications/${id}/reject`,
+    needsInfo: (id: number) => `/member-applications/${id}/needs-info`,
+    markMobileVerified: (id: number) => `/member-applications/${id}/mark-mobile-verified`,
+  },
+
   relationships: {
     // GET /relationships/person/{memberCode} — full summary (father, mother, spouse, children, siblings)
     forPerson: (memberCode: string) => `/relationships/person/${memberCode}`,

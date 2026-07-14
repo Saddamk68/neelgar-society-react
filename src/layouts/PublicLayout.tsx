@@ -70,6 +70,14 @@ export default function PublicLayout() {
           >
             {NAV.CONTACT}
           </NavLink>
+          <NavLink
+            to={ROUTES.PUBLIC.MEMBERSHIP}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted hover:text-text-primary transition"
+            }
+          >
+            {NAV.MEMBERSHIP}
+          </NavLink>
           <Link
             to={ROUTES.PUBLIC.LOGIN}
             className="px-4 py-1.5 rounded-md bg-primary text-white text-sm shadow-sm hover:opacity-90 transition"
@@ -145,6 +153,15 @@ export default function PublicLayout() {
             }
           >
             {NAV.CONTACT}
+          </NavLink>
+          <NavLink
+            to={ROUTES.PUBLIC.MEMBERSHIP}
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              isActive ? "text-primary font-medium" : "text-text-muted"
+            }
+          >
+            {NAV.MEMBERSHIP}
           </NavLink>
           <Link
             to={ROUTES.PUBLIC.LOGIN}
