@@ -4,7 +4,7 @@ import { ROUTES } from "@/constants/routes";
 
 export default function Membership() {
     return (
-        <div className="bg-background text-text-primary min-h-screen">
+        <div className="bg-background text-text-primary w-full h-full">
             <section className="bg-surface border-b">
                 <div className="max-w-4xl mx-auto px-6 py-20 text-center">
                     <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-widest uppercase mb-5">
