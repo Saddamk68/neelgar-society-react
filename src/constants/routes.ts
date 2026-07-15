@@ -26,5 +26,6 @@ export const ROUTES = {
     BACKUPS: "/app/backups",
     EVENTS: "/app/events",
     MEMBER_APPLICATIONS: "/app/member-applications",
+    EMAIL_SETTINGS: "/app/email-settings",
   },
 };

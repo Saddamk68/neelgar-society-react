@@ -10,6 +10,7 @@ import {
     requestMoreInfo,
     markMobileVerified,
 } from "@/features/member-applications/services/memberApplicationService";
+import { getFamily } from "@/features/members/services/familyService";
 import { useNotify } from "@/services/notifications";
 import { ROUTES } from "@/constants/routes";
 
@@ -52,7 +53,8 @@ export default function MemberApplicationDetail() {
 
     const [modal, setModal] = useState<ActionModal>(null);
     const [reasonText, setReasonText] = useState("");
-    const [familyIdInput, setFamilyIdInput] = useState("");
+    const [familyCodeInput, setFamilyCodeInput] = useState("");
+    const [familyLookupError, setFamilyLookupError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const { data, isLoading, isError, refetch } = useQuery({
@@ -64,7 +66,8 @@ export default function MemberApplicationDetail() {
     function closeModal() {
         setModal(null);
         setReasonText("");
-        setFamilyIdInput("");
+        setFamilyCodeInput("");
+        setFamilyLookupError("");
     }
 
     function invalidate() {
@@ -74,9 +77,22 @@ export default function MemberApplicationDetail() {
 
     async function handleApprove() {
         setSubmitting(true);
+        setFamilyLookupError("");
         try {
+            let resolvedFamilyId: number | undefined;
+            if (familyCodeInput.trim()) {
+                try {
+                    const family = await getFamily(familyCodeInput.trim());
+                    resolvedFamilyId = family.id;
+                } catch {
+                    setFamilyLookupError(`Family code "${familyCodeInput.trim()}" not found`);
+                    setSubmitting(false);
+                    return;
+                }
+            }
+
             await approveApplication(applicationId, {
-                resolvedFamilyId: familyIdInput ? Number(familyIdInput) : undefined,
+                resolvedFamilyId,
                 notes: reasonText || undefined,
             });
             notify.success("Application approved");
@@ -192,8 +208,8 @@ export default function MemberApplicationDetail() {
                             disabled={data.mobileVerified || submitting || isFinalized}
                             onClick={handleMarkMobileVerified}
                             className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition ${data.mobileVerified
-                                    ? "bg-success/10 text-success"
-                                    : "bg-white border border-slate-300 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+                                ? "bg-success/10 text-success"
+                                : "bg-white border border-slate-300 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                                 }`}
                         >
                             <Phone className="w-3.5 h-3.5" />
@@ -320,15 +336,19 @@ export default function MemberApplicationDetail() {
                         {modal === "approve" && (
                             <div>
                                 <label className="block text-xs text-slate-500 mb-1">
-                                    Existing Family ID (optional — leave blank to create a new family)
+                                    Existing Family Code (optional — leave blank to create a new family)
                                 </label>
                                 <input
-                                    type="number"
-                                    value={familyIdInput}
-                                    onChange={(e) => setFamilyIdInput(e.target.value)}
-                                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                                    placeholder="e.g. 10000042"
+                                    type="text"
+                                    value={familyCodeInput}
+                                    onChange={(e) => { setFamilyCodeInput(e.target.value); setFamilyLookupError(""); }}
+                                    className={[
+                                        "w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition",
+                                        familyLookupError ? "border-danger ring-1 ring-danger" : "border-slate-300 focus:ring-primary/40",
+                                    ].join(" ")}
+                                    placeholder="e.g. FAM-0001"
                                 />
+                                {familyLookupError && <p className="text-xs text-danger mt-1">{familyLookupError}</p>}
                             </div>
                         )}
 

@@ -9,7 +9,8 @@ import {
   Landmark,
   Database,
   CalendarDays,
-  ClipboardCheck
+  ClipboardCheck,
+  Mail
 } from "lucide-react";
 import { NAV, PRIVATE } from "../constants/messages";
 import { PERM } from "../constants/permissions";
@@ -111,6 +112,13 @@ export const MENU: MenuItem[] = [
     path: "/app/backups",
     required: [PERM.DB_BACKUP_MANAGE],
     icon: Database,
+  },
+  {
+    key: "email-settings",
+    label: "Email Settings",
+    path: "/app/email-settings",
+    required: [PERM.EMAIL_SETTINGS_MANAGE],
+    icon: Mail,
   },
   {
     key: "geo-units",
