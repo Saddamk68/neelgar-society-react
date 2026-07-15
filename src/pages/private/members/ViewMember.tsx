@@ -15,6 +15,19 @@ import { usePermission } from "@/hooks/usePermission";
 import { PERM } from "@/constants/permissions";
 import { provisionUserAccount } from "@/features/users/services/userService";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDate(val?: string | null): string {
+    if (!val) return "—";
+    try {
+        return new Date(val).toLocaleDateString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric",
+        });
+    } catch {
+        return val;
+    }
+}
+
 // ── Actions dropdown ──────────────────────────────────────────────────────────
 
 function ActionsMenu({ children }: { children: React.ReactNode }) {
@@ -277,7 +290,7 @@ export default function ViewMember() {
                     : undefined
                 }
               />
-              <Row label="Date of Birth" value={member.dob} />
+              <Row label="Date of Birth" value={formatDate(member.dob)} />
               {member.dod && (
                 <Row label="Date of Death" value={member.dod} />
               )}
