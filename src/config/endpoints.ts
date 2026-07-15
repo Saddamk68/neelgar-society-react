@@ -121,6 +121,18 @@ export const ENDPOINTS = {
     markMobileVerified: (id: number) => `/member-applications/${id}/mark-mobile-verified`,
   },
 
+  mailAccounts: {
+    list: () => `/admin/mail-accounts`,
+    create: () => `/admin/mail-accounts`,
+    update: (id: number) => `/admin/mail-accounts/${id}`,
+  },
+
+  emailTemplates: {
+    list: () => `/admin/email-templates`,
+    create: () => `/admin/email-templates`,
+    update: (id: number) => `/admin/email-templates/${id}`,
+  },
+
   relationships: {
     // GET /relationships/person/{memberCode} — full summary (father, mother, spouse, children, siblings)
     forPerson: (memberCode: string) => `/relationships/person/${memberCode}`,
