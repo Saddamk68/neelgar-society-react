@@ -40,6 +40,7 @@ import ApplicationStatus from "@/pages/public/ApplicationStatus";
 import Membership from "@/pages/public/Membership";
 import MemberApplications from "@/pages/private/MemberApplications";
 import MemberApplicationDetail from "@/pages/private/member-applications/MemberApplicationDetail";
+import EmailSettings from "@/pages/private/EmailSettings";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -136,6 +137,9 @@ export default function AppRoutes() {
           } />
           <Route path="member-applications/:id" element={
             <RequirePermission perm={PERM.MEMBER_APPLICATION_REVIEW}><MemberApplicationDetail /></RequirePermission>
+          } />
+          <Route path="email-settings" element={
+            <RequirePermission perm={PERM.EMAIL_SETTINGS_MANAGE}><EmailSettings /></RequirePermission>
           } />
           <Route
             path={ROUTES.PRIVATE.USERS.replace("/app/", "")}
