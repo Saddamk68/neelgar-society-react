@@ -4,12 +4,13 @@ import { ROUTES } from "../constants/routes";
 import { APP, NAV } from "../constants/messages";
 import SkipLink from "../components/SkipLink";
 import { useState } from "react";
+import { Home, Info, Landmark, CalendarDays, Mail, UserPlus, LogIn } from "lucide-react";
 
 export default function PublicLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-text-primary flex flex-col">
+    <div className="min-h-dvh bg-background text-text-primary flex flex-col">
       <SkipLink />
 
       {/* ── Header ── */}
@@ -105,71 +106,82 @@ export default function PublicLayout() {
         </button>
       </header>
 
+      {/* Mobile dropdown backdrop */}
+      {menuOpen && (
+        <div
+          className="fixed top-16 inset-x-0 bottom-0 z-20 bg-black/40 md:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Mobile dropdown nav */}
       {menuOpen && (
-        <div className="md:hidden bg-surface border-b shadow-sm px-6 py-4 flex flex-col gap-4 text-sm z-10">
+        <div className="fixed top-20 right-4 z-30 md:hidden bg-surface shadow-2xl ring-1 ring-black/5 w-fit min-w-[150px] rounded-2xl py-2 flex flex-col text-sm max-h-[calc(100dvh-6rem)] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
           <NavLink
             to={ROUTES.PUBLIC.HOME}
             end
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.HOME}
+            <Home size={16} /> {NAV.HOME}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.ABOUT}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.ABOUT}
+            <Info size={16} /> {NAV.ABOUT}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.LEADERSHIP}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.LEADERSHIP}
+            <Landmark size={16} /> {NAV.LEADERSHIP}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.EVENTS}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.EVENTS}
+            <CalendarDays size={16} /> {NAV.EVENTS}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.CONTACT}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.CONTACT}
+            <Mail size={16} /> {NAV.CONTACT}
           </NavLink>
           <NavLink
             to={ROUTES.PUBLIC.MEMBERSHIP}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
-              isActive ? "text-primary font-medium" : "text-text-muted"
+              `flex items-center gap-2.5 px-4 py-2.5 whitespace-nowrap transition ${isActive ? "text-primary font-medium bg-primary/5" : "text-text-muted hover:bg-slate-50"}`
             }
           >
-            {NAV.MEMBERSHIP}
+            <UserPlus size={16} /> {NAV.MEMBERSHIP}
           </NavLink>
-          <Link
-            to={ROUTES.PUBLIC.LOGIN}
-            onClick={() => setMenuOpen(false)}
-            className="w-fit px-4 py-1.5 rounded-md bg-primary text-white shadow-sm hover:opacity-90 transition"
-          >
-            {NAV.LOGIN}
-          </Link>
+          <div className="px-3 pt-2 mt-1 border-t">
+            <Link
+              to={ROUTES.PUBLIC.LOGIN}
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white shadow-sm hover:opacity-90 transition"
+            >
+              <LogIn size={16} /> {NAV.LOGIN}
+            </Link>
+          </div>
         </div>
       )}
 
