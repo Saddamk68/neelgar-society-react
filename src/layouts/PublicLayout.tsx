@@ -174,7 +174,7 @@ export default function PublicLayout() {
       )}
 
       {/* ── Page content ── */}
-      <main id="main-content" role="main" className="flex-1">
+      <main id="main-content" role="main" className="flex-1 flex flex-col">
         <Outlet />
       </main>
 
