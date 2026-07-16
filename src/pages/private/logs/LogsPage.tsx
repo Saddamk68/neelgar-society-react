@@ -202,6 +202,17 @@ function DetailPanel({ log, onClose }: { log: AuditLog; onClose: () => void }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+function getPageWindow(current: number, total: number): (number | "gap")[] {
+    const pages = new Set<number>([0, total - 1, current, current - 1, current + 1]);
+    const sorted = [...pages].filter(p => p >= 0 && p < total).sort((a, b) => a - b);
+    const result: (number | "gap")[] = [];
+    sorted.forEach((p, i) => {
+        if (i > 0 && p - sorted[i - 1] > 1) result.push("gap");
+        result.push(p);
+    });
+    return result;
+}
+
 export default function LogsPage() {
     const notify = useNotify();
     const [page, setPage] = useState(0);
@@ -391,24 +402,38 @@ export default function LogsPage() {
 
                     {/* Pagination */}
                     {data.totalPages > 1 && (
-                        <div className="flex justify-center py-2 text-xs text-gray-600 border-t bg-gray-50 gap-1">
+                        <div className="flex items-center justify-center py-2 text-xs text-gray-600 border-t bg-gray-50 gap-1 px-2">
                             <span
-                                className={`cursor-pointer mx-1 ${page === 0 ? "text-gray-400" : "hover:underline"}`}
+                                className={`cursor-pointer mx-1 shrink-0 ${page === 0 ? "text-gray-400" : "hover:underline"}`}
                                 onClick={() => page > 0 && setPage(page - 1)}
                             >
                                 Prev
                             </span>
-                            {Array.from({ length: data.totalPages }, (_, i) => i).map(p => (
-                                <span
-                                    key={p}
-                                    className={`cursor-pointer mx-1 ${p === page ? "font-bold text-primary underline" : "hover:underline"}`}
-                                    onClick={() => setPage(p)}
-                                >
-                                    {p + 1}
-                                </span>
-                            ))}
+
+                            {/* Full numbered pager - hidden on small screens */}
+                            <div className="hidden sm:flex items-center gap-1">
+                                {getPageWindow(page, data.totalPages).map((p, i) =>
+                                    p === "gap" ? (
+                                        <span key={`gap-${i}`} className="mx-1 text-gray-400">…</span>
+                                    ) : (
+                                        <span
+                                            key={p}
+                                            className={`cursor-pointer mx-1 ${p === page ? "font-bold text-primary underline" : "hover:underline"}`}
+                                            onClick={() => setPage(p)}
+                                        >
+                                            {p + 1}
+                                        </span>
+                                    )
+                                )}
+                            </div>
+
+                            {/* Compact indicator - small screens only */}
+                            <span className="sm:hidden mx-1 shrink-0">
+                                Page {page + 1} of {data.totalPages}
+                            </span>
+
                             <span
-                                className={`cursor-pointer mx-1 ${page >= data.totalPages - 1 ? "text-gray-400" : "hover:underline"}`}
+                                className={`cursor-pointer mx-1 shrink-0 ${page >= data.totalPages - 1 ? "text-gray-400" : "hover:underline"}`}
                                 onClick={() => page < data.totalPages - 1 && setPage(page + 1)}
                             >
                                 Next
