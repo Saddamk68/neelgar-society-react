@@ -332,15 +332,15 @@ export default function LogsPage() {
             {!isLoading && !isError && data && (
                 <div className="bg-white rounded-xl shadow overflow-hidden flex flex-col">
                     <div className="overflow-x-auto flex-1">
-                        <table className="w-full text-sm">
+                        <table className="min-w-[850px] w-full text-sm table-fixed">
                             <thead>
                                 <tr className="border-b bg-slate-50 text-left text-xs text-slate-500 uppercase tracking-wide">
-                                    <th className="px-4 py-3">Timestamp</th>
-                                    <th className="px-4 py-3">Actor</th>
-                                    <th className="px-4 py-3">Action</th>
-                                    <th className="px-4 py-3">Entity</th>
-                                    <th className="px-4 py-3">Device</th>
-                                    <th className="px-4 py-3">IP</th>
+                                    <th className="px-4 py-3 w-[150px]">Timestamp</th>
+                                    <th className="px-4 py-3 w-[170px]">Actor</th>
+                                    <th className="px-4 py-3 w-[160px]">Action</th>
+                                    <th className="px-4 py-3 w-[160px]">Entity</th>
+                                    <th className="px-4 py-3 w-[100px]">Device</th>
+                                    <th className="px-4 py-3 w-[130px]">IP</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -367,7 +367,7 @@ export default function LogsPage() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${actionBadgeClass(log.action)}`}>
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${actionBadgeClass(log.action)}`}>
                                                 {log.action}
                                             </span>
                                         </td>
