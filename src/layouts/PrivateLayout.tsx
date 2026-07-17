@@ -251,7 +251,7 @@ export default function PrivateLayout() {
   );
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-text-primary flex">
+    <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
       <SkipLink />
 
       <aside
@@ -293,7 +293,7 @@ export default function PrivateLayout() {
         {SidebarContent}
       </aside>
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden lg:pl-[240px]">
+      <div className="flex-1 flex flex-col h-dvh overflow-hidden lg:pl-[240px]">
 
         {!phoneBannerDismissed && (
           <div className="shrink-0 lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
