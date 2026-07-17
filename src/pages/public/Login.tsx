@@ -55,7 +55,7 @@ export default function Login() {
   };
 
   return (
-    <section className="min-h-[70vh] flex items-center justify-center p-6">
+    <section className="flex-1 flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-surface rounded-xl shadow p-8">
 
         {/* Header */}
