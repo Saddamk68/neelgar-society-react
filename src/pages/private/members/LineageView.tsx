@@ -19,7 +19,8 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import dagre from "@dagrejs/dagre";
-import { ArrowLeft, User, Eye, EyeOff } from "lucide-react";
+import { flextree } from "d3-flextree";
+import { User } from "lucide-react";
 
 import MemberAvatar from "../../../components/MemberAvatar";
 
@@ -36,6 +37,9 @@ import {
 
 import { ROUTES } from "../../../constants/routes";
 import PageHeader from "@/components/layout/PageHeader";
+import { usePermission } from "@/hooks/usePermission";
+import ReorderChildrenModal from "./ReorderChildrenModal";
+import { PERM } from "@/constants/permissions";
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -46,7 +50,7 @@ const SPOUSE_GAP = 60;
 const MORE_PILL_W = 76;
 
 const H_SEP = 140;
-const V_SEP = 180;
+const V_SEP = NODE_H + 120;
 const PAD = 120;
 
 function slotW(spouseCount: number, showSpouses: boolean): number {
@@ -155,6 +159,11 @@ function MemberCard({
                 <div className="text-xs font-mono text-slate-400 mt-0.5 truncate w-full">
                     {member.memberCode}
                 </div>
+                {typeof (member as any).__debugX === "number" && (
+                    <div className="text-[9px] font-mono text-red-500">
+                        x:{Math.round((member as any).__debugX)}
+                    </div>
+                )}
 
                 <div className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold mt-1">
                     {generationLevel === 0
@@ -268,7 +277,6 @@ function buildGraph(
     focal: Member,
     focalSpouses: SpouseDetail[],
     ancestorRows: AncestorRow[],
-    descendants: DescendantNode[],
     siblings: Member[],
 ): { gnodes: GNode[]; gedges: GEdge[] } {
 
@@ -308,16 +316,107 @@ function buildGraph(
         for (const sib of siblings) gedges.push({ from: VIRTUAL_ID, to: `sibling-${sib.memberCode}` });
     }
 
-    function addDesc(parentId: string, nodes: DescendantNode[], genLevel = 1) {
-        for (const d of nodes) {
-            add(d.nodeId, d.member, d.spouses, genLevel);
-            gedges.push({ from: parentId, to: d.nodeId });
-            if (d.children.length) addDesc(d.nodeId, d.children, genLevel + 1);
-        }
-    }
-    addDesc(focal.memberCode, descendants);
-
+    // NOTE: descendants are intentionally NOT added here — they're laid out
+    // separately via d3-hierarchy in buildFlow(), then merged using focal's
+    // dagre-computed position as the anchor point.
     return { gnodes, gedges };
+}
+
+// ── Sort children by effective birth order ────────────────────────────────────
+// Priority: DOB (if present) → manual birthOrder → stable fallback by code.
+// Same rule used in ReorderChildrenModal — keep both in sync if this changes.
+
+function sortChildrenByBirthOrder(nodes: DescendantNode[]): DescendantNode[] {
+    function sortKey(n: DescendantNode): [number, string] {
+        if (n.member.dob) return [0, n.member.dob];
+        if (n.member.birthOrder != null) return [1, String(n.member.birthOrder).padStart(10, "0")];
+        return [2, n.member.memberCode];
+    }
+    return [...nodes]
+        .sort((a, b) => {
+            const [ta, va] = sortKey(a);
+            const [tb, vb] = sortKey(b);
+            if (ta !== tb) return ta - tb;
+            return va < vb ? -1 : va > vb ? 1 : 0;
+        })
+        .map(n => ({ ...n, children: sortChildrenByBirthOrder(n.children) }));
+}
+
+// ── d3-hierarchy layout for descendants only ──────────────────────────────────
+// Guarantees: (1) strict left-to-right birth order, (2) each subtree moves as
+// one rigid block — neither is guaranteed by dagre's crossing-minimization.
+
+type D3DescNode = {
+    id: string;
+    member: Member;
+    spouses: SpouseDetail[];
+    children?: D3DescNode[];
+};
+
+// ── d3-flextree layout for descendants only ───────────────────────────────────
+// Returns positions RELATIVE to focal (root) at (0,0), plus the subtree's
+// total horizontal extent — both needed before dagre runs, so dagre can
+// reserve enough room for this fan-out and avoid overlapping neighbors.
+
+type DescLayoutResult = {
+    positions: Map<string, { x: number; y: number; genLevel: number }>;
+    leftExtent: number;   // furthest point left of focal's center (positive number)
+    rightExtent: number;  // furthest point right of focal's center (positive number)
+};
+
+function computeDescendantLayout(
+    focal: Member,
+    descendants: DescendantNode[],
+    showSpouses: boolean,
+): DescLayoutResult {
+    const positions = new Map<string, { x: number; y: number; genLevel: number }>();
+    if (descendants.length === 0) return { positions, leftExtent: 0, rightExtent: 0 };
+
+    const sorted = sortChildrenByBirthOrder(descendants);
+
+    function toD3(n: DescendantNode): D3DescNode {
+        return { id: n.nodeId, member: n.member, spouses: n.spouses, children: n.children.map(toD3) };
+    }
+
+    const rootData: D3DescNode = {
+        id: focal.memberCode,
+        member: focal,
+        spouses: [],
+        children: sorted.map(toD3),
+    };
+
+    type FlexNode = { data: D3DescNode };
+
+    const layout = flextree<D3DescNode>({
+        nodeSize: (node: FlexNode) => [
+            slotW(node.data.spouses.length, showSpouses) + H_SEP,
+            V_SEP,
+        ],
+    });
+
+    const root = layout.hierarchy(rootData);
+    layout(root);
+
+    const rootX = root.x ?? 0;
+    const rootY = root.y ?? 0;
+
+    let leftExtent = 0;
+    let rightExtent = 0;
+
+    root.each((node: ReturnType<typeof layout.hierarchy>) => {
+        const relX = (node.x ?? 0) - rootX;
+        const relY = (node.y ?? 0) - rootY;
+        const w = slotW(node.data.spouses.length, showSpouses);
+
+        // Track how far this node's own footprint extends left/right of center
+        leftExtent = Math.max(leftExtent, -(relX - w / 2));
+        rightExtent = Math.max(rightExtent, relX + w / 2);
+
+        if (node.data.id === focal.memberCode) return; // root itself — positioned by dagre separately
+        positions.set(node.data.id, { x: relX, y: relY, genLevel: node.depth });
+    });
+
+    return { positions, leftExtent, rightExtent };
 }
 
 // ── Build ReactFlow nodes/edges from dagre layout ─────────────────────────────
@@ -325,16 +424,34 @@ function buildGraph(
 function buildFlow(
     gnodes: GNode[],
     gedges: GEdge[],
+    focal: Member,
+    descendants: DescendantNode[],
     focalFamilyCode: string,
     showSpouses: boolean,
     onNavigate: (code: string) => void,
 ): { nodes: Node<MemberNodeData>[]; edges: Edge[] } {
 
+    // Compute descendant fan-out FIRST (relative coordinates), so dagre can
+    // reserve enough width for focal's column before placing siblings next to it
+    const descLayout = computeDescendantLayout(focal, descendants, showSpouses);
+    const focalOwnWidth = slotW(
+        gnodes.find(n => n.id === focal.memberCode)?.currentSpouses.length ?? 0,
+        showSpouses,
+    );
+    const maxHalfExtent = Math.max(descLayout.leftExtent, descLayout.rightExtent);
+    const focalReservedWidth = Math.max(focalOwnWidth, maxHalfExtent * 2 || focalOwnWidth);
+
+    // ── Pass 1: dagre for ancestors / siblings / focal ──────────────────────
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: "TB", ranksep: V_SEP, nodesep: H_SEP, edgesep: 80, marginx: PAD, marginy: PAD, ranker: "network-simplex" });
     g.setDefaultEdgeLabel(() => ({}));
 
-    for (const n of gnodes) g.setNode(n.id, { width: slotW(n.currentSpouses.length, showSpouses), height: NODE_H });
+    for (const n of gnodes) {
+        const width = n.id === focal.memberCode
+            ? focalReservedWidth
+            : slotW(n.currentSpouses.length, showSpouses);
+        g.setNode(n.id, { width, height: NODE_H });
+    }
     for (const e of gedges) g.setEdge(e.from, e.to);
     dagre.layout(g);
 
@@ -361,6 +478,54 @@ function buildFlow(
             sourceHandle: "bottom", targetHandle: "top",
             type: "smoothstep", style: { stroke: "#3b82f6", strokeWidth: 2 }, zIndex: 1, animated: false,
         }));
+
+    // ── Pass 2: offset the pre-computed relative descendant layout onto focal's dagre position ──
+    const focalDagrePos = g.node(focal.memberCode);
+    const descPositions = new Map(
+        [...descLayout.positions.entries()].map(([id, pos]) => [
+            id,
+            { x: pos.x + focalDagrePos.x, y: pos.y + focalDagrePos.y, genLevel: pos.genLevel },
+        ]),
+    );
+
+    function collectDescNodes(list: DescendantNode[]): DescendantNode[] {
+        return list.flatMap(d => [d, ...collectDescNodes(d.children)]);
+    }
+    const flatDescendants = collectDescNodes(descendants);
+
+    for (const d of flatDescendants) {
+        const pos = descPositions.get(d.nodeId);
+        if (!pos) continue;
+        const w = slotW(d.spouses.length, showSpouses);
+        nodes.push({
+            id: d.nodeId,
+            type: "member",
+            position: { x: pos.x - w / 2, y: pos.y - NODE_H / 2 },
+            width: w,
+            height: NODE_H,
+            data: {
+                member: d.member, currentSpouses: d.spouses, motherName: undefined,
+                isFocal: false, generationLevel: pos.genLevel, focalFamilyCode, showSpouses, onNavigate,
+            },
+            draggable: false, selectable: false,
+        });
+    }
+
+    function collectDescEdges(parentId: string, list: DescendantNode[]): { source: string; target: string }[] {
+        return list.flatMap(d => [
+            { source: parentId, target: d.nodeId },
+            ...collectDescEdges(d.nodeId, d.children),
+        ]);
+    }
+    const descEdges = collectDescEdges(focal.memberCode, descendants);
+
+    for (const e of descEdges) {
+        edges.push({
+            id: `e-desc-${e.source}-${e.target}`, source: e.source, target: e.target,
+            sourceHandle: "bottom", targetHandle: "top",
+            type: "smoothstep", style: { stroke: "#3b82f6", strokeWidth: 2 }, zIndex: 1, animated: false,
+        });
+    }
 
     return { nodes, edges };
 }
@@ -430,9 +595,11 @@ function LineageFlowInner({
     isLoading: boolean;
 }) {
     const navigate = useNavigate();
+    const { can } = usePermission();
 
     // Toggle OFF by default — Family view per plan
     const [showSpouses, setShowSpouses] = useState(true);
+    const [showReorder, setShowReorder] = useState(false);
 
     useReactFlow();
 
@@ -446,8 +613,8 @@ function LineageFlowInner({
 
     const { nodes, edges } = useMemo(() => {
         if (!focal) return { nodes: [], edges: [] };
-        const { gnodes, gedges } = buildGraph(focal, focalSpouses, ancestorRows, descendants, siblings);
-        return buildFlow(gnodes, gedges, focalFamilyCode, showSpouses, onNavigate);
+        const { gnodes, gedges } = buildGraph(focal, focalSpouses, ancestorRows, siblings);
+        return buildFlow(gnodes, gedges, focal, descendants, focalFamilyCode, showSpouses, onNavigate);
     }, [focal, focalSpouses, ancestorRows, descendants, siblings, focalFamilyCode, showSpouses, onNavigate]);
 
     return (
@@ -460,7 +627,18 @@ function LineageFlowInner({
                 backTo={`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`}
                 actions={
                     <div className="flex flex-col items-end gap-1.5">
-                        <SpouseToggle enabled={showSpouses} onToggle={() => setShowSpouses(v => !v)} />
+                        <div className="flex items-center gap-2">
+                            {can(PERM.RELATIONSHIP_MANAGE) && descendants.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReorder(true)}
+                                    className="text-xs px-2.5 py-1 rounded-md border hover:bg-slate-50 transition"
+                                >
+                                    Reorder children
+                                </button>
+                            )}
+                            <SpouseToggle enabled={showSpouses} onToggle={() => setShowSpouses(v => !v)} />
+                        </div>
                         <Legend showSpouses={showSpouses} />
                     </div>
                 }
@@ -517,6 +695,14 @@ function LineageFlowInner({
                     </ReactFlow>
                 )}
             </div>
+
+            {showReorder && (
+                <ReorderChildrenModal
+                    children={descendants}
+                    onClose={() => setShowReorder(false)}
+                    onSaved={() => window.location.reload()}
+                />
+            )}
         </div>
     );
 }
