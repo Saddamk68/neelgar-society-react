@@ -129,3 +129,20 @@ export const MENU: MenuItem[] = [
   },
 
 ];
+
+export const MEMBER_MENU: MenuItem[] = [
+  {
+    key: "dashboard",
+    label: NAV.DASHBOARD,
+    path: "/app/dashboard",
+    section: "MAIN",
+    icon: Home,
+  },
+  {
+    key: "my-family",
+    label: "My Family",
+    path: "/app/my-family",
+    section: "MAIN",
+    icon: Users,
+  },
+];
