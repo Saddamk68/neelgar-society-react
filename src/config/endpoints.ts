@@ -15,6 +15,7 @@ export const ENDPOINTS = {
     update: (memberCode: string) => `/members/${memberCode}`,
     deactivate: (memberCode: string) => `/members/${memberCode}/deactivate`,
     reactivate: (memberCode: string) => `/members/${memberCode}/reactivate`,
+    birthOrder: (memberCode: string) => `/members/${memberCode}/birth-order`,
     checkDuplicate: () => `/members/check-duplicates`,
     search: () => `/members/search`,
     uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,

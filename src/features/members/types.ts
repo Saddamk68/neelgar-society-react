@@ -12,6 +12,7 @@ export type Member = {
   fatherName?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
   dob?: string;
+  birthOrder?: number;
   dod?: string;
   contactNumber?: string;
   education?: string;

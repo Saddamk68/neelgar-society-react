@@ -221,7 +221,7 @@ export default function Members() {
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             className="px-3 py-2 border rounded-md text-sm w-64 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
-          {activeTab && (
+          {activeTab && can(PERM.MEMBER_CREATE) && (
             <>
               <Link
                 to={`${ROUTES.PRIVATE.MEMBERS}/new`}
@@ -259,22 +259,24 @@ export default function Members() {
           ))}
         </div>
 
-        <div className="flex items-center gap-4 pr-1 text-sm pb-1">
-          <Link
-            to={`${ROUTES.PRIVATE.MEMBERS}/import`}
-            className="flex items-center gap-1 text-primary hover:underline text-sm"
-          >
-            <Download className="w-3 h-3" />
-            Import
-          </Link>
-          <button
-            onClick={() => user?.societyId && downloadImportTemplate(user.societyId)}
-            className="flex items-center gap-1 text-primary hover:underline"
-          >
-            <FileSpreadsheet className="w-3 h-3" />
-            Template
-          </button>
-        </div>
+        {can(PERM.IMPORT_MEMBERS) && (
+          <div className="flex items-center gap-4 pr-1 text-sm pb-1">
+            <Link
+              to={`${ROUTES.PRIVATE.MEMBERS}/import`}
+              className="flex items-center gap-1 text-primary hover:underline text-sm"
+            >
+              <Download className="w-3 h-3" />
+              Import
+            </Link>
+            <button
+              onClick={() => user?.societyId && downloadImportTemplate(user.societyId)}
+              className="flex items-center gap-1 text-primary hover:underline"
+            >
+              <FileSpreadsheet className="w-3 h-3" />
+              Template
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Inactive notice banner */}

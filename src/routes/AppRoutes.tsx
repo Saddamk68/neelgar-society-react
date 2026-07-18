@@ -41,6 +41,7 @@ import Membership from "@/pages/public/Membership";
 import MemberApplications from "@/pages/private/MemberApplications";
 import MemberApplicationDetail from "@/pages/private/member-applications/MemberApplicationDetail";
 import EmailSettings from "@/pages/private/EmailSettings";
+import MyFamilyRedirect from "@/pages/private/families/MyFamilyRedirect";
 
 /**
  * RequireAuth now respects `isInitializing` from AuthContext.
@@ -174,6 +175,7 @@ export default function AppRoutes() {
           <Route path="events/:id/edit" element={
             <RequirePermission perm={PERM.EVENT_MANAGE}><EditEvent /></RequirePermission>
           } />
+          <Route path="my-family" element={<MyFamilyRedirect />} />
         </Route>
       </Route>
 
