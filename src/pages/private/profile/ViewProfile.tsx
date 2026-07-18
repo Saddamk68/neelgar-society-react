@@ -41,7 +41,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 const STATUS_STYLES: Record<UserStatus, string> = {
-    PENDING:  "bg-amber-100 text-amber-800",
+    PENDING: "bg-amber-100 text-amber-800",
     APPROVED: "bg-green-100 text-green-800",
     REJECTED: "bg-red-100   text-red-700",
     INACTIVE: "bg-slate-100 text-slate-600",
@@ -196,6 +196,115 @@ function ChangePasswordSection({ onSuccess, forceOpen = false }: { onSuccess: ()
     );
 }
 
+function ForcePasswordChangeModal({ show, onSuccess }: { show: boolean; onSuccess: () => void }) {
+    const notify = useNotify();
+    const [currentPwd, setCurrentPwd] = useState("");
+    const [newPwd, setNewPwd] = useState("");
+    const [confirmPwd, setConfirmPwd] = useState("");
+    const [showPwd, setShowPwd] = useState(false);
+    const [localError, setLocalError] = useState<string | null>(null);
+
+    const mutation = useMutation({
+        mutationFn: () => changePassword({ currentPassword: currentPwd, newPassword: newPwd }),
+        onSuccess: () => {
+            notify.success("Password changed. Signing you out…");
+            setTimeout(onSuccess, 1500);
+        },
+        onError: (err: any) => {
+            setLocalError(err?.message || "Failed to change password. Check your current password.");
+        },
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setLocalError(null);
+        if (newPwd.length < 8) { setLocalError("New password must be at least 8 characters."); return; }
+        if (newPwd !== confirmPwd) { setLocalError("Passwords do not match."); return; }
+        if (newPwd === currentPwd) { setLocalError("New password must be different from current password."); return; }
+        mutation.mutate();
+    };
+
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                <h2 className="text-lg font-semibold mb-1">Password change required</h2>
+                <p className="text-sm text-text-muted mb-4">
+                    You must change your password before continuing. This will sign you out from all devices.
+                </p>
+
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="force-current-pwd" className="text-sm font-medium">Current password</label>
+                        <input
+                            id="force-current-pwd"
+                            name="currentPassword"
+                            type={showPwd ? "text" : "password"}
+                            value={currentPwd}
+                            onChange={(e) => setCurrentPwd(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            required
+                            disabled={mutation.isPending}
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="force-new-pwd" className="text-sm font-medium">New password</label>
+                        <div className="relative">
+                            <input
+                                id="force-new-pwd"
+                                name="newPassword"
+                                type={showPwd ? "text" : "password"}
+                                value={newPwd}
+                                onChange={(e) => setNewPwd(e.target.value)}
+                                placeholder="Min. 8 characters"
+                                className="w-full border rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                required
+                                disabled={mutation.isPending}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPwd((v) => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"
+                                tabIndex={-1}
+                                aria-label={showPwd ? "Hide password" : "Show password"}
+                            >
+                                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="force-confirm-pwd" className="text-sm font-medium">Confirm new password</label>
+                        <input
+                            id="force-confirm-pwd"
+                            name="confirmPassword"
+                            type={showPwd ? "text" : "password"}
+                            value={confirmPwd}
+                            onChange={(e) => setConfirmPwd(e.target.value)}
+                            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            required
+                            disabled={mutation.isPending}
+                        />
+                    </div>
+
+                    {localError && <p className="text-sm text-red-600">{localError}</p>}
+
+                    <button
+                        type="submit"
+                        disabled={mutation.isPending}
+                        className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition disabled:opacity-60 mt-1"
+                    >
+                        {mutation.isPending ? "Saving…" : "Change password"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ViewProfile() {
@@ -344,17 +453,12 @@ export default function ViewProfile() {
                 </div>
             )}
 
-            {/* Mandatory password change banner */}
-            {mustChangePassword && (
-                <div className="rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 text-sm text-amber-900 font-medium">
-                    ⚠ You must change your password before continuing. Please use the form below.
-                </div>
+            {/* Change password — voluntary, collapsed by default */}
+            {!isLoading && (
+                <ChangePasswordSection onSuccess={logout} />
             )}
 
-            {/* Change password — always shown once page loads */}
-            {!isLoading && (
-                <ChangePasswordSection onSuccess={logout} forceOpen={mustChangePassword} />
-            )}
+            <ForcePasswordChangeModal show={mustChangePassword} onSuccess={logout} />
 
         </div>
     );

@@ -168,3 +168,8 @@ export async function searchMembers(query: string): Promise<Member[]> {
   });
   return unwrap<Member[]>(res);
 }
+
+export async function updateBirthOrder(memberCode: string, birthOrder: number) {
+  const res = await api.patch(ENDPOINTS.members.birthOrder(memberCode), { birthOrder });
+  return unwrap(res);
+}

@@ -266,10 +266,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Create the worker from the file we placed in /public.
     // new URL(..., import.meta.url) is the Vite-safe way to reference a
     // public-folder file — think of it like getClass().getResource() in Java.
-    const worker = new Worker(
-      new URL("/tokenRefreshWorker.js", import.meta.url),
-      { type: "classic" }
-    );
+    const worker = new Worker("/tokenRefreshWorker.js", {
+      type: "classic",
+    });
     workerRef.current = worker;
 
     // This runs when the worker sends { type: 'fire' } back —

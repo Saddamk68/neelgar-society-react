@@ -4,7 +4,7 @@ import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { APP, PROFILE_MENU } from "../constants/messages";
-import { MENU } from "../config/menu";
+import { MENU, MEMBER_MENU } from "../config/menu";
 import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ChevronDown, LogOut } from "lucide-react";
@@ -91,13 +91,16 @@ export default function PrivateLayout() {
     }
   }, [mustChangePassword, location.pathname, navigate]);
 
-  // Visible menu items based on permissions
+  // Member role gets a minimal, hardcoded menu — not filtered from the admin MENU,
+  // so it can never accidentally inherit a new admin link added later.
+  const activeMenu = role === "MEMBER" ? MEMBER_MENU : MENU;
+
   const visibleMenu = useMemo(
     () =>
-      MENU.filter((item) =>
+      activeMenu.filter((item) =>
         (item.required ?? []).every((perm) => hasPermission(perm))
       ),
-    [hasPermission]
+    [hasPermission, activeMenu]
   );
 
   // ── Group items by section for rendering section labels ──────────
