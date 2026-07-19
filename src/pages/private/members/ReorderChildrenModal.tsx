@@ -59,11 +59,11 @@ export default function ReorderChildrenModal({
 
     return (
         <Modal isOpen onClose={onClose} title="Reorder children">
-            <p className="text-sm text-slate-500 mb-4">
+            <p className="text-sm text-slate-500 mb-4 shrink-0">
                 Eldest first. Members with a date of birth are pre-sorted automatically — use the arrows only for members without one.
             </p>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
                 {ordered.map((node, idx) => (
                     <div
                         key={node.member.memberCode}
@@ -107,7 +107,7 @@ export default function ReorderChildrenModal({
                 ))}
             </div>
 
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-2 mt-5 shrink-0">
                 <button
                     type="button"
                     onClick={handleSave}
