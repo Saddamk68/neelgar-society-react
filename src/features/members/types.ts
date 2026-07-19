@@ -25,10 +25,27 @@ export type Member = {
   gotraName?: string;
   isHead?: boolean;
   isActive: boolean;
+  isSelf?: boolean;
   hasPhoto?: boolean;
   hasUser?: boolean;  
   createdAt?: string;
   createdBy?: string;
+};
+
+export type EditRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export type MemberEditRequest = {
+  id: number;
+  memberCode: string;
+  personName: string;
+  status: EditRequestStatus;
+  oldValues: Record<string, string>;
+  newValues: Record<string, string>;
+  requestedBy: string;
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
 };
 
 export type AddressData = {

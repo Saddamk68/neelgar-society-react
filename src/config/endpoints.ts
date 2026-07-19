@@ -21,6 +21,14 @@ export const ENDPOINTS = {
     uploadPhoto: (memberCode: string) => `/members/${memberCode}/photo`,
     deletePhoto: (memberCode: string) => `/members/${memberCode}/photo`,
     photoThumb: (memberCode: string) => `/members/${memberCode}/photo/thumb`,
+    submitEditRequest: (memberCode: string) => `/members/${memberCode}/edit-requests`,
+    myEditRequest: (memberCode: string) => `/members/${memberCode}/edit-requests/mine`,
+  },
+
+  memberEditRequests: {
+    listPending: () => `/member-edit-requests`,
+    approve: (id: number) => `/member-edit-requests/${id}/approve`,
+    reject: (id: number) => `/member-edit-requests/${id}/reject`,
   },
 
   families: {

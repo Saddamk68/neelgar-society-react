@@ -1,7 +1,7 @@
 import { api } from "../../../services/apiClient";
 import { ENDPOINTS } from "../../../config/endpoints";
 import { MemberFormValues, DuplicateCheckValues } from "../member.schema";
-import { Member, DuplicateCandidate } from "../types";
+import { Member, DuplicateCandidate, MemberEditRequest } from "../types";
 
 // ── Shared response unwrapper ─────────────────────────────────────────────────
 // All REST responses are wrapped in SocApiResponse<T> with shape { data, message }
@@ -172,4 +172,19 @@ export async function searchMembers(query: string): Promise<Member[]> {
 export async function updateBirthOrder(memberCode: string, birthOrder: number) {
   const res = await api.patch(ENDPOINTS.members.birthOrder(memberCode), { birthOrder });
   return unwrap(res);
+}
+
+// ── Self-edit requests ────────────────────────────────────────────────────────
+
+export async function submitEditRequest(
+  memberCode: string,
+  payload: { contactNumber?: string; education?: string; occupation?: string }
+): Promise<MemberEditRequest> {
+  const res = await api.post(ENDPOINTS.members.submitEditRequest(memberCode), payload);
+  return unwrap<MemberEditRequest>(res);
+}
+
+export async function getMyLatestEditRequest(memberCode: string): Promise<MemberEditRequest | null> {
+  const res = await api.get(ENDPOINTS.members.myEditRequest(memberCode));
+  return unwrap<MemberEditRequest | null>(res);
 }
