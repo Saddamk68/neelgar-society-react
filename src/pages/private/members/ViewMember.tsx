@@ -14,18 +14,19 @@ import { getPersonRelationships } from "@/features/members/services/relationship
 import { usePermission } from "@/hooks/usePermission";
 import { PERM } from "@/constants/permissions";
 import { provisionUserAccount } from "@/features/users/services/userService";
+import RequestChangesModal from "@/components/RequestChangesModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(val?: string | null): string {
-    if (!val) return "—";
-    try {
-        return new Date(val).toLocaleDateString("en-IN", {
-            day: "2-digit", month: "short", year: "numeric",
-        });
-    } catch {
-        return val;
-    }
+  if (!val) return "—";
+  try {
+    return new Date(val).toLocaleDateString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
+  } catch {
+    return val;
+  }
 }
 
 // ── Actions dropdown ──────────────────────────────────────────────────────────
@@ -133,6 +134,8 @@ export default function ViewMember() {
   const [provisionEmail, setProvisionEmail] = useState("");
   const [provisioning, setProvisioning] = useState(false);
   const canManageUsers = can(PERM.USER_MANAGE);
+  const [showRequestChanges, setShowRequestChanges] = useState(false);
+  const canEditSelf = can(PERM.MEMBER_SELF_EDIT);
 
   const { data: member, isLoading, isError, refetch } = useQuery<Member>({
     queryKey: ["member", memberCode],
@@ -194,11 +197,20 @@ export default function ViewMember() {
               </Link>
 
               <ActionsMenu>
-                <ActionItem
-                  icon={Pencil}
-                  label="Edit"
-                  href={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
-                />
+                {can(PERM.MEMBER_UPDATE) && (
+                  <ActionItem
+                    icon={Pencil}
+                    label="Edit"
+                    href={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/edit`}
+                  />
+                )}
+                {member.isSelf && !can(PERM.MEMBER_UPDATE) && canEditSelf && (
+                  <ActionItem
+                    icon={Pencil}
+                    label="Request Changes"
+                    onClick={() => setShowRequestChanges(true)}
+                  />
+                )}
                 <ActionItem
                   icon={Printer}
                   label="Print"
@@ -207,7 +219,7 @@ export default function ViewMember() {
                 {canReassign && (
                   <ActionItem
                     icon={ArrowRightLeft}
-                    label="Reassign family"
+                    label="Reassign Family"
                     onClick={() => setShowReassign(true)}
                   />
                 )}
@@ -486,6 +498,13 @@ export default function ViewMember() {
 
           </div>
         </div>
+      )}
+
+      {showRequestChanges && member && (
+        <RequestChangesModal
+          member={member}
+          onClose={() => setShowRequestChanges(false)}
+        />
       )}
 
     </div>
