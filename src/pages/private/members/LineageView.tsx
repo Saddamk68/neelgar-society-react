@@ -323,13 +323,13 @@ function buildGraph(
 }
 
 // ── Sort children by effective birth order ────────────────────────────────────
-// Priority: DOB (if present) → manual birthOrder → stable fallback by code.
+// Priority: manual birthOrder (if set) → DOB → stable fallback by code.
 // Same rule used in ReorderChildrenModal — keep both in sync if this changes.
 
 function sortChildrenByBirthOrder(nodes: DescendantNode[]): DescendantNode[] {
     function sortKey(n: DescendantNode): [number, string] {
-        if (n.member.dob) return [0, n.member.dob];
-        if (n.member.birthOrder != null) return [1, String(n.member.birthOrder).padStart(10, "0")];
+        if (n.member.birthOrder != null) return [0, String(n.member.birthOrder).padStart(10, "0")];
+        if (n.member.dob) return [1, n.member.dob];
         return [2, n.member.memberCode];
     }
     return [...nodes]

@@ -137,7 +137,11 @@ export default function Members() {
 
     if (col.key === "memberCode") {
       return (
-        <div className="flex items-center gap-2.5">
+        <Link
+          to={`${ROUTES.PRIVATE.MEMBERS}/${row.memberCode}/view`}
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-2.5 hover:opacity-80 transition"
+        >
           <MemberAvatar
             memberCode={row.memberCode}
             firstName={row.firstName}
@@ -151,7 +155,7 @@ export default function Members() {
             </div>
             <div className="text-xs text-slate-400 font-mono">{row.memberCode}</div>
           </div>
-        </div>
+        </Link>
       );
     }
 

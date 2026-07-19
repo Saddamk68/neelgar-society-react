@@ -36,7 +36,7 @@ export default function ReassignHeadDialog({
   });
 
   const otherMembers = familyMembers.filter(
-    (m) => m.memberCode !== member.memberCode
+    (m) => m.memberCode !== member.memberCode && m.isActive
   );
 
   // ── Reassign then hand off to deactivate (deactivate mode) ───────────────

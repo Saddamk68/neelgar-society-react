@@ -8,6 +8,7 @@ import {
 } from "../services/emailSettingsService";
 import { MailAccount, MailAccountInput } from "../email-settings-types";
 import { useNotify } from "../../../services/notifications";
+import ResponsiveTable, { ColumnConfig } from "@/components/ResponsiveTable";
 
 const EMPTY_FORM: MailAccountInput = {
     label: "",
@@ -19,6 +20,14 @@ const EMPTY_FORM: MailAccountInput = {
     fromName: "",
     isActive: true,
 };
+
+const ACCOUNT_COLUMNS: ColumnConfig<MailAccount>[] = [
+    { key: "label", title: "Label", weight: 20 },
+    { key: "smtpHost", title: "SMTP Host", weight: 25, hideBelow: "sm" },
+    { key: "username", title: "Username", weight: 25, truncate: true, tooltip: true, hideBelow: "md" },
+    { key: "isActive", title: "Status", weight: 15, align: "center" },
+    { key: "actions", title: "Actions", weight: 15, align: "center" },
+];
 
 export default function MailAccountsTab() {
     const notify = useNotify();
@@ -164,36 +173,29 @@ export default function MailAccountsTab() {
                 )}
 
                 {!isLoading && !isError && accounts.length > 0 && (
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b bg-slate-50/60 text-left">
-                                <th className="px-4 py-3 font-medium text-slate-500">Label</th>
-                                <th className="px-4 py-3 font-medium text-slate-500">SMTP Host</th>
-                                <th className="px-4 py-3 font-medium text-slate-500">Username</th>
-                                <th className="px-4 py-3 font-medium text-slate-500">Status</th>
-                                <th className="px-4 py-3 font-medium text-slate-500 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {accounts.map((a) => (
-                                <tr key={a.id} className="border-b last:border-0 hover:bg-slate-50/50 transition">
-                                    <td className="px-4 py-3 font-medium text-slate-800">{a.label}</td>
-                                    <td className="px-4 py-3 text-slate-600">{a.smtpHost}:{a.smtpPort}</td>
-                                    <td className="px-4 py-3 text-slate-600">{a.username}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={["text-xs px-2 py-1 rounded-full", a.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"].join(" ")}>
-                                            {a.isActive ? "Active" : "Inactive"}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-blue-50 transition text-primary" title="Edit">
-                                            <Pencil className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <ResponsiveTable<MailAccount>
+                        columns={ACCOUNT_COLUMNS}
+                        data={accounts}
+                        rowKey={(a) => a.id}
+                        renderCell={(a, col) => {
+                            if (col.key === "smtpHost") return <span>{a.smtpHost}:{a.smtpPort}</span>;
+                            if (col.key === "isActive") {
+                                return (
+                                    <span className={["text-xs px-2 py-1 rounded-full", a.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"].join(" ")}>
+                                        {a.isActive ? "Active" : "Inactive"}
+                                    </span>
+                                );
+                            }
+                            if (col.key === "actions") {
+                                return (
+                                    <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-blue-50 transition text-primary" title="Edit">
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                );
+                            }
+                            return undefined;
+                        }}
+                    />
                 )}
             </div>
         </div>
