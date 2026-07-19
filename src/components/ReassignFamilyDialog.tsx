@@ -222,7 +222,7 @@ export default function ReassignFamilyDialog({
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100 shrink-0">
                     <div>
-                        <div className="font-semibold text-slate-800">Reassign family</div>
+                        <div className="font-semibold text-slate-800">Reassign Family</div>
                         <div className="text-xs text-slate-400 mt-0.5">
                             {fullName} · <span className="font-mono">{member.memberCode}</span>
                         </div>

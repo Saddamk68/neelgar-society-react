@@ -200,7 +200,7 @@ export default function DeactivateHeadDialog({ member, onClose, onSuccess }: Pro
                                 </div>
                                 <h3 className="font-semibold text-slate-800 text-base">
                                     {hasOtherMembers || loadingMembers
-                                        ? "Reassign family head"
+                                        ? "Reassign Family Head"
                                         : "No other members in this family"}
                                 </h3>
                             </div>
