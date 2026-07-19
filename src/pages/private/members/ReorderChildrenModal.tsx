@@ -7,9 +7,9 @@ import { updateBirthOrder } from "@/features/members/services/memberService";
 import type { DescendantNode } from "@/hooks/useLineageTree";
 
 function effectiveSortValue(node: DescendantNode): [number, string] {
-    // Sort key: dob (if present) first, else birthOrder, else keep stable by name
-    if (node.member.dob) return [0, node.member.dob];
-    if (node.member.birthOrder != null) return [1, String(node.member.birthOrder).padStart(10, "0")];
+    // Sort key: manual birthOrder (if set) first, else dob, else keep stable by name
+    if (node.member.birthOrder != null) return [0, String(node.member.birthOrder).padStart(10, "0")];
+    if (node.member.dob) return [1, node.member.dob];
     return [2, node.member.firstName];
 }
 
@@ -60,7 +60,7 @@ export default function ReorderChildrenModal({
     return (
         <Modal isOpen onClose={onClose} title="Reorder children">
             <p className="text-sm text-slate-500 mb-4 shrink-0">
-                Eldest first. Members with a date of birth are pre-sorted automatically — use the arrows only for members without one.
+                Eldest first. Drag order is saved as the final order — DOB is only used as a fallback for members you haven't manually ordered yet.
             </p>
 
             <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
