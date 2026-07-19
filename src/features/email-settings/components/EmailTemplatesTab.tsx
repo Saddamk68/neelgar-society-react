@@ -13,6 +13,7 @@ import {
 import { EmailTemplate, EmailTemplateInput, MailAccount } from "../email-settings-types";
 import { useNotify } from "../../../services/notifications";
 import Select from "@/components/form/Select";
+import ResponsiveTable, { ColumnConfig } from "@/components/ResponsiveTable";
 
 const PLACEHOLDER_HINTS: Record<string, string[]> = {
   OTP_VERIFICATION: ["otp", "expiryMinutes"],
@@ -28,6 +29,14 @@ const EMPTY_FORM: EmailTemplateInput = {
   bodyHtml: "",
   isActive: true,
 };
+
+const TEMPLATE_COLUMNS: ColumnConfig<EmailTemplate>[] = [
+  { key: "templateKey", title: "Key", weight: 20 },
+  { key: "subject", title: "Subject", weight: 30, truncate: true, tooltip: true },
+  { key: "mailAccountLabel", title: "Mail Account", weight: 20, hideBelow: "sm" },
+  { key: "isActive", title: "Status", weight: 15, align: "center" },
+  { key: "actions", title: "Actions", weight: 15, align: "center" },
+];
 
 export default function EmailTemplatesTab() {
   const notify = useNotify();
@@ -233,36 +242,28 @@ export default function EmailTemplatesTab() {
         )}
 
         {!isLoading && !isError && templates.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-slate-50/60 text-left">
-                <th className="px-4 py-3 font-medium text-slate-500">Key</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Subject</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Mail Account</th>
-                <th className="px-4 py-3 font-medium text-slate-500">Status</th>
-                <th className="px-4 py-3 font-medium text-slate-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {templates.map((t) => (
-                <tr key={t.id} className="border-b last:border-0 hover:bg-slate-50/50 transition">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-700">{t.templateKey}</td>
-                  <td className="px-4 py-3 text-slate-600">{t.subject}</td>
-                  <td className="px-4 py-3 text-slate-600">{t.mailAccountLabel}</td>
-                  <td className="px-4 py-3">
-                    <span className={["text-xs px-2 py-1 rounded-full", t.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"].join(" ")}>
-                      {t.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg hover:bg-blue-50 transition text-primary" title="Edit">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ResponsiveTable<EmailTemplate>
+            columns={TEMPLATE_COLUMNS}
+            data={templates}
+            rowKey={(t) => t.id}
+            renderCell={(t, col) => {
+              if (col.key === "isActive") {
+                return (
+                  <span className={["text-xs px-2 py-1 rounded-full", t.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"].join(" ")}>
+                    {t.isActive ? "Active" : "Inactive"}
+                  </span>
+                );
+              }
+              if (col.key === "actions") {
+                return (
+                  <button onClick={() => openEdit(t)} className="p-1.5 rounded-lg hover:bg-blue-50 transition text-primary" title="Edit">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                );
+              }
+              return undefined; // falls back to default cell rendering (templateKey, subject, mailAccountLabel)
+            }}
+          />
         )}
       </div>
     </div>
