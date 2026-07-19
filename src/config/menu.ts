@@ -50,6 +50,13 @@ export const MENU: MenuItem[] = [
         icon: ClipboardCheck,
       },
       {
+        key: "member-edit-requests",
+        label: "Edit Requests",
+        path: "/app/member-edit-requests",
+        required: [PERM.MEMBER_EDIT_REQUEST_REVIEW],
+        icon: ClipboardCheck,
+      },
+      {
         key: "families",
         label: "Families",
         path: "/app/families",
