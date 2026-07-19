@@ -17,7 +17,7 @@ export default function UpcomingEventsWidget({
     calendarRoute,
 }: {
     limit?: number;
-    calendarRoute: string;
+    calendarRoute?: string;
 }) {
     const { data: events = [], isLoading, isError } = useQuery({
         queryKey: ["upcoming-events", limit],
@@ -31,12 +31,14 @@ export default function UpcomingEventsWidget({
                 <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
                     Upcoming Events
                 </h2>
-                <Link
-                    to={calendarRoute}
-                    className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
-                >
-                    View calendar <ArrowRight className="w-3 h-3" />
-                </Link>
+                {calendarRoute && (
+                    <Link
+                        to={calendarRoute}
+                        className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                    >
+                        View calendar <ArrowRight className="w-3 h-3" />
+                    </Link>
+                )}
             </div>
 
             {isLoading && <p className="text-sm text-slate-400">Loading…</p>}

@@ -207,7 +207,7 @@ export default function ViewMember() {
                 {canReassign && (
                   <ActionItem
                     icon={ArrowRightLeft}
-                    label="Reassign family"
+                    label="Reassign Family"
                     onClick={() => setShowReassign(true)}
                   />
                 )}

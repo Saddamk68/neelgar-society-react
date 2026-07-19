@@ -258,7 +258,7 @@ export default function PrivateLayout() {
       <SkipLink />
 
       <aside
-        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3"
+        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3 print:hidden"
         style={{ width: SIDEBAR_W }}
         aria-label="Sidebar"
       >
@@ -299,8 +299,7 @@ export default function PrivateLayout() {
       <div className="flex-1 flex flex-col h-dvh overflow-hidden lg:pl-[240px]">
 
         {!phoneBannerDismissed && (
-          <div className="shrink-0 lg:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">
-            <span className="mt-0.5 shrink-0">⚠️</span>
+          <div className="shrink-0 lg:hidden print:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">     <span className="mt-0.5 shrink-0">⚠️</span>
             <span className="flex-1">
               This portal is not designed for mobile devices. Some features may not work well on a phone.
             </span>
@@ -316,7 +315,7 @@ export default function PrivateLayout() {
 
         <header
           role="banner"
-          className="shrink-0 h-16 bg-surface border-b flex items-center justify-between px-4"
+          className="shrink-0 h-16 bg-surface border-b flex items-center justify-between px-4 print:hidden"
         >
           <div className="flex items-center gap-3">
             <button
@@ -392,7 +391,7 @@ export default function PrivateLayout() {
 
         <footer
           role="contentinfo"
-          className="shrink-0 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center"
+          className="shrink-0 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center print:hidden"
         >
           © Neelgar Society 1992
         </footer>
