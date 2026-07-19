@@ -27,5 +27,7 @@ export const ROUTES = {
     EVENTS: "/app/events",
     MEMBER_APPLICATIONS: "/app/member-applications",
     EMAIL_SETTINGS: "/app/email-settings",
+    MEMBER_EDIT_REQUESTS: "/app/member-edit-requests",
   },
+  
 };

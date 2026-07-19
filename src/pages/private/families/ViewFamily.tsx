@@ -10,6 +10,8 @@ import { Family, Member } from "@/features/members/types";
 import { getFamily, getFamilyMembers } from "@/features/members/services/familyService";
 import { ROUTES } from "@/constants/routes";
 import ReassignHeadDialog from "@/components/ReassignHeadDialog";
+import { usePermission } from "@/hooks/usePermission";
+import { PERM } from "@/constants/permissions";
 
 // ── Reusable label/value row ──────────────────────────────────────────────────
 
@@ -43,6 +45,7 @@ export default function ViewFamily() {
 
     const queryClient = useQueryClient();
     const [showReassign, setShowReassign] = useState(false);
+    const { can } = usePermission();
 
     const { data: family, isLoading: familyLoading, isError: familyError, refetch } =
         useQuery<Family>({
@@ -84,7 +87,7 @@ export default function ViewFamily() {
                 actions={
                     family ? (
                         <>
-                            {family.isActive && (
+                            {family.isActive && can(PERM.FAMILY_CREATE) && (
                                 <button
                                     onClick={() => setShowReassign(true)}
                                     className="flex items-center gap-2 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
@@ -100,13 +103,15 @@ export default function ViewFamily() {
                                 <Printer className="w-4 h-4" />
                                 Print
                             </Link>
-                            <Link
-                                to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/edit`}
-                                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
-                            >
-                                <Pencil className="w-4 h-4" />
-                                Edit
-                            </Link>
+                            {can(PERM.FAMILY_CREATE) && (
+                                <Link
+                                    to={`${ROUTES.PRIVATE.FAMILIES}/${family.familyCode}/edit`}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                    Edit
+                                </Link>
+                            )}
                         </>
                     ) : undefined
                 }

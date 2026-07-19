@@ -122,7 +122,7 @@ export default function ReassignHeadDialog({
             <AlertTriangle className="w-6 h-6 text-amber-500" />
           </div>
           <h3 className="font-semibold text-slate-800 text-base">
-            Reassign family head
+            Reassign Family Head
           </h3>
         </div>
 

@@ -185,7 +185,7 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl font-semibold">
           Welcome, {member.firstName} {member.lastName ?? ""}
@@ -195,7 +195,7 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
 
       <VillageLeadershipCard />
       <NoticesBanner />      
-      <UpcomingEventsWidget limit={5} calendarRoute={ROUTES.PUBLIC.EVENTS} />
+      <UpcomingEventsWidget limit={5} />
 
       {/* Profile card */}
       <div className="bg-white rounded-xl shadow p-6">
@@ -234,7 +234,7 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
             to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`}
             className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
           >
-            View Full Profile
+            View Full Details
           </Link>
         </div>
       </div>
