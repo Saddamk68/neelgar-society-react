@@ -80,6 +80,7 @@ export default function Select({
         buffer: "",
         timeout: null,
     });
+    const highlightSourceRef = useRef<"keyboard" | "pointer">("pointer");
 
     const selectedIndex = options.findIndex((o) => String(o.value) === String(value));
     const selected = selectedIndex >= 0 ? options[selectedIndex] : undefined;
@@ -173,6 +174,7 @@ export default function Select({
     // Scroll the highlighted option into view whenever it changes.
     useEffect(() => {
         if (!open || !coords) return;
+        if (highlightSourceRef.current !== "keyboard") return;
         const el = optionRefs.current[highlightedIndex];
         if (el) el.scrollIntoView({ block: "nearest" });
     }, [open, highlightedIndex, coords]);
@@ -235,10 +237,12 @@ export default function Select({
         switch (e.key) {
             case "ArrowDown":
                 e.preventDefault();
+                highlightSourceRef.current = "keyboard";
                 setHighlightedIndex((i) => Math.min(i + 1, filteredOptions.length - 1));
                 break;
             case "ArrowUp":
                 e.preventDefault();
+                highlightSourceRef.current = "keyboard";
                 setHighlightedIndex((i) => Math.max(i - 1, 0));
                 break;
             case "Enter":
@@ -321,7 +325,10 @@ export default function Select({
                                         key={opt.value}
                                         ref={(el) => { optionRefs.current[index] = el; }}
                                         type="button"
-                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        onMouseEnter={() => {
+                                            highlightSourceRef.current = "pointer";
+                                            setHighlightedIndex(index);
+                                        }}
                                         onClick={() => commitIndex(index)}
                                         className={[
                                             "w-full text-left px-3 py-2.5 text-sm transition-colors",
