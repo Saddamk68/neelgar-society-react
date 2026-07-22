@@ -188,7 +188,10 @@ function MemberCard({
 
                 {isSpouse && spouseStyle && (
                     <div className={`text-xs mt-0.5 font-medium ${spouseStyle.label}`}>
-                        {member.dod ? "Wife (deceased)" : !member.isActive ? "Wife (inactive)" : "Wife"}
+                        {(() => {
+                            const roleLabel = member.gender === "MALE" ? "Husband" : member.gender === "FEMALE" ? "Wife" : "Spouse";
+                            return member.dod ? `${roleLabel} (deceased)` : !member.isActive ? `${roleLabel} (inactive)` : roleLabel;
+                        })()}
                     </div>
                 )}
 
@@ -534,7 +537,7 @@ function buildFlow(
 
 function Legend({ showSpouses }: { showSpouses: boolean }) {
     const items = [
-        ...(showSpouses ? [{ bg: "bg-pink-50", border: "border-pink-300", label: "Wife" }] : []),
+        ...(showSpouses ? [{ bg: "bg-pink-50", border: "border-pink-300", label: "Spouse" }] : []),
         { bg: "bg-blue-50", border: "border-blue-500", label: "Focal" },
         { bg: "bg-white", border: "border-slate-300", label: "Same family" },
         { bg: "bg-amber-50", border: "border-amber-400", label: "Other family" },
