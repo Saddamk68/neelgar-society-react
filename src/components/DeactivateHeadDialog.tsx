@@ -34,9 +34,13 @@ type Props = {
     member: Member;
     onClose: () => void;
     onSuccess: () => void;
+    // Optional: called instead of deactivateMember() after reassignment/force-confirm.
+    // Used by EditMember's "mark deceased" flow to retry the member update with force
+    // instead of doing a plain MANUAL deactivation.
+    finalizeAction?: (force: boolean) => Promise<void>;
 };
 
-export default function DeactivateHeadDialog({ member, onClose, onSuccess }: Props) {
+export default function DeactivateHeadDialog({ member, onClose, onSuccess, finalizeAction }: Props) {
     const { user } = useAuth();
     const notify = useNotify();
 
@@ -86,21 +90,29 @@ export default function DeactivateHeadDialog({ member, onClose, onSuccess }: Pro
                     selectedCode,
                     user?.username ?? "system"
                 );
-                await deactivateMember(
-                    member.memberCode,
-                    user?.username ?? "system",
-                    false
-                );
+                if (finalizeAction) {
+                    await finalizeAction(false);
+                } else {
+                    await deactivateMember(
+                        member.memberCode,
+                        user?.username ?? "system",
+                        false
+                    );
+                }
                 notify.success(
                     `${member.firstName} deactivated and family head reassigned successfully.`
                 );
             } else {
                 // Step B — force deactivate (deactivates member + family)
-                await deactivateMember(
-                    member.memberCode,
-                    user?.username ?? "system",
-                    true
-                );
+                if (finalizeAction) {
+                    await finalizeAction(true);
+                } else {
+                    await deactivateMember(
+                        member.memberCode,
+                        user?.username ?? "system",
+                        true
+                    );
+                }
                 notify.success(
                     `${member.firstName} and ${member.familyCode} have been deactivated.`
                 );

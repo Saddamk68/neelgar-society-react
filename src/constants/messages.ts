@@ -44,6 +44,7 @@ export const AUTH = {
 export const PRIVATE = {
   DASHBOARD_TITLE: "Dashboard",
   DASHBOARD_DESC: "Private area visible after login.",
+  FAMILIES_TITLE: "Families",
   MEMBERS_TITLE: "Members",
   MEMBERS_DESC: "List/add/edit members",
   LOGS_TITLE: "Logs",
