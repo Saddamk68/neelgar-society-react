@@ -22,6 +22,7 @@ import {
     submitApplication,
 } from "@/features/public-membership/services/publicMembershipService";
 import { useNotify } from "@/services/notifications";
+import TncConsentModal from "@/features/public-membership/components/TncConsentModal";
 import { ROUTES } from "@/constants/routes";
 import { DEFAULT_SOCIETY_ID } from "@/constants/society";
 import { useResendCooldown } from "@/features/public-membership/hooks/useResendCooldown";
@@ -96,6 +97,9 @@ export default function MembershipApplication() {
     const [geo, setGeo] = useState<GeoSelection>({});
 
     const cooldown = useResendCooldown(verifiedEmail || emailInput, 60);
+    const [showTnc, setShowTnc] = useState(false);
+    const [pendingValues, setPendingValues] = useState<ApplicationDetailsValues | null>(null);
+    const [finalSubmitting, setFinalSubmitting] = useState(false);
 
     // ── Step 2 form: application details ─────────────────────────────────────
     const detailsForm = useForm<ApplicationDetailsValues>({
@@ -164,24 +168,35 @@ export default function MembershipApplication() {
         }
     }
 
-    // ── Step 2 handler ────────────────────────────────────────────────────────
-
+    // Step 2 form validates, then opens the T&C modal — actual submit happens on accept.
     const handleSubmitApplication = handleSubmit(async (data) => {
+        setPendingValues(data);
+        setShowTnc(true);
+    });
+
+    async function handleAcceptTncAndSubmit() {
+        if (!pendingValues) return;
+        setFinalSubmitting(true);
         try {
             const response = await submitApplication({
-                ...data,
-                contactNumber: data.contactNumber || undefined,
-                claimedFamilyCode: data.claimedFamilyCode || undefined,
-                relationshipClaim: data.relationshipClaim || undefined,
+                ...pendingValues,
+                contactNumber: pendingValues.contactNumber || undefined,
+                claimedFamilyCode: pendingValues.claimedFamilyCode || undefined,
+                relationshipClaim: pendingValues.relationshipClaim || undefined,
                 email: verifiedEmail,
                 otpVerificationToken: verificationToken,
+                tncAccepted: true,
             });
             setReferenceCode(response.referenceCode);
+            setShowTnc(false);
             setStep(3);
         } catch (err: any) {
             notify.error(err.message || "Failed to submit application");
+            setShowTnc(false);
+        } finally {
+            setFinalSubmitting(false);
         }
-    });
+    }
 
     function handleGeoChange(next: GeoSelection) {
         setGeo(next);
@@ -394,6 +409,13 @@ export default function MembershipApplication() {
                             </button>
                         </form>
                     )}
+
+                    <TncConsentModal
+                        isOpen={showTnc}
+                        submitting={finalSubmitting}
+                        onCancel={() => setShowTnc(false)}
+                        onAccept={handleAcceptTncAndSubmit}
+                    />
 
                     {/* ── Step 3: Confirmation ── */}
                     {step === 3 && (

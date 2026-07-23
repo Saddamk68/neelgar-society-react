@@ -1040,6 +1040,9 @@ export default function EditMember() {
   const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
   const [isDeceased, setIsDeceased] = useState(false);
+  const [showReassignForDeath, setShowReassignForDeath] = useState(false);
+  const [showLastMemberConfirm, setShowLastMemberConfirm] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<MemberFormValues | null>(null);
 
   // ── Load member on mount ──────────────────────────────────────────────────
 
@@ -1107,11 +1110,21 @@ export default function EditMember() {
     if (!memberCode) return;
     try {
       await updateMember(memberCode, data, user?.username ?? "system");
-      // Invalidate cached member so ViewMember fetches fresh data
       queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
       notify.success("Member updated successfully!");
       navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
     } catch (err: any) {
+      const code = err?.raw?.errorCode;
+      if (code === "HEAD_REASSIGNMENT_REQUIRED" || (code === "LAST_ACTIVE_MEMBER" && originalMember?.isHead)) {
+        setPendingFormData(data);
+        setShowReassignForDeath(true);
+        return;
+      }
+      if (code === "LAST_ACTIVE_MEMBER") {
+        setPendingFormData(data);
+        setShowLastMemberConfirm(true);
+        return;
+      }
       notify.error(err.message || "Failed to update member.");
     }
   };
@@ -1531,6 +1544,48 @@ export default function EditMember() {
           }}
         />
       )}
+
+      {showReassignForDeath && originalMember && pendingFormData && (
+        <DeactivateHeadDialog
+          member={originalMember}
+          onClose={() => { setShowReassignForDeath(false); setPendingFormData(null); }}
+          onSuccess={() => {
+            setShowReassignForDeath(false);
+            setPendingFormData(null);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+            notify.success("Member updated and family head reassigned.");
+            navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
+          }}
+          finalizeAction={async (force) => {
+            await updateMember(memberCode!, pendingFormData, user?.username ?? "system", force);
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={showLastMemberConfirm}
+        onClose={() => { setShowLastMemberConfirm(false); setPendingFormData(null); }}
+        onConfirm={async () => {
+          if (!memberCode || !pendingFormData) return;
+          try {
+            await updateMember(memberCode, pendingFormData, user?.username ?? "system", true);
+            queryClient.invalidateQueries({ queryKey: ["members"] });
+            queryClient.invalidateQueries({ queryKey: ["member", memberCode] });
+            notify.success("Member and family deactivated.");
+            navigate(`${ROUTES.PRIVATE.MEMBERS}/${memberCode}/view`);
+          } catch (err: any) {
+            notify.error(err.message || "Failed to save.");
+          } finally {
+            setShowLastMemberConfirm(false);
+            setPendingFormData(null);
+          }
+        }}
+        title="Deactivate family too?"
+        message="This member is the last active member of their family. Marking them deceased will also deactivate the family. Continue?"
+        confirmLabel="Confirm"
+        variant="danger"
+      />
 
       <ConfirmDialog
         isOpen={showDeletePhotoConfirm}

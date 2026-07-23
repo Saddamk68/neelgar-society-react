@@ -127,9 +127,11 @@ export async function reactivateMember(
 export async function updateMember(
   memberCode: string,
   values: MemberFormValues,
-  updatedBy: string
+  updatedBy: string,
+  force = false
 ): Promise<Member> {
   const payload = {
+    force,
     societyId: values.societyId,
     familyId: values.familyId,
     firstName: values.firstName,
