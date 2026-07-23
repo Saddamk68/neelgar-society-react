@@ -12,6 +12,9 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { api } from "../services/apiClient";
 import { ENDPOINTS } from "@/config/endpoints";
 import TncReconsentModal from "@/components/TncReconsentModal";
+import OnboardingTour from "@/features/onboarding/OnboardingTour";
+import { getTourKeyForRole } from "@/features/onboarding/tourSteps";
+import { HelpCircle } from "lucide-react";
 
 const SIDEBAR_W = 240; // px
 
@@ -72,6 +75,8 @@ export default function PrivateLayout() {
   const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
   const [tncRequired, setTncRequired] = useState(false);
   const [tncSubmitting, setTncSubmitting] = useState(false);
+  const [tourRun, setTourRun] = useState(false);
+  const tourKey = getTourKeyForRole(role);
 
   useEffect(() => {
     if (isInitializing) return;
@@ -79,11 +84,25 @@ export default function PrivateLayout() {
       .then((resp) => {
         const data = resp.data?.data ?? resp.data;
         setTncRequired(data?.tncAcceptanceRequired === true);
+
+        const completedTours: string[] = data?.completedOnboardingTours ?? [];
+        if (tourKey && !completedTours.includes(tourKey)) {
+          setTourRun(true);
+        }
       })
       .catch(() => {
         // Silent — not critical enough to block rendering if this single check fails
       });
   }, [isInitializing]);
+
+  function handleTourFinish() {
+    setTourRun(false);
+    if (tourKey) {
+      api.post(ENDPOINTS.users.completeOnboardingTour(tourKey)).catch(() => {
+        // Non-critical — tour will just show again next load if this fails
+      });
+    }
+  }
 
   async function handleAcceptTnc() {
     setTncSubmitting(true);
@@ -207,6 +226,7 @@ export default function PrivateLayout() {
                     {visibleChildren.map((child) => (
                       <NavLink
                         key={child.key}
+                        data-tour={child.key}
                         to={child.path!}
                         onClick={() => setMobileOpen(false)}
                         className={({ isActive }) =>
@@ -230,6 +250,7 @@ export default function PrivateLayout() {
               return (
                 <NavLink
                   key={item.key}
+                  data-tour={item.key}
                   to={item.path!}
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
@@ -286,6 +307,7 @@ export default function PrivateLayout() {
   return (
     <>
       <TncReconsentModal isOpen={tncRequired} submitting={tncSubmitting} onAccept={handleAcceptTnc} />
+      <OnboardingTour tourKey={tourKey} run={tourRun} onFinish={handleTourFinish} />
       <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
         <SkipLink />
 
@@ -364,52 +386,64 @@ export default function PrivateLayout() {
               <Breadcrumbs />
             </div>
 
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen((v) => !v)}
-                className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
-                title="Open profile menu"
-                aria-haspopup="menu"
-                aria-expanded={profileOpen}
-              >
-                <span className="sr-only">Open profile menu</span>
-                U
-              </button>
-
-              {profileOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
-                  onMouseLeave={() => setProfileOpen(false)}
-                  role="menu"
-                  aria-label="Profile menu"
+            <div className="flex items-center gap-2">
+              {tourKey && (
+                <button
+                  onClick={() => setTourRun(true)}
+                  className="p-2 rounded-md hover:bg-slate-100 transition text-slate-500 hover:text-slate-800"
+                  title="Take a tour"
+                  aria-label="Take a tour"
                 >
-                  <div className="px-4 py-2 text-xs text-text-muted">
-                    {PROFILE_MENU.ROLE_PREFIX}
-                    {role}
-                  </div>
-                  <button
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                    role="menuitem"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      navigate(ROUTES.PRIVATE.PROFILE);
-                    }}
-                  >
-                    {PROFILE_MENU.VIEW_PROFILE}
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
-                    role="menuitem"
-                    onClick={() => {
-                      setProfileOpen(false);
-                      setConfirmLogout(true);
-                    }}
-                  >
-                    <LogOut size={15} />
-                    {PROFILE_MENU.SIGNOOUT}
-                  </button>
-                </div>
+                  <HelpCircle size={18} />
+                </button>
               )}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen((v) => !v)}
+                  className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
+                  title="Open profile menu"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                >
+                  <span className="sr-only">Open profile menu</span>
+                  U
+                </button>
+
+                {profileOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+                    onMouseLeave={() => setProfileOpen(false)}
+                    role="menu"
+                    aria-label="Profile menu"
+                  >
+                    <div className="px-4 py-2 text-xs text-text-muted">
+                      {PROFILE_MENU.ROLE_PREFIX}
+                      {role}
+                    </div>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                      role="menuitem"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate(ROUTES.PRIVATE.PROFILE);
+                      }}
+                    >
+                      {PROFILE_MENU.VIEW_PROFILE}
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
+                      role="menuitem"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setConfirmLogout(true);
+                      }}
+                    >
+                      <LogOut size={15} />
+                      {PROFILE_MENU.SIGNOOUT}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 

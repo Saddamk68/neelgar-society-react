@@ -54,6 +54,7 @@ export const ENDPOINTS = {
     reactivate: (id: number) => `/users/${id}/reactivate`,
     changePassword: () => `/users/change-password`,
     acceptTnc: () => `/users/accept-tnc`,
+    completeOnboardingTour: (tourKey: string) => `/users/onboarding-tours/${tourKey}/complete`,
     resetPassword: (id: number) => `/users/${id}/reset-password`,
     provision: () => `/users/provision`,
     unlock: (username: string) => `/users/${username}/unlock`,
