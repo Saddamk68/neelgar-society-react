@@ -58,6 +58,9 @@ export type UserProfile = {
   societyId: number | null;
   societyCode: string | null;
   societyName: string | null;
+
+  // Legal consent
+  tncAcceptanceRequired: boolean | null;
 };
 
 export type ChangePasswordRequest = {

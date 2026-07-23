@@ -53,6 +53,7 @@ export const ENDPOINTS = {
     deactivate: (id: number) => `/users/${id}/deactivate`,
     reactivate: (id: number) => `/users/${id}/reactivate`,
     changePassword: () => `/users/change-password`,
+    acceptTnc: () => `/users/accept-tnc`,
     resetPassword: (id: number) => `/users/${id}/reset-password`,
     provision: () => `/users/provision`,
     unlock: (username: string) => `/users/${username}/unlock`,

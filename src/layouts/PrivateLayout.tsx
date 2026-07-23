@@ -9,6 +9,9 @@ import SkipLink from "../components/SkipLink";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ChevronDown, LogOut } from "lucide-react";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { api } from "../services/apiClient";
+import { ENDPOINTS } from "@/config/endpoints";
+import TncReconsentModal from "@/components/TncReconsentModal";
 
 const SIDEBAR_W = 240; // px
 
@@ -67,12 +70,31 @@ export default function PrivateLayout() {
   const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
 
   const { logout, role, isInitializing, mustChangePassword, hasPermission } = useAuth();
-  if (isInitializing) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Loading...
-      </div>
-    );
+  const [tncRequired, setTncRequired] = useState(false);
+  const [tncSubmitting, setTncSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isInitializing) return;
+    api.get(ENDPOINTS.users.me())
+      .then((resp) => {
+        const data = resp.data?.data ?? resp.data;
+        setTncRequired(data?.tncAcceptanceRequired === true);
+      })
+      .catch(() => {
+        // Silent — not critical enough to block rendering if this single check fails
+      });
+  }, [isInitializing]);
+
+  async function handleAcceptTnc() {
+    setTncSubmitting(true);
+    try {
+      await api.post(ENDPOINTS.users.acceptTnc());
+      setTncRequired(false);
+    } catch {
+      // leave modal open — user can retry
+    } finally {
+      setTncSubmitting(false);
+    }
   }
 
   // Close mobile drawer on Escape
@@ -119,6 +141,14 @@ export default function PrivateLayout() {
 
     return map;
   }, [visibleMenu]);
+
+  if (isInitializing) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   const SidebarContent = (
     <>
@@ -254,164 +284,167 @@ export default function PrivateLayout() {
   );
 
   return (
-    <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
-      <SkipLink />
+    <>
+      <TncReconsentModal isOpen={tncRequired} submitting={tncSubmitting} onAccept={handleAcceptTnc} />
+      <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
+        <SkipLink />
 
-      <aside
-        className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3 print:hidden"
-        style={{ width: SIDEBAR_W }}
-        aria-label="Sidebar"
-      >
-        {SidebarContent}
-      </aside>
-
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      <aside
-        id="mobile-sidebar"
-        className={[
-          "fixed z-50 inset-y-0 left-0 bg-sidebar-bg text-white p-3 lg:hidden",
-          "flex flex-col",
-          "transform transition-transform duration-200 ease-out",
-          mobileOpen ? "translate-x-0" : "-translate-x-full",
-        ].join(" ")}
-        style={{ width: SIDEBAR_W }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Sidebar navigation"
-      >
-        <button
-          className="absolute top-3 right-3 text-white/50 hover:text-white transition z-10"
-          onClick={() => setMobileOpen(false)}
-          aria-label="Close sidebar"
+        <aside
+          className="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 bg-sidebar-bg text-white p-3 print:hidden"
+          style={{ width: SIDEBAR_W }}
+          aria-label="Sidebar"
         >
-          ✕
-        </button>
-        {SidebarContent}
-      </aside>
+          {SidebarContent}
+        </aside>
 
-      <div className="flex-1 flex flex-col h-dvh overflow-hidden lg:pl-[240px]">
-
-        {!phoneBannerDismissed && (
-          <div className="shrink-0 lg:hidden print:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">     <span className="mt-0.5 shrink-0">⚠️</span>
-            <span className="flex-1">
-              This portal is not designed for mobile devices. Some features may not work well on a phone.
-            </span>
-            <button
-              onClick={() => setPhoneBannerDismissed(true)}
-              className="shrink-0 text-amber-600 hover:text-amber-800 font-medium transition"
-              aria-label="Dismiss warning"
-            >
-              Dismiss
-            </button>
-          </div>
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
         )}
 
-        <header
-          role="banner"
-          className="shrink-0 h-16 bg-surface border-b flex items-center justify-between px-4 print:hidden"
+        <aside
+          id="mobile-sidebar"
+          className={[
+            "fixed z-50 inset-y-0 left-0 bg-sidebar-bg text-white p-3 lg:hidden",
+            "flex flex-col",
+            "transform transition-transform duration-200 ease-out",
+            mobileOpen ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+          style={{ width: SIDEBAR_W }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Sidebar navigation"
         >
-          <div className="flex items-center gap-3">
-            <button
-              className="lg:hidden p-2 rounded-md hover:bg-slate-100 transition"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open navigation"
-              aria-controls="mobile-sidebar"
-              aria-expanded={mobileOpen}
-            >
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <Breadcrumbs />
-          </div>
+          <button
+            className="absolute top-3 right-3 text-white/50 hover:text-white transition z-10"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
+          {SidebarContent}
+        </aside>
 
-          <div className="relative">
-            <button
-              onClick={() => setProfileOpen((v) => !v)}
-              className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
-              title="Open profile menu"
-              aria-haspopup="menu"
-              aria-expanded={profileOpen}
-            >
-              <span className="sr-only">Open profile menu</span>
-              U
-            </button>
+        <div className="flex-1 flex flex-col h-dvh overflow-hidden lg:pl-[240px]">
 
-            {profileOpen && (
-              <div
-                className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
-                onMouseLeave={() => setProfileOpen(false)}
-                role="menu"
-                aria-label="Profile menu"
+          {!phoneBannerDismissed && (
+            <div className="shrink-0 lg:hidden print:hidden bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-start gap-3 text-sm text-amber-800">     <span className="mt-0.5 shrink-0">⚠️</span>
+              <span className="flex-1">
+                This portal is not designed for mobile devices. Some features may not work well on a phone.
+              </span>
+              <button
+                onClick={() => setPhoneBannerDismissed(true)}
+                className="shrink-0 text-amber-600 hover:text-amber-800 font-medium transition"
+                aria-label="Dismiss warning"
               >
-                <div className="px-4 py-2 text-xs text-text-muted">
-                  {PROFILE_MENU.ROLE_PREFIX}
-                  {role}
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          <header
+            role="banner"
+            className="shrink-0 h-16 bg-surface border-b flex items-center justify-between px-4 print:hidden"
+          >
+            <div className="flex items-center gap-3">
+              <button
+                className="lg:hidden p-2 rounded-md hover:bg-slate-100 transition"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation"
+                aria-controls="mobile-sidebar"
+                aria-expanded={mobileOpen}
+              >
+                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <Breadcrumbs />
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setProfileOpen((v) => !v)}
+                className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
+                title="Open profile menu"
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+              >
+                <span className="sr-only">Open profile menu</span>
+                U
+              </button>
+
+              {profileOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+                  onMouseLeave={() => setProfileOpen(false)}
+                  role="menu"
+                  aria-label="Profile menu"
+                >
+                  <div className="px-4 py-2 text-xs text-text-muted">
+                    {PROFILE_MENU.ROLE_PREFIX}
+                    {role}
+                  </div>
+                  <button
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      navigate(ROUTES.PRIVATE.PROFILE);
+                    }}
+                  >
+                    {PROFILE_MENU.VIEW_PROFILE}
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setConfirmLogout(true);
+                    }}
+                  >
+                    <LogOut size={15} />
+                    {PROFILE_MENU.SIGNOOUT}
+                  </button>
                 </div>
-                <button
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
-                  role="menuitem"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    navigate(ROUTES.PRIVATE.PROFILE);
-                  }}
-                >
-                  {PROFILE_MENU.VIEW_PROFILE}
-                </button>
-                <button
-                  className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
-                  role="menuitem"
-                  onClick={() => {
-                    setProfileOpen(false);
-                    setConfirmLogout(true);
-                  }}
-                >
-                  <LogOut size={15} />
-                  {PROFILE_MENU.SIGNOOUT}
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+              )}
+            </div>
+          </header>
 
-        <main
-          id="main-content"
-          role="main"
-          className="flex-1 overflow-auto app-scroll p-4"
-        >
-          <Outlet />
-        </main>
+          <main
+            id="main-content"
+            role="main"
+            className="flex-1 overflow-auto app-scroll p-4"
+          >
+            <Outlet />
+          </main>
 
-        <footer
-          role="contentinfo"
-          className="shrink-0 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center print:hidden"
-        >
-          © Neelgar Society 1992
-        </footer>
+          <footer
+            role="contentinfo"
+            className="shrink-0 h-10 text-center text-sm text-text-muted bg-slate-50 flex items-center justify-center print:hidden"
+          >
+            © Neelgar Society 1992
+          </footer>
+        </div>
+
+        <ConfirmDialog
+          isOpen={confirmLogout}
+          title="Sign out?"
+          message="Are you sure you want to sign out? Make sure to save any unsaved work before confirming."
+          confirmLabel="Sign out"
+          cancelLabel="Stay"
+          variant="danger"
+          onConfirm={() => {
+            setConfirmLogout(false);
+            logout();
+            navigate(ROUTES.PUBLIC.LOGIN);
+          }}
+          onClose={() => setConfirmLogout(false)}
+        />
+
       </div>
-
-      <ConfirmDialog
-        isOpen={confirmLogout}
-        title="Sign out?"
-        message="Are you sure you want to sign out? Make sure to save any unsaved work before confirming."
-        confirmLabel="Sign out"
-        cancelLabel="Stay"
-        variant="danger"
-        onConfirm={() => {
-          setConfirmLogout(false);
-          logout();
-          navigate(ROUTES.PUBLIC.LOGIN);
-        }}
-        onClose={() => setConfirmLogout(false)}
-      />
-
-    </div>
+    </>
   );
 }
