@@ -14,7 +14,9 @@ import { ENDPOINTS } from "@/config/endpoints";
 import TncReconsentModal from "@/components/TncReconsentModal";
 import OnboardingTour from "@/features/onboarding/OnboardingTour";
 import { getTourKeyForRole } from "@/features/onboarding/tourSteps";
+import { PERM } from "@/constants/permissions";
 import { HelpCircle } from "lucide-react";
+import { getPendingApplicationCount, getPendingEditRequestCount } from "@/services/pendingCountsService";
 
 const SIDEBAR_W = 240; // px
 
@@ -90,6 +92,8 @@ export default function PrivateLayout() {
   const [tncSubmitting, setTncSubmitting] = useState(false);
   const [tourRun, setTourRun] = useState(false);
   const tourKey = getTourKeyForRole(role);
+  const [pendingApplications, setPendingApplications] = useState(0);
+  const [pendingEditRequests, setPendingEditRequests] = useState(0);
 
   useEffect(() => {
     if (isInitializing) return;
@@ -102,6 +106,14 @@ export default function PrivateLayout() {
         if (tourKey && !completedTours.includes(tourKey)) {
           setTourRun(true);
           setMobileOpen(true);
+        }
+
+        const societyId = data?.societyId;
+        if (hasPermission(PERM.MEMBER_APPLICATION_REVIEW)) {
+          getPendingApplicationCount().then(setPendingApplications).catch(() => { });
+        }
+        if (societyId && hasPermission(PERM.MEMBER_EDIT_REQUEST_REVIEW)) {
+          getPendingEditRequestCount(societyId).then(setPendingEditRequests).catch(() => { });
         }
       })
       .catch(() => {
@@ -238,25 +250,39 @@ export default function PrivateLayout() {
                     isGroupActive={isGroupActive}
                     onClose={() => setMobileOpen(false)}
                   >
-                    {visibleChildren.map((child) => (
-                      <NavLink
-                        key={child.key}
-                        data-tour={child.key}
-                        to={child.path!}
-                        onClick={() => setMobileOpen(false)}
-                        className={({ isActive }) =>
-                          [
-                            "relative flex items-center px-3 py-1.5 rounded-md text-sm transition-all",
-                            "hover:bg-white/10",
-                            isActive
-                              ? "text-white font-medium bg-white/10 before:absolute before:left-0 before:top-0.5 before:bottom-0.5 before:w-1 before:bg-primary before:rounded-r"
-                              : "text-white/55 hover:text-white",
-                          ].join(" ")
-                        }
-                      >
-                        {child.label}
-                      </NavLink>
-                    ))}
+                    {visibleChildren.map((child) => {
+                      const badgeCount =
+                        child.key === "member-applications"
+                          ? pendingApplications
+                          : child.key === "member-edit-requests"
+                            ? pendingEditRequests
+                            : 0;
+
+                      return (
+                        <NavLink
+                          key={child.key}
+                          data-tour={child.key}
+                          to={child.path!}
+                          onClick={() => setMobileOpen(false)}
+                          className={({ isActive }) =>
+                            [
+                              "relative flex items-center justify-between px-3 py-1.5 rounded-md text-sm transition-all",
+                              "hover:bg-white/10",
+                              isActive
+                                ? "text-white font-medium bg-white/10 before:absolute before:left-0 before:top-0.5 before:bottom-0.5 before:w-1 before:bg-primary before:rounded-r"
+                                : "text-white/55 hover:text-white",
+                            ].join(" ")
+                          }
+                        >
+                          <span>{child.label}</span>
+                          {badgeCount > 0 && (
+                            <span className="ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                              {badgeCount > 99 ? "99+" : badgeCount}
+                            </span>
+                          )}
+                        </NavLink>
+                      );
+                    })}
                   </GroupItem>
                 );
               }
