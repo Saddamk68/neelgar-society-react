@@ -2,7 +2,7 @@ import logo from "../assets/logo/neelgar-society-logo.png";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { APP, PROFILE_MENU } from "../constants/messages";
 import { MENU, MEMBER_MENU } from "../config/menu";
 import SkipLink from "../components/SkipLink";
@@ -68,6 +68,19 @@ export default function PrivateLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [profileOpen]);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
@@ -88,6 +101,7 @@ export default function PrivateLayout() {
         const completedTours: string[] = data?.completedOnboardingTours ?? [];
         if (tourKey && !completedTours.includes(tourKey)) {
           setTourRun(true);
+          setMobileOpen(true);
         }
       })
       .catch(() => {
@@ -97,6 +111,7 @@ export default function PrivateLayout() {
 
   function handleTourFinish() {
     setTourRun(false);
+    setMobileOpen(false);
     if (tourKey) {
       api.post(ENDPOINTS.users.completeOnboardingTour(tourKey)).catch(() => {
         // Non-critical — tour will just show again next load if this fails
@@ -307,7 +322,14 @@ export default function PrivateLayout() {
   return (
     <>
       <TncReconsentModal isOpen={tncRequired} submitting={tncSubmitting} onAccept={handleAcceptTnc} />
-      <OnboardingTour tourKey={tourKey} run={tourRun} onFinish={handleTourFinish} />
+      <OnboardingTour
+        tourKey={tourKey}
+        run={tourRun}
+        onFinish={handleTourFinish}
+        onOpenProfileMenu={() => setProfileOpen(true)}
+        onCloseProfileMenu={() => setProfileOpen(false)}
+        onCloseMobileMenu={() => setMobileOpen(false)}
+      />
       <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
         <SkipLink />
 
@@ -389,7 +411,10 @@ export default function PrivateLayout() {
             <div className="flex items-center gap-2">
               {tourKey && (
                 <button
-                  onClick={() => setTourRun(true)}
+                  onClick={() => {
+                    setTourRun(true);
+                    setMobileOpen(true);
+                  }}
                   className="p-2 rounded-md hover:bg-slate-100 transition text-slate-500 hover:text-slate-800"
                   title="Take a tour"
                   aria-label="Take a tour"
@@ -397,8 +422,9 @@ export default function PrivateLayout() {
                   <HelpCircle size={18} />
                 </button>
               )}
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <button
+                  data-tour="profile-menu"
                   onClick={() => setProfileOpen((v) => !v)}
                   className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
                   title="Open profile menu"
@@ -411,7 +437,7 @@ export default function PrivateLayout() {
 
                 {profileOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+                    className="absolute right-0 mt-2 w-48 z-[60] bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
                     onMouseLeave={() => setProfileOpen(false)}
                     role="menu"
                     aria-label="Profile menu"
@@ -421,6 +447,7 @@ export default function PrivateLayout() {
                       {role}
                     </div>
                     <button
+                      data-tour="view-profile-link"
                       className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
                       role="menuitem"
                       onClick={() => {
@@ -430,6 +457,19 @@ export default function PrivateLayout() {
                     >
                       {PROFILE_MENU.VIEW_PROFILE}
                     </button>
+                    {tourKey && (
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                        role="menuitem"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          setTourRun(true);
+                          setMobileOpen(true);
+                        }}
+                      >
+                        Take the Tour
+                      </button>
+                    )}
                     <button
                       className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
                       role="menuitem"

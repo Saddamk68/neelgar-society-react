@@ -231,6 +231,7 @@ function MemberDashboard({ memberCode }: { memberCode: string }) {
 
         <div className="mt-5 pt-4 border-t flex gap-3">
           <Link
+            data-tour="view-full-details"
             to={`${ROUTES.PRIVATE.MEMBERS}/${member.memberCode}/view`}
             className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 transition"
           >
