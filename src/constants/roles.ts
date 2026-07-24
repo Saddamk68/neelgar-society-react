@@ -4,6 +4,8 @@ export type Role =
     | "PRESIDENT"
     | "SECRETARY"
     | "EDITOR"
+    | "LOCAL_PRESIDENT"
+    | "LOCAL_SECRETARY"
     | "MEMBER";
 
 /**
@@ -16,6 +18,8 @@ export const ALL_ROLES: Role[] = [
     "PRESIDENT",
     "SECRETARY",
     "EDITOR",
+    "LOCAL_PRESIDENT",
+    "LOCAL_SECRETARY",
     "MEMBER",
 ];
 
