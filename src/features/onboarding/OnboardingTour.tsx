@@ -1,5 +1,6 @@
 import { Joyride, EventData, STATUS } from "react-joyride";
 import { TOURS } from "./tourSteps";
+import TourTooltip from "./TourTooltip";
 
 type OnboardingTourProps = {
     tourKey: string | null;
@@ -26,13 +27,9 @@ export default function OnboardingTour({ tourKey, run, onFinish }: OnboardingTou
             continuous
             scrollToFirstStep
             onEvent={handleEvent}
+            tooltipComponent={TourTooltip}
             options={{
-                showProgress: true,
-                buttons: ["back", "skip", "primary"],
                 zIndex: 10000,
-                primaryColor: "var(--color-primary)",
-                backgroundColor: "var(--color-surface)",
-                textColor: "var(--color-text-primary)",
                 arrowColor: "var(--color-surface)",
                 overlayColor: "rgba(17, 24, 39, 0.5)",
             }}
