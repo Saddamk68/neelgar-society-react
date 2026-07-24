@@ -100,7 +100,7 @@ function ChangePasswordSection({ onSuccess, forceOpen = false }: { onSuccess: ()
     };
 
     return (
-        <div className="bg-white rounded-xl shadow">
+        <div className="bg-white rounded-xl shadow" data-tour="password-section">
 
             {/* Collapsible header */}
             <button

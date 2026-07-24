@@ -31,13 +31,14 @@ function formatDate(val?: string | null): string {
 
 // ── Actions dropdown ──────────────────────────────────────────────────────────
 
-function ActionsMenu({ children }: { children: React.ReactNode }) {
+function ActionsMenu({ children, dataTour }: { children: React.ReactNode; dataTour?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="relative">
       <button
         type="button"
+        data-tour={dataTour}
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1 px-3 py-2 rounded-md border text-sm hover:bg-slate-50 transition"
       >
@@ -196,7 +197,7 @@ export default function ViewMember() {
                 Lineage
               </Link>
 
-              <ActionsMenu>
+              <ActionsMenu dataTour="ellipsis-menu">
                 {can(PERM.MEMBER_UPDATE) && (
                   <ActionItem
                     icon={Pencil}

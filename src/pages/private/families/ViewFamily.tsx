@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Printer, UserCog } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
@@ -41,6 +42,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ViewFamily() {
     const { familyCode } = useParams<{ familyCode: string }>();
+    const { user } = useAuth();
     const notify = useNotify();
 
     const queryClient = useQueryClient();
@@ -191,6 +193,7 @@ export default function ViewFamily() {
                                 {members.map((m) => (
                                     <div
                                         key={m.memberCode}
+                                        data-tour={m.memberCode === user?.memberCode ? "self-member-row" : undefined}
                                         className="flex items-center gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition"
                                     >
                                         <MemberAvatar
