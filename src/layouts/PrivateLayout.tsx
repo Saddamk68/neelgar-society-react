@@ -404,6 +404,7 @@ export default function PrivateLayout() {
               )}
               <div className="relative">
                 <button
+                  data-tour="profile-menu"
                   onClick={() => setProfileOpen((v) => !v)}
                   className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shadow-sm hover:shadow transition"
                   title="Open profile menu"
@@ -416,7 +417,7 @@ export default function PrivateLayout() {
 
                 {profileOpen && (
                   <div
-                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
+                    className="absolute right-0 mt-2 w-48 z-[60] bg-white rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden"
                     onMouseLeave={() => setProfileOpen(false)}
                     role="menu"
                     aria-label="Profile menu"
@@ -426,6 +427,7 @@ export default function PrivateLayout() {
                       {role}
                     </div>
                     <button
+                      data-tour="view-profile-link"
                       className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
                       role="menuitem"
                       onClick={() => {
@@ -435,6 +437,19 @@ export default function PrivateLayout() {
                     >
                       {PROFILE_MENU.VIEW_PROFILE}
                     </button>
+                    {tourKey && (
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 transition"
+                        role="menuitem"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          setTourRun(true);
+                          setMobileOpen(true);
+                        }}
+                      >
+                        Take the Tour
+                      </button>
+                    )}
                     <button
                       className="w-full flex items-center gap-2 text-left px-4 py-2 text-sm text-danger hover:bg-red-50 transition"
                       role="menuitem"

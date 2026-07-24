@@ -116,6 +116,24 @@ export const TOURS: Record<string, Step[]> = {
             content: "View and add family records here.",
         },
     ],
+    MEMBER: [
+        {
+            target: visibleTarget("dashboard"),
+            title: "Dashboard",
+            content: "Your home screen — a quick overview of society activity and upcoming events.",
+            skipBeacon: true,
+        },
+        {
+            target: visibleTarget("my-family"),
+            title: "My Family",
+            content: "View your family tree and lineage here, and see everyone's details in your household.",
+        },
+        {
+            target: visibleTarget("profile-menu"),
+            title: "Your Profile",
+            content: "Change your password here anytime. Need to correct your own details? Open your record from My Family and use \"Request changes\" — a local authority will review it.",
+        },
+    ],
     ADMIN: [
         {
             target: visibleTarget("dashboard"),
@@ -152,5 +170,6 @@ export function getTourKeyForRole(role: Role): string | null {
     if (role === "SECRETARY") return "SECRETARY";
     if (role === "EDITOR") return "EDITOR";
     if (role === "ADMIN" || role === "SUPER_ADMIN") return "ADMIN";
-    return null; // MEMBER — no tour
+    if (role === "MEMBER") return "MEMBER";
+    return null;
 }
