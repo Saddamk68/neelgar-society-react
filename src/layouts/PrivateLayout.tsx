@@ -2,7 +2,7 @@ import logo from "../assets/logo/neelgar-society-logo.png";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../context/AuthContext";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { APP, PROFILE_MENU } from "../constants/messages";
 import { MENU, MEMBER_MENU } from "../config/menu";
 import SkipLink from "../components/SkipLink";
@@ -68,6 +68,19 @@ export default function PrivateLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [profileOpen]);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [phoneBannerDismissed, setPhoneBannerDismissed] = useState(false);
@@ -309,7 +322,14 @@ export default function PrivateLayout() {
   return (
     <>
       <TncReconsentModal isOpen={tncRequired} submitting={tncSubmitting} onAccept={handleAcceptTnc} />
-      <OnboardingTour tourKey={tourKey} run={tourRun} onFinish={handleTourFinish} />
+      <OnboardingTour
+        tourKey={tourKey}
+        run={tourRun}
+        onFinish={handleTourFinish}
+        onOpenProfileMenu={() => setProfileOpen(true)}
+        onCloseProfileMenu={() => setProfileOpen(false)}
+        onCloseMobileMenu={() => setMobileOpen(false)}
+      />
       <div className="h-dvh overflow-hidden bg-background text-text-primary flex">
         <SkipLink />
 
@@ -402,7 +422,7 @@ export default function PrivateLayout() {
                   <HelpCircle size={18} />
                 </button>
               )}
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <button
                   data-tour="profile-menu"
                   onClick={() => setProfileOpen((v) => !v)}

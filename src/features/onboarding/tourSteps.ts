@@ -116,24 +116,6 @@ export const TOURS: Record<string, Step[]> = {
             content: "View and add family records here.",
         },
     ],
-    MEMBER: [
-        {
-            target: visibleTarget("dashboard"),
-            title: "Dashboard",
-            content: "Your home screen — a quick overview of society activity and upcoming events.",
-            skipBeacon: true,
-        },
-        {
-            target: visibleTarget("my-family"),
-            title: "My Family",
-            content: "View your family tree and lineage here, and see everyone's details in your household.",
-        },
-        {
-            target: visibleTarget("profile-menu"),
-            title: "Your Profile",
-            content: "Change your password here anytime. Need to correct your own details? Open your record from My Family and use \"Request changes\" — a local authority will review it.",
-        },
-    ],
     ADMIN: [
         {
             target: visibleTarget("dashboard"),
@@ -163,6 +145,95 @@ export const TOURS: Record<string, Step[]> = {
         },
     ],
 };
+
+type NavigateFn = (path: string) => void;
+
+// MEMBER's tour actually drives real navigation (opens the profile menu, visits
+// pages) between steps, so it needs callbacks the other static tours don't.
+export function getMemberTourSteps(
+    openProfileMenu: () => void,
+    closeProfileMenu: () => void,
+    navigate: NavigateFn,
+    closeMobileMenu: () => void,
+    memberCode: string
+): Step[] {
+    const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    return [
+        {
+            target: visibleTarget("dashboard"),
+            title: "Dashboard",
+            content: "Your home screen — a quick overview of society activity and upcoming events.",
+            skipBeacon: true,
+        },
+        {
+            target: visibleTarget("view-full-details"),
+            title: "Your Record",
+            data: {
+                onBeforeShow: async () => {
+                    closeMobileMenu();
+                    navigate("/app/dashboard");
+                    await wait(300);
+                },
+            },
+            targetWaitTimeout: 5000,
+            content: "Scroll down to your profile card, then click \"View Full Details\" to open your record.",
+        },
+        {
+            target: visibleTarget("ellipsis-menu"),
+            title: "More Options",
+            data: {
+                onBeforeShow: async () => {
+                    navigate(`/app/members/${memberCode}/view`);
+                    await wait(300);
+                },
+            },
+            targetWaitTimeout: 5000,
+            content: "Click this menu for more options.",
+        },
+        {
+            target: "body",
+            placement: "center",
+            title: "Requesting Changes",
+            content: "Select \"Request Changes\" from the menu to suggest edits — a local authority will review and approve them.",
+        },
+        {
+            target: visibleTarget("profile-menu"),
+            title: "Your Account",
+            data: {
+                onBeforeShow: async () => {
+                    closeMobileMenu();
+                    await wait(200);
+                },
+            },
+            content: "Click your avatar to open your account menu.",
+        },
+        {
+            target: visibleTarget("view-profile-link"),
+            title: "View Profile",
+            data: {
+                onBeforeShow: async () => {
+                    openProfileMenu();
+                    await wait(200);
+                },
+            },
+            content: "Click \"View Profile\" to manage your account.",
+        },
+        {
+            target: visibleTarget("password-section"),
+            title: "Change Password",
+            data: {
+                onBeforeShow: async () => {
+                    closeProfileMenu();
+                    navigate("/app/profile");
+                    await wait(300);
+                },
+            },
+            targetWaitTimeout: 5000,
+            content: "Change your password here anytime.",
+        },
+    ];
+}
 
 export function getTourKeyForRole(role: Role): string | null {
     if (role === "LOCAL_PRESIDENT" || role === "LOCAL_SECRETARY") return "LOCAL_AUTHORITY";
