@@ -4,7 +4,7 @@ export const SOCIETY = {
     name: "Neelgar Society",
     established: "1992",
     headquarters: "Jora, Morena District, Madhya Pradesh",
-    email: "hello@neelgar.org",
+    email: "support@neelgarsociety.com",
     phone: "+91 12345 67890",
     mission: "To eliminate wrong and wasteful social practices (Vices) and promote Islamic values across our community — in weddings, gatherings and everyday life.",
     tagline: "Reforming traditions. Strengthening families. Since 1992.",

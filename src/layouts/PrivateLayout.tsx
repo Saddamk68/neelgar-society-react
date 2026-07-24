@@ -88,6 +88,7 @@ export default function PrivateLayout() {
         const completedTours: string[] = data?.completedOnboardingTours ?? [];
         if (tourKey && !completedTours.includes(tourKey)) {
           setTourRun(true);
+          setMobileOpen(true);
         }
       })
       .catch(() => {
@@ -97,6 +98,7 @@ export default function PrivateLayout() {
 
   function handleTourFinish() {
     setTourRun(false);
+    setMobileOpen(false);
     if (tourKey) {
       api.post(ENDPOINTS.users.completeOnboardingTour(tourKey)).catch(() => {
         // Non-critical — tour will just show again next load if this fails
@@ -389,7 +391,10 @@ export default function PrivateLayout() {
             <div className="flex items-center gap-2">
               {tourKey && (
                 <button
-                  onClick={() => setTourRun(true)}
+                  onClick={() => {
+                    setTourRun(true);
+                    setMobileOpen(true);
+                  }}
                   className="p-2 rounded-md hover:bg-slate-100 transition text-slate-500 hover:text-slate-800"
                   title="Take a tour"
                   aria-label="Take a tour"
