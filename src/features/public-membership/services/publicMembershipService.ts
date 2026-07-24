@@ -41,6 +41,20 @@ export async function verifyOtp(email: string, otp: string): Promise<string> {
     return data.verificationToken;
 }
 
+export async function sendContactMessage(payload: {
+    name: string;
+    email: string;
+    subject?: string;
+    message: string;
+}): Promise<void> {
+    const res = await fetch(`${PUBLIC_API_BASE}/public/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    await handle<void>(res);
+}
+
 export async function submitApplication(
     payload: MemberApplicationSubmitPayload
 ): Promise<MemberApplicationStatusResponse> {

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Mail, Phone, MapPin, Users } from "lucide-react";
 import { SOCIETY } from "../../constants/society";
+import { sendContactMessage } from "@/features/public-membership/services/publicMembershipService";
+import { isValidEmail } from "@/utils/validation";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
@@ -16,14 +18,15 @@ export default function Contact() {
       return;
     }
 
+    if (!isValidEmail(form.email)) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+
     setStatus("sending");
     try {
-      const resp = await fetch("/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!resp.ok) throw new Error("Network error");
+      await sendContactMessage(form);
       setStatus("success");
       setForm({ name: "", email: "", subject: "", message: "" });
     } catch (err: any) {
